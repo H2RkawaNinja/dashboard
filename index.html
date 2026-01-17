@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BST Gang Management System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="gang-logo">
+                    <img src="logo.png" alt="BST Gang Logo" class="gang-logo-img">
+                </div>
+                <p></p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Benutzername</label>
+                    <input type="text" id="username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label>Passwort</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Einloggen
+                </button>
+                <div id="login-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="dashboard" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="logo.png" alt="BST Gang Logo" class="sidebar-logo-img">
+                <h2>Gang System</h2>
+            </div>
+            <div class="user-profile">
+                <img id="user-profile-photo" src="https://via.placeholder.com/40" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px;">
+                <div>
+                    <strong id="user-display-name"></strong>
+                    <span id="user-rank"></span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-page="overview">
+                    <i class="fas fa-home"></i><span>Übersicht</span>
+                </a>
+                <a href="#" class="nav-item" data-page="members">
+                    <i class="fas fa-users"></i><span>Mitglieder</span>
+                </a>
+                <a href="#" class="nav-item" data-page="hero">
+                    <i class="fas fa-pills"></i><span>Hero-Verkauf</span>
+                </a>
+                <a href="#" class="nav-item" data-page="fence">
+                    <i class="fas fa-handshake"></i><span>Hehler-Geschäft</span>
+                </a>
+                <a href="#" class="nav-item" data-page="warehouse">
+                    <i class="fas fa-box-open"></i><span>Sortier Bereich</span>
+                </a>
+                <a href="#" class="nav-item" data-page="storage">
+                    <i class="fas fa-warehouse"></i><span>Lager</span>
+                </a>
+                <a href="#" class="nav-item" data-page="intelligence">
+                    <i class="fas fa-user-secret"></i><span>Intel-Sammlung</span>
+                </a>
+                <a href="#" class="nav-item" data-page="activity">
+                    <i class="fas fa-clipboard-list"></i><span>Aktivitäten</span>
+                </a>
+            </nav>
+            <button id="logout-btn" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Abmelden
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h1 id="page-title">Übersicht</h1>
+                <div class="header-time">
+                    <i class="fas fa-clock"></i>
+                    <span id="current-time"></span>
+                </div>
+            </header>
+
+            <!-- Übersicht Page -->
+            <div id="overview-page" class="page active">
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <i class="fas fa-users"></i>
+                        <div>
+                            <h3>Aktive Mitglieder</h3>
+                            <p class="stat-number" id="stat-members">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card green">
+                        <i class="fas fa-pills"></i>
+                        <div>
+                            <h3>Hero Lagerbestand</h3>
+                            <p class="stat-number" id="stat-hero">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card orange">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <h3>Offene Abrechnungen</h3>
+                            <p class="stat-number" id="stat-pending">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card purple">
+                        <i class="fas fa-warehouse"></i>
+                        <div>
+                            <h3>Lagerwert</h3>
+                            <p class="stat-number" id="stat-warehouse">$0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Letzte Aktivitäten</h2>
+                    <div id="recent-activity" class="activity-list"></div>
+                </div>
+            </div>
+
+            <!-- Mitglieder Page -->
+            <div id="members-page" class="page">
+                <div class="page-header">
+                    <button class="btn-primary" id="add-member-btn" onclick="showAddMemberModal()" style="display: none;">
+                        <i class="fas fa-user-plus"></i> Mitglied hinzufügen
+                    </button>
+                </div>
+                <div class="card">
+                    <h2>Mitgliederliste</h2>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Name</th>
+                                <th>Benutzername</th>
+                                <th>Rang</th>
+                                <th>Passwort</th>
+                                <th>Telefon</th>
+                                <th>Letzter Login</th>
+                                <th>Status</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="members-table"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Hero-Verkauf Page -->
+            <div id="hero-page" class="page">
+                <div id="hero-no-permission" class="info-banner" style="display: none; background: #ff9800; color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Keine Berechtigung:</strong> Sie haben keine Berechtigung, Hero-Lager zu verwalten. Wenden Sie sich an einen Administrator.
+                </div>
+                <div class="hero-header">
+                    <div class="hero-stock-card">
+                        <h3>Lagerbestand</h3>
+                        <p class="big-number" id="hero-stock">0</p>
+                        <p>Stück verfügbar</p>
+                        <p class="hero-price">Gang-Anteil wenn alles verkauft: <strong style="color: var(--success); font-size: 1.3em;">$<span id="hero-gang-potential">0</span></strong></p>
+                        <hr>
+                        <p class="hero-price">Einkaufspreis: $<span id="hero-unit-cost">0</span></p>
+                        <p class="hero-price">Verkaufspreis: $<span id="hero-sale-price">0</span></p>
+                        <p class="hero-price">Gang-Anteil: <span id="hero-gang-percent">0</span>%</p>
+                    </div>
+                    <div class="hero-stock-card">
+                        <h3>Ausgegeben & zu kassieren</h3>
+                        <p class="big-number" style="color: var(--success);" id="hero-total-expected">$0</p>
+                        <p>Gang-Anteil gesamt (60%)</p>
+                        <p class="hero-price" style="color: var(--success);">Bereits kassiert: $<span id="hero-paid-amount">0</span></p>
+                        <p class="hero-price" style="color: var(--danger);"><strong>Noch offen: $<span id="hero-outstanding-amount">0</span></strong></p>
+                    </div>
+                    <button class="btn-primary" onclick="showSettingsModal()">
+                        <i class="fas fa-cog"></i> Einstellungen
+                    </button>
+                    <button class="btn-primary" onclick="showRestockModal()">
+                        <i class="fas fa-plus"></i> Lager auffüllen
+                    </button>
+                    <button class="btn-warning" onclick="showEditStockModal()">
+                        <i class="fas fa-edit"></i> Lager bearbeiten
+                    </button>
+                    <button class="btn-primary" onclick="showDistributeModal()">
+                        <i class="fas fa-hand-holding"></i> Hero ausgeben
+                    </button>
+                </div>
+
+                <div class="card">
+                    <h2>Ausgaben & Abrechnungen</h2>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mitglied</th>
+                                <th>Menge</th>
+                                <th>Erwarteter Erlös</th>
+                                <th>Gang-Anteil (muss abgeben)</th>
+                                <th>Bezahlt</th>
+                                <th>Offen</th>
+                                <th>Datum</th>
+                                <th>Status</th>
+                                <th>Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hero-distributions-table"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Hehler Page -->
+            <div id="fence-page" class="page">
+                <div id="fence-no-permission" class="info-banner" style="display: none; background: #ff9800; color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Keine Berechtigung:</strong> Sie haben keine Berechtigung, Hehler-Ankäufe einzutragen. Wenden Sie sich an einen Administrator.
+                </div>
+                
+                <!-- Tabs für verschiedene Ansichten -->
+                <div class="fence-tabs">
+                    <button class="fence-tab active" onclick="switchFenceTab('products')">
+                        <i class="fas fa-shopping-cart"></i> Schnellankauf
+                    </button>
+                    <button class="fence-tab" onclick="switchFenceTab('sales')">
+                        <i class="fas fa-dollar-sign"></i> Verkauf
+                    </button>
+                    <button class="fence-tab" onclick="switchFenceTab('manage')">
+                        <i class="fas fa-cog"></i> Produktverwaltung
+                    </button>
+                </div>
+
+                <!-- Produkte & Schnellankauf Tab -->
+                <div id="fence-products-tab" class="fence-tab-content active">
+                    <div class="stats-grid" style="margin-bottom: 2rem;">
+                        <div class="stat-card-small blue">
+                            <h4>Ankäufe heute</h4>
+                            <p class="big-number" id="fence-count-today">0</p>
+                        </div>
+                        <div class="stat-card-small red">
+                            <h4>Ausgaben heute</h4>
+                            <p class="big-number" id="fence-spent-today">$0</p>
+                        </div>
+                        <div class="stat-card-small green">
+                            <h4>Umsatz heute</h4>
+                            <p class="big-number" id="fence-revenue-today">$0</p>
+                        </div>
+                        <div class="stat-card-small purple">
+                            <h4>Gewinn heute</h4>
+                            <p class="big-number" id="fence-profit-today">$0</p>
+                        </div>
+                    </div>
+
+                    <div class="fence-products-layout">
+                        <!-- Produkte Grid (links) -->
+                        <div class="fence-products-main">
+                            <div class="card">
+                                <div class="card-header-flex">
+                                    <h2><i class="fas fa-boxes"></i> Schnellankauf - Produkte</h2>
+                                    <input type="text" id="product-search" class="search-input" placeholder="🔍 Produkte durchsuchen..." oninput="filterProducts()">
+                                </div>
+                                <div id="products-grid" class="products-grid">
+                                    <!-- Produkte werden hier dynamisch geladen -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Warenkorb Sidebar (rechts) -->
+                        <div class="fence-cart-sidebar">
+                            <div class="card cart-sticky">
+                                <div class="cart-sidebar-header">
+                                    <h2><i class="fas fa-shopping-cart"></i> Warenkorb</h2>
+                                    <span class="cart-badge" id="page-cart-badge">0</span>
+                                </div>
+                                
+                                <div id="page-cart-items" class="page-cart-items">
+                                    <div class="cart-empty-state">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        <p>Warenkorb ist leer</p>
+                                        <small>Klicken Sie auf "Schnellankauf" bei einem Produkt</small>
+                                    </div>
+                                </div>
+
+                                <div id="page-cart-summary" class="page-cart-summary" style="display: none;">
+                                    <div class="page-cart-total-row">
+                                        <span>Artikel:</span>
+                                        <strong><span id="page-cart-count">0</span></strong>
+                                    </div>
+                                    <div class="page-cart-total-row">
+                                        <span>Gesamt:</span>
+                                        <strong><span id="page-cart-quantity">0</span>x</strong>
+                                    </div>
+                                    <div class="page-cart-total-row total">
+                                        <span>Summe:</span>
+                                        <strong class="total-price">$<span id="page-cart-total">0.00</span></strong>
+                                    </div>
+                                    
+                                    <button class="btn-success btn-block" onclick="proceedToCheckout()">
+                                        <i class="fas fa-check"></i> Zur Kasse
+                                    </button>
+                                    <button class="btn-text-danger btn-block" onclick="clearCart()" style="margin-top: 0.5rem;">
+                                        <i class="fas fa-trash"></i> Warenkorb leeren
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verkauf Tab -->
+                <div id="fence-sales-tab" class="fence-tab-content">
+                    <div class="stats-grid" style="margin-bottom: 2rem; grid-template-columns: repeat(3, 1fr);">
+                        <div class="stat-card-small green">
+                            <h4>Verkäufe heute</h4>
+                            <p class="big-number" id="fence-sales-today">0</p>
+                        </div>
+                        <div class="stat-card-small blue">
+                            <h4>Umsatz heute</h4>
+                            <p class="big-number" id="fence-revenue-today-2">$0</p>
+                        </div>
+                        <div class="stat-card-small purple">
+                            <h4>Gewinn heute</h4>
+                            <p class="big-number" id="fence-profit-today-2">$0</p>
+                        </div>
+                    </div>
+
+                    <div class="fence-products-layout">
+                        <!-- Produkte Grid für Verkauf (links) -->
+                        <div class="fence-products-main">
+                            <div class="card">
+                                <div class="card-header-flex">
+                                    <h2><i class="fas fa-dollar-sign"></i> Schnellverkauf - Produkte</h2>
+                                    <input type="text" id="sales-product-search" class="search-input" placeholder="🔍 Produkte durchsuchen..." oninput="filterSalesProducts()">
+                                </div>
+                                <div id="sales-products-grid" class="products-grid">
+                                    <!-- Verkaufs-Produkte werden hier dynamisch geladen -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verkaufs-Warenkorb Sidebar (rechts) -->
+                        <div class="fence-cart-sidebar">
+                            <div class="card cart-sticky">
+                                <div class="cart-sidebar-header">
+                                    <h2><i class="fas fa-cash-register"></i> Verkaufskorb</h2>
+                                    <span class="cart-badge" id="sales-cart-badge">0</span>
+                                </div>
+                                
+                                <div id="sales-cart-items" class="page-cart-items">
+                                    <div class="cart-empty-state">
+                                        <i class="fas fa-cash-register"></i>
+                                        <p>Verkaufskorb ist leer</p>
+                                        <small>Klicken Sie auf "Verkaufen" bei einem Produkt</small>
+                                    </div>
+                                </div>
+
+                                <div id="sales-cart-summary" class="page-cart-summary" style="display: none;">
+                                    <div class="page-cart-total-row">
+                                        <span>Artikel:</span>
+                                        <strong><span id="sales-cart-count">0</span></strong>
+                                    </div>
+                                    <div class="page-cart-total-row">
+                                        <span>Einkauf:</span>
+                                        <strong class="text-danger">$<span id="sales-cart-cost">0.00</span></strong>
+                                    </div>
+                                    <div class="page-cart-total-row">
+                                        <span>Verkauf:</span>
+                                        <strong class="text-success">$<span id="sales-cart-revenue">0.00</span></strong>
+                                    </div>
+                                    <div class="page-cart-total-row total">
+                                        <span>Gewinn:</span>
+                                        <strong class="total-price profit">$<span id="sales-cart-profit">0.00</span></strong>
+                                    </div>
+                                    
+                                    <button class="btn-success btn-block" onclick="proceedToSalesCheckout()">
+                                        <i class="fas fa-check"></i> Verkauf abschließen
+                                    </button>
+                                    <button class="btn-text-danger btn-block" onclick="clearSalesCart()" style="margin-top: 0.5rem;">
+                                        <i class="fas fa-trash"></i> Verkaufskorb leeren
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Produktverwaltung Tab -->
+                <div id="fence-manage-tab" class="fence-tab-content">
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <div>
+                                <h2><i class="fas fa-cog"></i> Produktverwaltung</h2>
+                                <p class="card-subtitle">Verwalten Sie Ihre Produkte und legen Sie Standard-Preise fest</p>
+                            </div>
+                            <button class="btn-primary" onclick="showAddProductModal()">
+                                <i class="fas fa-plus"></i> Neues Produkt
+                            </button>
+                        </div>
+                        
+                        <div class="manage-view-toggle">
+                            <button class="view-btn active" onclick="switchManageView('cards')" id="view-cards-btn">
+                                <i class="fas fa-th-large"></i> Karten
+                            </button>
+                            <button class="view-btn" onclick="switchManageView('table')" id="view-table-btn">
+                                <i class="fas fa-list"></i> Tabelle
+                            </button>
+                        </div>
+
+                        <!-- Karten-Ansicht -->
+                        <div id="manage-cards-view" class="manage-view active">
+                            <div id="products-manage-grid" class="products-grid">
+                                <!-- Produktkarten werden hier geladen -->
+                            </div>
+                        </div>
+
+                        <!-- Tabellen-Ansicht -->
+                        <div id="manage-table-view" class="manage-view">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produktname</th>
+                                        <th>Kategorie</th>
+                                        <th>Standard-Ankaufspreis</th>
+                                        <th>Standard-Verkaufspreis</th>
+                                        <th>Gewinnspanne</th>
+                                        <th>Status</th>
+                                        <th>Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-manage-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sortier Bereich Page -->
+            <div id="warehouse-page" class="page">
+                <!-- Unsortierte Artikel Section -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h2 style="margin-bottom: 0.5rem;">Unsortierte Artikel</h2>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Ziehen Sie die Artikel in die Lagerplätze unten</p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div class="badge" id="unsorted-count-badge" style="background: var(--danger); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600;">
+                                0 Artikel
+                            </div>
+                            <button class="btn-success" id="finish-storage-btn" onclick="finishStorageOrganization()" style="display: none;">
+                                <i class="fas fa-check"></i> Lagerung fertig
+                            </button>
+                        </div>
+                    </div>
+                    <div id="unsorted-items-grid" class="unsorted-items-grid"></div>
+                </div>
+
+                <!-- Lagerplätze Section -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2>Lagerplätze</h2>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <button class="btn-primary" onclick="showAddStorageSlotModal()">
+                                <i class="fas fa-plus"></i> Lagerplatz hinzufügen
+                            </button>
+                            <button class="btn-secondary" onclick="toggleWarehouseView()">
+                                <i class="fas fa-table"></i> <span id="warehouse-view-text">Tabellenansicht</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Grid View für Lagerplätze -->
+                    <div id="storage-grid-view" class="storage-grid-view">
+                        <div id="storage-sections-container" class="storage-sections">
+                            <!-- Lagerplätze werden dynamisch geladen -->
+                        </div>
+                    </div>
+
+                    <!-- Table View (alte Ansicht) -->
+                    <div id="storage-table-view" class="storage-table-view" style="display: none;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Artikel</th>
+                                    <th>Kategorie</th>
+                                    <th>Menge</th>
+                                    <th>Wert/Stück</th>
+                                    <th>Gesamtwert</th>
+                                    <th>Standort</th>
+                                    <th>Letzte Änderung</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="warehouse-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lager Overview Page -->
+            <div id="storage-page" class="page">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div>
+                            <h2 style="margin-bottom: 0.5rem;">Lager Übersicht</h2>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Alle eingelagerten Artikel nach Lagerplätzen</p>
+                        </div>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div class="badge" style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600;">
+                                <span id="total-storage-items">0</span> Artikel
+                            </div>
+                            <div class="badge" style="background: var(--success); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600;">
+                                $<span id="total-storage-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lager Sections -->
+                    <div id="storage-overview-sections" class="storage-sections">
+                        <!-- Dynamisch geladen -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aktivitäten Page -->
+            <!-- Activity Page -->
+            <div id="activity-page" class="page">
+                <div class="card">
+                    <h2>Aktivitätsprotokoll</h2>
+                    <div id="activity-log" class="activity-list"></div>
+                </div>
+            </div>
+
+            <!-- Intelligence Page -->
+            <div id="intelligence-page" class="page">
+                <div class="page-header">
+                    <h2>Kontakte & Gangs</h2>
+                    <button class="btn-primary" onclick="showAddIntelModal()">
+                        <i class="fas fa-plus"></i> Neuer Kontakt
+                    </button>
+                </div>
+
+                <!-- Filter und Suche -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="filters-row">
+                        <div class="form-group" style="flex: 1;">
+                            <input type="text" id="intel-search" placeholder="Suchen..." oninput="filterIntelligence()">
+                        </div>
+                        <div class="form-group" style="width: 200px;">
+                            <select id="intel-filter-category" onchange="filterIntelligence()">
+                                <option value="">Alle Typen</option>
+                                <option value="Person">Personen</option>
+                                <option value="Gang">Gangs</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Intelligence Grid -->
+                <div id="intelligence-grid" class="intelligence-grid"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay" style="display: none;">
+        
+        <!-- Lagerplatz Modal -->
+        <div id="storage-slot-modal" class="modal" style="display: none; max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="storage-slot-modal-title">Lagerplatz hinzufügen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="storage-slot-form">
+                <input type="hidden" id="storage-slot-id">
+                <input type="hidden" id="storage-slot-old-code">
+                
+                <div class="form-group">
+                    <label>Besitzer</label>
+                    <select id="storage-slot-owner">
+                        <option value="">-- Kein Besitzer --</option>
+                    </select>
+                    <small style="color: var(--text-secondary); font-size: 0.85rem;">Wem gehört dieses Lager</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Lager-ID</label>
+                    <input type="text" id="storage-slot-warehouse-id" required pattern="[0-9]{8}" placeholder="z.B. 12345678" maxlength="8">
+                    <small style="color: var(--text-secondary); font-size: 0.85rem;">Genau 8 Ziffern - Identifikationsnummer des Lagers</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Passwort</label>
+                    <input type="text" id="storage-slot-password" pattern="[0-9]{4}" placeholder="z.B. 0000" maxlength="4">
+                    <small style="color: var(--text-secondary); font-size: 0.85rem;">Genau 4 Ziffern (optional)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Standort</label>
+                    <select id="storage-slot-location" required>
+                        <option value="Paleto">Paleto</option>
+                        <option value="Grapseed">Grapseed</option>
+                        <option value="Northside">Northside</option>
+                        <option value="Westside">Westside</option>
+                        <option value="Eastside">Eastside</option>
+                        <option value="Mirror Park">Mirror Park</option>
+                        <option value="Southside">Southside</option>
+                        <option value="Harmony">Harmony</option>
+                    </select>
+                    <small style="color: var(--text-secondary); font-size: 0.85rem;">Fester Standort des Lagers</small>
+                </div>
+                
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn-secondary" onclick="closeModals()" style="flex: 1;">Abbrechen</button>
+                    <button type="submit" class="btn-primary" style="flex: 1;">Speichern</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Löschbestätigungs-Modal -->
+        <div id="delete-confirm-modal" class="modal" style="display: none; max-width: 450px;">
+            <div class="modal-header" style="background: #dc3545; color: white;">
+                <h2><i class="fas fa-exclamation-triangle"></i> Mitglied löschen?</h2>
+                <button class="close-modal" onclick="closeModals()" style="color: white;">&times;</button>
+            </div>
+            <div style="padding: 30px;">
+                <p style="font-size: 16px; margin-bottom: 20px; text-align: center;">
+                    Bist du sicher, dass du <strong id="delete-member-name" style="color: #dc3545;"></strong> aus der Gang entfernen möchtest?
+                </p>
+                <p style="font-size: 14px; color: #666; margin-bottom: 25px; text-align: center;">
+                    Das Mitglied wird dauerhaft gelöscht. Alle Verkäufe und Aktivitäten bleiben jedoch erhalten.
+                </p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn-secondary" onclick="closeModals()" style="min-width: 120px;">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </button>
+                    <button id="confirm-delete-btn" class="btn-danger" style="min-width: 120px; background: #dc3545;">
+                        <i class="fas fa-trash"></i> Löschen
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lagerplatz Löschbestätigung Modal -->
+        <div id="delete-storage-modal" class="modal" style="display: none; max-width: 500px;">
+            <div class="modal-header" style="background: #ff6b6b; color: white;">
+                <h2><i class="fas fa-warehouse"></i> Lagerplatz löschen</h2>
+                <button class="close-modal" onclick="closeModals()" style="color: white;">&times;</button>
+            </div>
+            <div style="padding: 2rem;">
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.25rem;">
+                    <p style="margin: 0; color: #856404; font-weight: 500;">
+                        <i class="fas fa-exclamation-circle"></i> Achtung: Diese Aktion kann nicht rückgängig gemacht werden!
+                    </p>
+                </div>
+                <p style="font-size: 1.1rem; margin-bottom: 1rem; text-align: center;">
+                    Möchtest du den Lagerplatz <strong id="delete-storage-code" style="color: #ff6b6b; font-size: 1.2rem;"></strong> wirklich löschen?
+                </p>
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                    <p style="margin: 0; color: #495057; font-size: 0.95rem;">
+                        <i class="fas fa-info-circle" style="color: #17a2b8;"></i> Alle Artikel in diesem Lagerplatz werden automatisch in den Bereich <strong>"Unsortiert"</strong> verschoben und können dort neu zugeordnet werden.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="btn-secondary" onclick="closeModals()" style="min-width: 140px; padding: 0.75rem 1.5rem;">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </button>
+                    <button id="confirm-delete-storage-btn" class="btn-danger" style="min-width: 140px; padding: 0.75rem 1.5rem; background: #ff6b6b; border-color: #ff6b6b;">
+                        <i class="fas fa-trash-alt"></i> Jetzt löschen
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Artikel Löschbestätigung Modal -->
+        <div id="delete-item-modal" class="modal" style="display: none; max-width: 500px;">
+            <div class="modal-header" style="background: #dc3545; color: white;">
+                <h2><i class="fas fa-box-open"></i> Artikel löschen</h2>
+                <button class="close-modal" onclick="closeModals()" style="color: white;">&times;</button>
+            </div>
+            <div style="padding: 2rem;">
+                <div style="background: #ffe5e5; border-left: 4px solid #dc3545; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.25rem;">
+                    <p style="margin: 0; color: #721c24; font-weight: 500;">
+                        <i class="fas fa-exclamation-triangle"></i> Warnung: Dieser Artikel wird endgültig gelöscht!
+                    </p>
+                </div>
+                <p style="font-size: 1.1rem; margin-bottom: 1rem; text-align: center;">
+                    Möchtest du den Artikel <strong id="delete-item-name" style="color: #dc3545; font-size: 1.2rem;"></strong> wirklich löschen?
+                </p>
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                    <p style="margin: 0; color: #495057; font-size: 0.95rem;">
+                        <i class="fas fa-info-circle" style="color: #dc3545;"></i> Diese Aktion kann <strong>nicht rückgängig</strong> gemacht werden. Der Artikel wird dauerhaft aus dem Lager entfernt.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="btn-secondary" onclick="closeModals()" style="min-width: 140px; padding: 0.75rem 1.5rem;">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </button>
+                    <button id="confirm-delete-item-btn" class="btn-danger" style="min-width: 140px; padding: 0.75rem 1.5rem; background: #dc3545; border-color: #dc3545;">
+                        <i class="fas fa-trash-alt"></i> Jetzt löschen
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lager auffüllen Modal -->
+        <div id="restock-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Hero Lager auffüllen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="restock-form">
+                <div class="form-group">
+                    <label>Menge (Stück)</label>
+                    <input type="number" id="restock-quantity" required min="1" placeholder="z.B. 100">
+                </div>
+                <button type="submit" class="btn-primary">Lager auffüllen</button>
+            </form>
+        </div>
+
+        <!-- Lager bearbeiten Modal -->
+        <div id="edit-stock-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Lagerbestand korrigieren</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="edit-stock-form">
+                <div class="form-group">
+                    <label>Aktueller Bestand: <strong id="current-stock-display">0</strong> Stück</label>
+                </div>
+                <div class="form-group">
+                    <label>Neuer Bestand (Stück)</label>
+                    <input type="number" id="edit-stock-quantity" required min="0" placeholder="z.B. 50">
+                </div>
+                <button type="submit" class="btn-warning">Bestand aktualisieren</button>
+            </form>
+        </div>
+
+        <!-- Hero ausgeben Modal -->
+        <div id="distribute-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Hero an Mitglied ausgeben</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="distribute-form">
+                <div class="form-group">
+                    <label>Mitglied</label>
+                    <select id="distribute-member" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Menge</label>
+                    <input type="number" id="distribute-quantity" required min="1">
+                </div>
+                <button type="submit" class="btn-primary">Ausgeben</button>
+            </form>
+        </div>
+
+        <!-- Verkauf eintragen Modal -->
+        <!-- Zahlung Modal -->
+        <div id="payment-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Zahlung buchen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="payment-form">
+                <input type="hidden" id="payment-distribution-id">
+                <div class="form-group">
+                    <label>Mitglied</label>
+                    <input type="text" id="payment-member-name" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Gang-Anteil gesamt</label>
+                    <input type="text" id="payment-total" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Bereits bezahlt</label>
+                    <input type="text" id="payment-already-paid" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Noch offen</label>
+                    <input type="text" id="payment-remaining" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Zahlungsbetrag ($)</label>
+                    <input type="number" id="payment-amount" step="0.01" required min="0.01">
+                </div>
+                <button type="submit" class="btn-success">Zahlung buchen</button>
+            </form>
+        </div>
+
+        <!-- Hehler Ankauf Modal -->
+        <div id="fence-purchase-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Ankauf eintragen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="fence-purchase-form">
+                <div class="form-group">
+                    <label>Artikel auswählen</label>
+                    <select id="fence-item-select" onchange="selectFenceItem()">
+                        <option value="">-- Artikel auswählen --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Artikel (oder eigenen eingeben)</label>
+                    <input type="text" id="fence-item-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Menge</label>
+                    <input type="number" id="fence-quantity" required min="1" value="1" oninput="calculateFenceTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Preis pro Stück ($)</label>
+                    <input type="number" id="fence-unit-price" required min="0" step="0.01" oninput="calculateFenceTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Verkäufer Info</label>
+                    <input type="text" id="fence-seller-info">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="fence-stored-warehouse"> Direkt ins Lager einlagern
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Notizen (optional)</label>
+                    <textarea id="fence-notes" rows="2"></textarea>
+                </div>
+                <div class="sale-calculation">
+                    <p><strong>Gesamtpreis: $<span id="fence-total-calc">0.00</span></strong></p>
+                </div>
+                <button type="submit" class="btn-primary">Ankauf eintragen</button>
+            </form>
+        </div>
+
+        <!-- Hehler Verkauf Modal -->
+        <div id="fence-sale-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Verkauf erfassen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="fence-sale-form">
+                <div class="form-group">
+                    <label>Ankauf auswählen (optional)</label>
+                    <select id="fence-purchase-select">
+                        <option value="">-- Bestehender Ankauf --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Artikel</label>
+                    <input type="text" id="fence-sale-item-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Menge</label>
+                    <input type="number" id="fence-sale-quantity" required min="1" value="1" oninput="calculateFenceSaleTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Einkaufspreis pro Stück ($)</label>
+                    <input type="number" id="fence-sale-unit-cost" required min="0" step="0.01" oninput="calculateFenceSaleTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Verkaufspreis pro Stück ($)</label>
+                    <input type="number" id="fence-sale-unit-price" required min="0" step="0.01" oninput="calculateFenceSaleTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Käufer Info (optional)</label>
+                    <input type="text" id="fence-sale-buyer-info">
+                </div>
+                <div class="sale-calculation">
+                    <p><strong>Gesamtumsatz: $<span id="fence-sale-total-calc">0.00</span></strong></p>
+                    <p><strong>Gewinn: $<span id="fence-sale-profit-calc">0.00</span></strong></p>
+                </div>
+                <button type="submit" class="btn-success">Verkauf erfassen</button>
+            </form>
+        </div>
+
+        <!-- Hehler Ankauf Bearbeiten Modal -->
+        <div id="edit-fence-purchase-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Ankauf bearbeiten</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="edit-fence-purchase-form">
+                <input type="hidden" id="edit-fence-purchase-id">
+                <div class="form-group">
+                    <label>Artikel</label>
+                    <input type="text" id="edit-fence-item-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Menge</label>
+                    <input type="number" id="edit-fence-quantity" required min="1">
+                </div>
+                <div class="form-group">
+                    <label>Preis pro Stück ($)</label>
+                    <input type="number" id="edit-fence-unit-price" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Verkäufer Info</label>
+                    <input type="text" id="edit-fence-seller-info">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="edit-fence-stored-warehouse"> Im Lager
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Notizen (optional)</label>
+                    <textarea id="edit-fence-notes" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Änderungen speichern</button>
+            </form>
+        </div>
+
+        <!-- Produktverwaltung Modal -->
+        <div id="product-management-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Produktverwaltung</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <button class="btn-primary" onclick="showAddProductModal()">
+                    <i class="fas fa-plus"></i> Neues Produkt
+                </button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Artikel</th>
+                        <th>Kategorie</th>
+                        <th>Richtpreis</th>
+                        <th>Status</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody id="product-templates-table"></tbody>
+            </table>
+        </div>
+
+        <!-- Produkt hinzufügen Modal -->
+        <div id="add-product-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Neues Produkt</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="add-product-form">
+                <div class="form-group">
+                    <label>Artikelname</label>
+                    <input type="text" id="new-product-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Kategorie</label>
+                    <select id="new-product-category" required>
+                        <option value="Waffen">Waffen</option>
+                        <option value="Drogen">Drogen</option>
+                        <option value="Elektronik">Elektronik</option>
+                        <option value="Schmuck">Schmuck</option>
+                        <option value="Fahrzeuge">Fahrzeuge</option>
+                        <option value="Sonstiges">Sonstiges</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Richtpreis ($)</label>
+                    <input type="number" id="new-product-price" step="0.01" min="0" value="0">
+                </div>
+                <button type="submit" class="btn-primary">Produkt hinzufügen</button>
+            </form>
+        </div>
+
+        <!-- Produkt bearbeiten Modal -->
+        <div id="edit-product-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Produkt bearbeiten</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="edit-product-form">
+                <input type="hidden" id="edit-product-id">
+                <div class="form-group">
+                    <label>Artikelname</label>
+                    <input type="text" id="edit-product-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Kategorie</label>
+                    <select id="edit-product-category" required>
+                        <option value="Waffen">Waffen</option>
+                        <option value="Drogen">Drogen</option>
+                        <option value="Elektronik">Elektronik</option>
+                        <option value="Schmuck">Schmuck</option>
+                        <option value="Fahrzeuge">Fahrzeuge</option>
+                        <option value="Sonstiges">Sonstiges</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Richtpreis ($)</label>
+                    <input type="number" id="edit-product-price" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="edit-product-active"> Aktiv
+                    </label>
+                </div>
+                <button type="submit" class="btn-primary">Änderungen speichern</button>
+            </form>
+        </div>
+
+        <!-- Schnellankauf Modal (für Produktkarten) -->
+        <div id="quick-purchase-modal" class="modal" style="display: none; max-width: 700px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-shopping-cart"></i> Schnellankauf - Warenkorb</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="quick-purchase-form">
+                
+                <!-- Aktuelles Produkt hinzufügen -->
+                <div class="add-to-cart-section">
+                    <input type="hidden" id="quick-product-id">
+                    <input type="hidden" id="quick-product-name">
+                    <input type="hidden" id="quick-product-icon">
+                    <input type="hidden" id="quick-product-category">
+                    
+                    <div class="quick-purchase-header">
+                        <div class="quick-product-icon" id="quick-product-display-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 id="quick-product-display-name">Produkt</h3>
+                            <p class="text-muted" id="quick-product-display-category">Kategorie</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Menge</label>
+                            <div class="quantity-control">
+                                <button type="button" class="qty-btn" onclick="changeQuickQty(-1)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" id="quick-quantity" min="1" value="1" oninput="calculateQuickTotal()">
+                                <button type="button" class="qty-btn" onclick="changeQuickQty(1)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ankaufspreis pro Stück ($)</label>
+                            <input type="number" id="quick-unit-price" min="0" step="0.01" oninput="calculateQuickTotal()">
+                        </div>
+                    </div>
+
+                    <div class="quick-total-display" style="margin-bottom: 1rem;">
+                        <div class="quick-total-row">
+                            <span>Zwischensumme:</span>
+                            <strong class="total-price">$<span id="quick-total-display">0.00</span></strong>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-success btn-block" onclick="addToCart()">
+                        <i class="fas fa-plus"></i> Zum Warenkorb hinzufügen
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Warenkorb Checkout Modal -->
+        <div id="cart-checkout-modal" class="modal" style="display: none; max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-shopping-basket"></i> Warenkorb - Ankauf abschließen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="cart-checkout-form">
+                <div class="cart-header" style="margin-bottom: 1rem;">
+                    <h3 style="font-size: 1rem; margin: 0;"><i class="fas fa-list"></i> Artikel im Warenkorb</h3>
+                    <button type="button" class="btn-text-danger" onclick="clearCart()">
+                        <i class="fas fa-trash"></i> Warenkorb leeren
+                    </button>
+                </div>
+                <div id="checkout-cart-items" class="cart-items">
+                    <!-- Warenkorb-Items werden hier dynamisch eingefügt -->
+                </div>
+                
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label>Verkäufer Info (optional)</label>
+                    <input type="text" id="checkout-seller-info" placeholder="Name oder Details zum Verkäufer">
+                </div>
+
+                <div class="cart-total">
+                    <div class="cart-total-row">
+                        <span>Artikel im Warenkorb:</span>
+                        <strong><span id="checkout-item-count">0</span></strong>
+                    </div>
+                    <div class="cart-total-row">
+                        <span>Gesamtmenge:</span>
+                        <strong><span id="checkout-total-quantity">0</span>x</strong>
+                    </div>
+                    <div class="cart-total-row total">
+                        <span>Gesamtpreis:</span>
+                        <strong class="total-price">$<span id="checkout-total-price">0.00</span></strong>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-block">
+                    <i class="fas fa-check"></i> Ankauf abschließen (<span id="checkout-submit-total">$0.00</span>)
+                </button>
+            </form>
+        </div>
+
+        <!-- Verkaufs Modal (neu) -->
+        <div id="sell-item-modal" class="modal" style="display: none; max-width: 600px;">
+            <div class="modal-header" style="background: var(--secondary);">
+                <h2><i class="fas fa-dollar-sign"></i> Artikel verkaufen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="sell-item-form">
+                <input type="hidden" id="sell-item-name">
+                <input type="hidden" id="sell-max-quantity">
+                <input type="hidden" id="sell-purchase-price">
+                <input type="hidden" id="sell-item-icon">
+                <input type="hidden" id="sell-item-category">
+                
+                <div class="quick-purchase-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));">
+                    <div class="quick-product-icon" id="sell-item-display-icon" style="background: linear-gradient(135deg, var(--secondary), var(--info));">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h3 id="sell-item-display-name">Produkt</h3>
+                        <p class="text-muted" id="sell-item-display-category">Kategorie</p>
+                        <div class="stock-badge">
+                            <i class="fas fa-warehouse"></i>
+                            <strong><span id="sell-item-stock">0</span></strong> auf Lager
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Menge verkaufen</label>
+                        <div class="quantity-control">
+                            <button type="button" class="qty-btn" onclick="changeSellQty(-1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="sell-quantity" required min="1" value="1" oninput="calculateSellFromQuantity()">
+                            <button type="button" class="qty-btn" onclick="changeSellQty(1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <small class="form-hint" id="sell-quantity-hint">Max: 0 Stück</small>
+                    </div>
+                </div>
+
+                <div class="price-input-group">
+                    <div class="form-group">
+                        <label>Verkaufspreis pro Stück ($)</label>
+                        <input type="number" id="sell-unit-price" required min="0" step="0.01" oninput="calculateSellFromUnitPrice()">
+                        <small class="form-hint">Ø Einkauf: $<span id="sell-avg-purchase">0.00</span></small>
+                    </div>
+
+                    <div class="price-divider">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gesamt-Verkaufspreis ($)</label>
+                        <input type="number" id="sell-total-price" required min="0" step="0.01" oninput="calculateSellFromTotalPrice()">
+                        <small class="form-hint">Preis für alle Artikel zusammen</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Käufer Info (optional)</label>
+                    <input type="text" id="sell-buyer-info" placeholder="Name oder Details zum Käufer">
+                </div>
+
+                <div class="sell-calculation">
+                    <div class="sell-calc-row">
+                        <span><i class="fas fa-shopping-bag"></i> Einkaufskosten:</span>
+                        <strong class="text-danger">-$<span id="sell-total-cost">0.00</span></strong>
+                    </div>
+                    <div class="sell-calc-row">
+                        <span><i class="fas fa-dollar-sign"></i> Verkaufserlös:</span>
+                        <strong class="text-success">+$<span id="sell-total-revenue">0.00</span></strong>
+                    </div>
+                    <div class="sell-calc-row total">
+                        <span><i class="fas fa-chart-line"></i> Gewinn:</span>
+                        <strong class="total-price profit">$<span id="sell-total-profit">0.00</span></strong>
+                    </div>
+                    <div class="sell-calc-row margin">
+                        <span>Gewinnmarge:</span>
+                        <strong class="margin-value"><span id="sell-margin">0</span>%</strong>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-success btn-block" style="font-size: 1.1rem; padding: 1rem;">
+                    <i class="fas fa-check-circle"></i> Verkauf zum Warenkorb hinzufügen
+                </button>
+            </form>
+        </div>
+
+        <!-- Produkt hinzufügen/bearbeiten Modal (neu) -->
+        <div id="product-modal" class="modal" style="display: none; max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="product-modal-title">Neues Produkt</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Produktname *</label>
+                        <input type="text" id="product-name" required placeholder="z.B. Laptop, Rolex, Glock 19">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Icon</label>
+                        <select id="product-icon">
+                            <option value="fa-gun">🔫 Waffe</option>
+                            <option value="fa-pills">💊 Drogen</option>
+                            <option value="fa-laptop">💻 Elektronik</option>
+                            <option value="fa-gem">💎 Schmuck</option>
+                            <option value="fa-car">🚗 Fahrzeug</option>
+                            <option value="fa-box">📦 Sonstiges</option>
+                            <option value="fa-mobile-alt">📱 Handy</option>
+                            <option value="fa-tv">📺 TV</option>
+                            <option value="fa-ring">💍 Ring</option>
+                            <option value="fa-watch">⌚ Uhr</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Kategorie *</label>
+                        <select id="product-category" required>
+                            <option value="Waffen">Waffen</option>
+                            <option value="Drogen">Drogen</option>
+                            <option value="Elektronik">Elektronik</option>
+                            <option value="Schmuck">Schmuck</option>
+                            <option value="Fahrzeuge">Fahrzeuge</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="product-status">
+                            <option value="active">Aktiv</option>
+                            <option value="inactive">Inaktiv</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Standard-Ankaufspreis ($)</label>
+                        <input type="number" id="product-purchase-price" min="0" step="0.01" placeholder="0.00" oninput="calculateProductMargin()">
+                    </div>
+                    <div class="form-group">
+                        <label>Standard-Verkaufspreis ($)</label>
+                        <input type="number" id="product-sale-price" min="0" step="0.01" placeholder="0.00" oninput="calculateProductMargin()">
+                    </div>
+                </div>
+
+                <div class="margin-display" id="margin-display" style="display: none;">
+                    <div class="margin-info">
+                        <i class="fas fa-chart-line"></i>
+                        <div>
+                            <strong>Gewinnspanne: <span id="margin-amount">$0.00</span></strong>
+                            <span class="margin-percent">(<span id="margin-percent">0</span>%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Beschreibung (optional)</label>
+                    <textarea id="product-description" rows="2" placeholder="Zusätzliche Informationen zum Produkt..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Hero Einstellungen Modal -->
+        <div id="settings-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Hero-Verkauf Einstellungen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="settings-form">
+                <div class="form-group">
+                    <label>Verkaufspreis pro Hero ($)</label>
+                    <input type="number" id="settings-sale-price" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Gang-Anteil (%)</label>
+                    <input type="number" id="settings-gang-percent" required min="0" max="100">
+                    <small>Mitglied behält: <span id="settings-member-percent">0</span>%</small>
+                </div>
+                <button type="submit" class="btn-primary">Einstellungen speichern</button>
+            </form>
+        </div>
+
+        <!-- Mitglied hinzufügen Modal -->
+        <div id="add-member-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Neues Mitglied hinzufügen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="add-member-form">
+                <div class="form-group">
+                    <label>Vollständiger Name</label>
+                    <input type="text" id="new-member-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Benutzername</label>
+                    <input type="text" id="new-member-username" required>
+                </div>
+                <div class="form-group">
+                    <label>Rang</label>
+                    <select id="new-member-rank" required>
+                        <option value="Rekrut">Rekrut</option>
+                        <option value="Mitglied">Mitglied</option>
+                        <option value="Stellvertreter">Stellvertreter</option>
+                        <option value="Boss">Boss</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Telefonnummer</label>
+                    <input type="text" id="new-member-phone">
+                </div>
+                <div class="form-group">
+                    <label>Profilfoto (optional)</label>
+                    <input type="file" id="new-member-photo" accept="image/*">
+                    <small style="color: #666; font-size: 12px;">Max. 5MB - JPG, PNG oder GIF</small>
+                </div>
+                <div class="form-group">
+                    <h4>Berechtigungen</h4>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="new-member-can-add">
+                        Kann Mitglieder hinzufügen
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="new-member-can-hero">
+                        Kann Hero-System verwalten
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="new-member-can-fence">
+                        Kann Hehler-Geschäft verwalten
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="new-member-can-activity">
+                        Kann Aktivitäten sehen
+                    </label>
+                </div>
+                <button type="submit" class="btn-primary">Mitglied hinzufügen</button>
+            </form>
+        </div>
+
+        <!-- Mitglied bearbeiten Modal -->
+        <div id="edit-member-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Mitglied bearbeiten</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="edit-member-form">
+                <input type="hidden" id="edit-member-id">
+                <div class="form-group">
+                    <label>Vollständiger Name</label>
+                    <input type="text" id="edit-member-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Rang</label>
+                    <select id="edit-member-rank" required>
+                        <option value="Rekrut">Rekrut</option>
+                        <option value="Mitglied">Mitglied</option>
+                        <option value="Stellvertreter">Stellvertreter</option>
+                        <option value="Boss">Boss</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Telefonnummer</label>
+                    <input type="text" id="edit-member-phone">
+                </div>
+                <div class="form-group">
+                    <label>Profilfoto ändern (optional)</label>
+                    <input type="file" id="edit-member-photo" accept="image/*">
+                    <small style="color: #666; font-size: 12px;">Max. 5MB - JPG, PNG oder GIF</small>
+                    <div id="current-photo-preview" style="margin-top: 10px;"></div>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit-member-active">
+                        Aktiv
+                    </label>
+                </div>
+                <div class="form-group">
+                    <h4>Berechtigungen</h4>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit-member-can-add">
+                        Kann Mitglieder hinzufügen
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit-member-can-hero">
+                        Kann Hero-System verwalten
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit-member-can-fence">
+                        Kann Hehler-Geschäft verwalten
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit-member-can-activity">
+                        Kann Aktivitäten sehen
+                    </label>
+                </div>
+                <button type="submit" class="btn-primary">Änderungen speichern</button>
+            </form>
+        </div>
+
+        <!-- Invite Link Modal -->
+        <div id="invite-link-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2>Einladungslink erstellt</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="member-info" style="background: var(--dark-bg); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                    <h3 style="color: var(--primary); margin-bottom: 0.5rem;">Mitglied erfolgreich angelegt!</h3>
+                    <p style="color: var(--text-secondary);">Sende dem neuen Mitglied diesen Link:</p>
+                </div>
+                <div class="form-group">
+                    <label>Einladungslink</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="invite-link-display" readonly style="flex: 1;">
+                        <button type="button" class="btn-primary" onclick="copyInviteLink()">
+                            <i class="fas fa-copy"></i> Kopieren
+                        </button>
+                    </div>
+                </div>
+                <div style="background: var(--warning); color: var(--dark-bg); padding: 1rem; border-radius: 0.5rem; margin-top: 1rem;">
+                    <p style="margin: 0; font-size: 0.9rem;"><strong><i class="fas fa-exclamation-triangle"></i> Wichtig:</strong> Dieser Link ist 7 Tage gültig. Das Mitglied muss über diesen Link sein Passwort einrichten.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intelligence Modal -->
+        <div id="intel-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h2 id="intel-modal-title">Neuer Kontakt</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="intel-form">
+                <input type="hidden" id="intel-id">
+                
+                <div class="form-group">
+                    <label>Typ *</label>
+                    <select id="intel-category" required onchange="toggleTypeFields()">
+                        <option value="Person">Person</option>
+                        <option value="Gang">Gang</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label id="intel-name-label">Name *</label>
+                    <input type="text" id="intel-subject" required placeholder="z.B. John Doe">
+                </div>
+                
+                <div class="form-group" id="person-fields">
+                    <label>Telefon</label>
+                    <input type="text" id="intel-source" placeholder="z.B. 555-1234">
+                </div>
+                
+                <div class="form-group" id="gang-fields" style="display: none;">
+                    <label>Gang Farbe</label>
+                    <input type="color" id="intel-color" value="#9c27b0">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Farbe zur Erkennung der Gang</small>
+                </div>
+                
+                <div class="form-group" id="person-gang-field" style="display: none;">
+                    <label>Zugehörige Gang (optional)</label>
+                    <select id="intel-gang-id">
+                        <option value="">Keine Gang</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notizen</label>
+                    <textarea id="intel-description" rows="4" placeholder="Zusätzliche Informationen..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary">Speichern</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

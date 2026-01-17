@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passwort einrichten - Gang Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .setup-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 2rem;
+        }
+        
+        .setup-box {
+            background: var(--dark-secondary);
+            border-radius: 1rem;
+            padding: 3rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .setup-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .setup-header i {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        
+        .setup-header h1 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .setup-header p {
+            color: var(--text-secondary);
+        }
+        
+        .member-info {
+            background: var(--dark-bg);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .member-info h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .member-info p {
+            color: var(--text-secondary);
+            margin: 0.25rem 0;
+        }
+        
+        .password-requirements {
+            background: var(--dark-bg);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .password-requirements h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .password-requirements ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .password-requirements li {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 0.25rem 0;
+        }
+        
+        .password-requirements li i {
+            margin-right: 0.5rem;
+            color: var(--primary);
+        }
+        
+        .error-container {
+            text-align: center;
+            color: var(--danger);
+        }
+        
+        .error-container i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .success-container {
+            text-align: center;
+        }
+        
+        .success-container i {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 1rem;
+        }
+        
+        .success-container .btn-primary {
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-box" id="setup-form-container">
+            <div class="setup-header">
+                <i class="fas fa-user-shield"></i>
+                <h1>Willkommen!</h1>
+                <p>Richte dein Passwort ein, um fortzufahren</p>
+            </div>
+
+            <div id="member-info-display" style="display: none;">
+                <div class="member-info">
+                    <h3>Deine Account-Informationen</h3>
+                    <p><strong>Name:</strong> <span id="member-name"></span></p>
+                    <p><strong>Benutzername:</strong> <span id="member-username"></span></p>
+                    <p><strong>Rang:</strong> <span id="member-rank"></span></p>
+                </div>
+
+                <form id="password-setup-form">
+                    <div class="form-group">
+                        <label>Neues Passwort</label>
+                        <input type="password" id="new-password" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>Passwort bestätigen</label>
+                        <input type="password" id="confirm-password" required minlength="6">
+                    </div>
+
+                    <div class="password-requirements">
+                        <h4>Passwort-Anforderungen:</h4>
+                        <ul>
+                            <li><i class="fas fa-check-circle"></i> Mindestens 6 Zeichen</li>
+                            <li><i class="fas fa-check-circle"></i> Einfach zu merken</li>
+                            <li><i class="fas fa-check-circle"></i> Sicher aufbewahren</li>
+                        </ul>
+                    </div>
+
+                    <div class="error-message" id="setup-error" style="display: none;"></div>
+                    
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1.5rem;">
+                        <i class="fas fa-lock"></i> Passwort einrichten
+                    </button>
+                </form>
+            </div>
+
+            <div id="loading-display" style="text-align: center;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--primary);"></i>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">Token wird überprüft...</p>
+            </div>
+
+            <div id="error-display" style="display: none;">
+                <div class="error-container">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h2>Ungültiger Link</h2>
+                    <p id="error-message"></p>
+                    <a href="index.html" class="btn-primary" style="margin-top: 1.5rem; display: inline-block; text-decoration: none;">
+                        Zur Startseite
+                    </a>
+                </div>
+            </div>
+
+            <div id="success-display" style="display: none;">
+                <div class="success-container">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>Passwort erfolgreich eingerichtet!</h2>
+                    <p style="color: var(--text-secondary);">Du kannst dich jetzt mit deinem Benutzernamen und Passwort anmelden.</p>
+                    <a href="index.html" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Zum Login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+
+        // Session löschen beim Laden (falls eine alte Session existiert)
+        async function clearSession() {
+            try {
+                await fetch(`${API_URL}/auth/clear-session`, { method: 'POST' });
+            } catch (error) {
+                console.log('Session konnte nicht gelöscht werden');
+            }
+        }
+
+        // Token aus URL holen
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        if (!token) {
+            showError('Kein Token gefunden. Bitte verwende den Link, den du erhalten hast.');
+        } else {
+            // Erst Session löschen, dann Token validieren
+            clearSession().then(() => validateToken(token));
+        }
+
+        async function validateToken(token) {
+            try {
+                const response = await fetch(`${API_URL}/members/validate-token/${token}`);
+                const data = await response.json();
+
+                document.getElementById('loading-display').style.display = 'none';
+
+                if (data.valid) {
+                    document.getElementById('member-info-display').style.display = 'block';
+                    document.getElementById('member-name').textContent = data.member.full_name;
+                    document.getElementById('member-username').textContent = data.member.username;
+                    document.getElementById('member-rank').textContent = data.member.rank;
+                } else {
+                    showError(data.error || 'Ungültiger oder abgelaufener Token');
+                }
+            } catch (error) {
+                document.getElementById('loading-display').style.display = 'none';
+                showError('Fehler beim Überprüfen des Tokens');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading-display').style.display = 'none';
+            document.getElementById('member-info-display').style.display = 'none';
+            document.getElementById('error-display').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        document.getElementById('password-setup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const password = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorEl = document.getElementById('setup-error');
+
+            if (password !== confirmPassword) {
+                errorEl.textContent = 'Passwörter stimmen nicht überein';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorEl.textContent = 'Passwort muss mindestens 6 Zeichen lang sein';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/members/setup-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('member-info-display').style.display = 'none';
+                    document.getElementById('success-display').style.display = 'block';
+                } else {
+                    errorEl.textContent = data.error || 'Fehler beim Einrichten des Passworts';
+                    errorEl.style.display = 'block';
+                }
+            } catch (error) {
+                errorEl.textContent = 'Fehler beim Einrichten des Passworts';
+                errorEl.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
