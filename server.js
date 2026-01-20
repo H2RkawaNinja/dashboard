@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Uploads-Ordner erstellen falls nicht vorhanden
@@ -84,7 +85,7 @@ app.use(session({
     cookie: { 
         maxAge: 24 * 60 * 60 * 1000, // 24 Stunden
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: 'lax'
     }
 }));
@@ -136,49 +137,55 @@ function requireLogin(req, res, next) {
 // Login
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
-    
-    db.query('SELECT * FROM members WHERE username = ? AND password = ? AND is_active = TRUE', 
-        [username, password], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        
-        if (results.length === 0) {
-            return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
-        }
-        
-        const user = results[0];
-        req.session.userId = user.id;
-        req.session.username = user.username;
-        req.session.rank = user.rank;
-        req.session.canAddMembers = user.can_add_members;
-        req.session.canManageHero = user.can_manage_hero;
-        req.session.canManageFence = user.can_manage_fence;
-        req.session.canViewActivity = user.can_view_activity;
-        
-        // Last login aktualisieren
-        db.query('UPDATE members SET last_login = NOW() WHERE id = ?', [user.id]);
-        
-        // Log erstellen
-        db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
-            [user.id, 'login', `${user.full_name} hat sich eingeloggt`]);
-        
-        res.json({
-            success: true,
-            user: {
-                id: user.id,
-                username: user.username,
-                full_name: user.full_name,
-                rank: user.rank,
-                profile_photo: user.profile_photo,
-                can_add_members: user.can_add_members,
-                can_manage_hero: user.can_manage_hero,
-                can_manage_fence: user.can_manage_fence,
-                can_view_activity: user.can_view_activity
+
+    db.query(
+        'SELECT * FROM members WHERE username = ? AND is_active = TRUE',
+        [username],
+        (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (results.length === 0) {
+                return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
             }
-        });
-    });
+
+            const user = results[0];
+
+            const ok = bcrypt.compareSync(password, user.password);
+            if (!ok) {
+                return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+            }
+
+            req.session.userId = user.id;
+            req.session.username = user.username;
+            req.session.rank = user.rank;
+            req.session.canAddMembers = user.can_add_members;
+            req.session.canManageHero = user.can_manage_hero;
+            req.session.canManageFence = user.can_manage_fence;
+            req.session.canViewActivity = user.can_view_activity;
+
+            db.query('UPDATE members SET last_login = NOW() WHERE id = ?', [user.id]);
+            db.query(
+                'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                [user.id, 'login', `${user.full_name} hat sich eingeloggt`]
+            );
+
+            res.json({
+                success: true,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    full_name: user.full_name,
+                    rank: user.rank,
+                    profile_photo: user.profile_photo,
+                    can_add_members: user.can_add_members,
+                    can_manage_hero: user.can_manage_hero,
+                    can_manage_fence: user.can_manage_fence,
+                    can_view_activity: user.can_view_activity
+                }
+            });
+        }
+    );
 });
+
 
 // Logout
 app.post('/api/auth/logout', (req, res) => {
@@ -336,7 +343,8 @@ app.post('/api/members/add', requireLogin, upload.single('profile_photo'), (req,
             db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
                 [req.session.userId, 'member_added', `${full_name} wurde als ${rank} hinzugefügt`]);
             
-            const inviteLink = `http://localhost:3000/setup.html?token=${token}`;
+            const inviteLink = `https://bstribe.com/setup.html?token=${token}`;
+
             
             res.json({ 
                 success: true, 
@@ -421,53 +429,57 @@ app.delete('/api/members/:id', requireLogin, (req, res) => {
             
             res.json({ success: true, message: 'Mitglied gelöscht' });
         });
-    });
-});
+    });});
 
+// Passwort-Setup über Einladungs-Token
 // Passwort-Setup über Einladungs-Token
 app.post('/api/members/setup-password', (req, res) => {
     const { token, password } = req.body;
-    
+
     if (!token || !password) {
         return res.status(400).json({ error: 'Token und Passwort erforderlich' });
     }
-    
-    // Prüfe Token
-    db.query('SELECT * FROM members WHERE invitation_token = ? AND is_password_set = FALSE', [token], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        
-        if (results.length === 0) {
-            return res.status(404).json({ error: 'Ungültiger oder bereits verwendeter Token' });
-        }
-        
-        const member = results[0];
-        
-        // Prüfe Token-Ablauf
-        if (member.token_expires && new Date(member.token_expires) < new Date()) {
-            return res.status(400).json({ error: 'Dieser Einladungslink ist abgelaufen' });
-        }
-        
-        // Setze Passwort
-        db.query('UPDATE members SET password = ?, is_password_set = TRUE, invitation_token = NULL, token_expires = NULL WHERE id = ?',
-            [password, member.id], (err) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
+
+    db.query(
+        'SELECT * FROM members WHERE invitation_token = ? AND is_password_set = FALSE',
+        [token],
+        (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (results.length === 0) {
+                return res.status(404).json({ error: 'Ungültiger oder bereits verwendeter Token' });
             }
-            
-            // Log
-            db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
-                [member.id, 'password_setup', `${member.full_name} hat das Passwort eingerichtet`]);
-            
-            res.json({ 
-                success: true, 
-                message: 'Passwort erfolgreich eingerichtet',
-                username: member.username
-            });
-        });
-    });
+
+            const member = results[0];
+
+            if (member.token_expires && new Date(member.token_expires) < new Date()) {
+                return res.status(400).json({ error: 'Dieser Einladungslink ist abgelaufen' });
+            }
+
+            // 🔐 Passwort HASHEN
+            const hashedPassword = bcrypt.hashSync(password, 10);
+
+            db.query(
+                'UPDATE members SET password = ?, is_password_set = TRUE, invitation_token = NULL, token_expires = NULL WHERE id = ?',
+                [hashedPassword, member.id],
+                (err2) => {
+                    if (err2) return res.status(500).json({ error: err2.message });
+
+                    db.query(
+                        'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                        [member.id, 'password_setup', `${member.full_name} hat das Passwort eingerichtet`]
+                    );
+
+                    res.json({
+                        success: true,
+                        message: 'Passwort erfolgreich eingerichtet',
+                        username: member.username
+                    });
+                }
+            );
+        }
+    );
 });
+
 
 // Token validieren (für Setup-Seite)
 app.get('/api/members/validate-token/:token', (req, res) => {
@@ -838,8 +850,7 @@ app.post('/api/hero/distributions/:id/payment', requireLogin, (req, res) => {
                 if (!err && memberResults && memberResults.length > 0) {
                     const memberName = memberResults[0].full_name;
                     db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
-                        [req.session.userId, 'hero_payment', `$${amount} Zahlung von ${memberName} gebucht`]);
-                }
+                        [req.session.userId, 'hero_payment', `$${amount} Zahlung von ${memberName} gebucht`]);                }
             });
             
             res.json({ 
