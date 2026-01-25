@@ -78,7 +78,14 @@ app.options('*', cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('.'));
-app.use('/uploads', express.static('uploads')); // Statische Dateien für Uploads
+
+// Statische Dateien für Uploads mit CORS-Headers
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    next();
+}, express.static('uploads'));
+
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,

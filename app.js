@@ -1,5 +1,17 @@
 const API_URL = window.location.origin + '/api';
+const BASE_URL = window.location.origin;
 let currentUser = null;
+
+// Hilfsfunktion für Profilfoto-URLs
+function getProfilePhotoUrl(photoPath) {
+    if (!photoPath) return 'https://via.placeholder.com/40';
+    // Falls bereits vollständige URL
+    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
+        return photoPath;
+    }
+    // Relativen Pfad zur vollständigen URL machen
+    return BASE_URL + photoPath;
+}
 
 // ========== DEAKTIVIERTE BEREICHE ==========
 // Hier können Bereiche deaktiviert werden - sie werden dann aus der Navbar entfernt
@@ -96,10 +108,27 @@ function showDashboard() {
     
     // Setze Profilfoto
     const userPhoto = document.getElementById('user-profile-photo');
-    if (currentUser.profile_photo) {
-        userPhoto.src = currentUser.profile_photo;
-    } else {
-        userPhoto.src = 'https://via.placeholder.com/40';
+    userPhoto.src = getProfilePhotoUrl(currentUser.profile_photo);
+    
+    // Deaktivierte Bereiche aus der Navbar entfernen
+    DISABLED_PAGES.forEach(page => {
+        const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+        if (navItem) {
+            navItem.style.display = 'none';
+        }
+        
+        // Verstecke auch die entsprechende Seite
+        const pageElement = document.getElementById(`${page}-page`);
+        if (pageElement) {
+            pageElement.style.display = 'none';
+        }
+    });
+    
+    // Wenn die aktuelle Seite deaktiviert ist, wechsle zur Übersicht
+    const activeNav = document.querySelector('.nav-item.active');
+    const activePage = activeNav ? activeNav.dataset.page : null;
+    if (activePage && DISABLED_PAGES.includes(activePage)) {
+        document.querySelector('.nav-item[data-page="overview"]')?.click();
     }
     
     // Deaktivierte Bereiche aus der Navbar entfernen
@@ -290,7 +319,7 @@ async function loadMembers() {
         tbody.innerHTML = members.map(m => `
             <tr>
                 <td>
-                    <img src="${m.profile_photo || 'https://via.placeholder.com/40'}" alt="${m.full_name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    <img src="${getProfilePhotoUrl(m.profile_photo)}" alt="${m.full_name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
                 </td>
                 <td>${m.full_name}</td>
                 <td>${m.username}</td>
@@ -2247,7 +2276,7 @@ async function editMember(id) {
         // Zeige aktuelles Foto
         const photoPreview = document.getElementById('current-photo-preview');
         if (member.profile_photo) {
-            photoPreview.innerHTML = `<img src="${API_URL}${member.profile_photo}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;"><br><small>Aktuelles Foto</small>`;
+            photoPreview.innerHTML = `<img src="${getProfilePhotoUrl(member.profile_photo)}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;"><br><small>Aktuelles Foto</small>`;
         } else {
             photoPreview.innerHTML = '<small style="color: #999;">Kein Foto vorhanden</small>';
         }
