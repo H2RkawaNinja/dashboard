@@ -4083,22 +4083,82 @@ async function viewRecipeDetails(id) {
         
         const recipe = await response.json();
         
+        // Kategorie-Icons
+        const categoryIcons = {
+            'Waffen': 'fa-gun',
+            'Drogen': 'fa-pills',
+            'Ausrüstung': 'fa-toolbox',
+            'Fahrzeuge': 'fa-car',
+            'Sonstiges': 'fa-box'
+        };
+        const categoryIcon = categoryIcons[recipe.category] || 'fa-box';
+        
+        // Zutaten-Liste erstellen
         const ingredientsList = recipe.ingredients.map(ing => 
-            `<li>${ing.ingredient_name}: ${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}</li>`
+            `<div class="ingredient-item">
+                <span class="ingredient-name-display">${ing.ingredient_name}</span>
+                <span class="ingredient-qty">${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}</span>
+            </div>`
         ).join('');
         
-        showToast(`
-            <h3 style="margin-top: 0;">${recipe.recipe_name}</h3>
-            <p><strong>Kategorie:</strong> ${recipe.category}</p>
-            ${recipe.description ? `<p>${recipe.description}</p>` : ''}
-            ${recipe.crafting_time > 0 ? `<p><strong>Herstellungszeit:</strong> ${recipe.crafting_time} Minuten</p>` : ''}
-            ${recipe.output_item ? `<p><strong>Ergebnis:</strong> ${recipe.output_item} x${recipe.output_quantity || 1}</p>` : ''}
-            <p><strong>Zutaten:</strong></p>
-            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                ${ingredientsList}
-            </ul>
-            ${recipe.notes ? `<p><strong>Notizen:</strong><br>${recipe.notes}</p>` : ''}
-        `, 'info', 'Rezept Details', 10000);
+        // Content erstellen
+        const content = `
+            <div class="recipe-detail-header">
+                ${recipe.product_image ? 
+                    `<div class="recipe-detail-image" style="background-image: url('${recipe.product_image}')"></div>` : 
+                    `<div class="recipe-detail-image recipe-detail-no-image"><i class="fas fa-image"></i></div>`
+                }
+                <div class="recipe-detail-info">
+                    <div class="recipe-detail-category">
+                        <i class="fas ${categoryIcon}"></i> ${recipe.category}
+                    </div>
+                    ${recipe.crafting_time > 0 ? 
+                        `<div class="recipe-detail-time"><i class="fas fa-clock"></i> ${recipe.crafting_time} Minuten</div>` : ''
+                    }
+                </div>
+            </div>
+            
+            ${recipe.description ? `
+                <div class="recipe-detail-section">
+                    <h4><i class="fas fa-info-circle"></i> Beschreibung</h4>
+                    <p>${recipe.description}</p>
+                </div>
+            ` : ''}
+            
+            ${recipe.output_item ? `
+                <div class="recipe-detail-section recipe-detail-output">
+                    <h4><i class="fas fa-arrow-right"></i> Ergebnis</h4>
+                    <div class="output-display">
+                        <span class="output-item">${recipe.output_item}</span>
+                        <span class="output-quantity">x${recipe.output_quantity || 1}</span>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div class="recipe-detail-section">
+                <h4><i class="fas fa-list"></i> Benötigte Zutaten</h4>
+                <div class="ingredients-list">
+                    ${ingredientsList}
+                </div>
+            </div>
+            
+            ${recipe.notes ? `
+                <div class="recipe-detail-section recipe-detail-notes">
+                    <h4><i class="fas fa-sticky-note"></i> Notizen</h4>
+                    <p>${recipe.notes}</p>
+                </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('recipe-detail-title').textContent = recipe.recipe_name;
+        document.getElementById('recipe-detail-content').innerHTML = content;
+        document.getElementById('recipe-detail-edit-btn').onclick = () => {
+            closeModals();
+            showEditRecipeModal(id);
+        };
+        
+        document.getElementById('modal-overlay').style.display = 'flex';
+        document.getElementById('recipe-detail-modal').style.display = 'block';
     } catch (error) {
         console.error('Fehler:', error);
         showToast('Fehler beim Laden der Details', 'error');

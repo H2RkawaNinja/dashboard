@@ -1614,6 +1614,25 @@
                 <button type="submit" class="btn-primary">Rezept speichern</button>
             </form>
         </div>
+
+        <!-- Recipe Details Modal -->
+        <div id="recipe-detail-modal" class="modal" style="display: none; max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="recipe-detail-title">Rezept Details</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <div id="recipe-detail-content" class="recipe-detail-content">
+                <!-- Content wird dynamisch gefüllt -->
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn-secondary" onclick="closeModals()" style="flex: 1;">
+                    <i class="fas fa-times"></i> Schließen
+                </button>
+                <button id="recipe-detail-edit-btn" class="btn-primary" style="flex: 1;">
+                    <i class="fas fa-edit"></i> Bearbeiten
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Notifications -->
