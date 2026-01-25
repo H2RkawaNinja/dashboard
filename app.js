@@ -332,66 +332,57 @@ async function loadHeroSales() {
             credentials: 'include'
         });
         const sales = await response.json();
-        
         const tbody = document.getElementById('hero-sales-table');
-        
         if (!sales || sales.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Keine Verkäufe vorhanden</td></tr>';
             return;
         }
-        
-        tbody.innerHTML = members.map(m => `
-            <tr>
-                <td>${m.full_name}</td>
-                <td>${m.username}</td>
-                <td>${m.rank}</td>
-                <td>
-                    ${m.is_password_set 
-                        ? '<span class="status-badge active"><i class="fas fa-check"></i> Eingerichtet</span>' 
-                        : '<span class="status-badge inactive"><i class="fas fa-clock"></i> Ausstehend</span>'}
-                    ${isBoss && m.is_password_set ? `<button class="btn-icon-small" onclick="showPassword(${m.id})" title="Passwort anzeigen"><i class="fas fa-eye"></i></button>` : ''}
-                </td>
-                <td>${m.phone || '-'}</td>
-                <td>${m.last_login ? formatDateTime(m.last_login) : 'Nie'}</td>
-                <td><span class="status-badge ${m.is_active ? 'active' : 'inactive'}">${m.is_active ? 'Aktiv' : 'Inaktiv'}</span></td>
-                <td>
-                    ${canEdit ? `
-                        <button class="btn-icon-small" onclick="editMember(${m.id})" title="Bearbeiten"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon-small" onclick="deleteMember(${m.id}, '${m.full_name}')" title="Löschen" style="background: #dc3545;"><i class="fas fa-trash"></i></button>
-                    ` : '-'}
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = sales.map(s => {
+            const totalSale = parseFloat(s.total_sale) || 0;
+            const gangShare = parseFloat(s.gang_share) || 0;
+            const memberShare = parseFloat(s.member_share) || 0;
+            return `
+                <tr>
+                    <td>${s.full_name || 'Unbekannt'}</td>
+                    <td>${s.quantity || 0}</td>
+                    <td>$${totalSale.toFixed(2)}</td>
+                    <td>$${gangShare.toFixed(2)}</td>
+                    <td>$${memberShare.toFixed(2)}</td>
+                    <td>${formatDateTime(s.sale_date)}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Fehler beim Laden der Verkäufe:', error);
+    }
+}
+
+async function loadHeroDistributions() {
+    try {
         const response = await fetch(`${API_URL}/hero/distributions`, {
             credentials: 'include'
         });
         const distributions = await response.json();
-        
         const tbody = document.getElementById('hero-distributions-table');
-        
         if (!distributions || distributions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary);">Keine Ausgaben vorhanden</td></tr>';
             return;
         }
-        
         tbody.innerHTML = distributions.map(d => {
             let statusBadge = '';
             if (d.status === 'paid') statusBadge = '<span class="badge badge-success">Bezahlt</span>';
             else if (d.status === 'partial') statusBadge = '<span class="badge badge-warning">Teilweise</span>';
             else statusBadge = '<span class="badge badge-danger">Ausstehend</span>';
-            
             const expectedSale = parseFloat(d.expected_sale_price) || 0;
             const gangShare = parseFloat(d.gang_share) || 0;
             const paidAmount = parseFloat(d.paid_amount) || 0;
             const remaining = gangShare - paidAmount;
-            
             let actionButton = '';
             if (remaining > 0) {
                 actionButton = `<button class="btn-success" onclick="showPaymentModal(${d.id}, '${d.full_name}', ${gangShare}, ${paidAmount})">Zahlung buchen</button>`;
             } else {
                 actionButton = '<span style="color: var(--success);">Vollständig bezahlt</span>';
             }
-            
             return `
                 <tr>
                     <td>${d.full_name || 'Unbekannt'}</td>
