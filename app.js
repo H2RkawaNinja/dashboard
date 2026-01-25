@@ -340,29 +340,28 @@ async function loadHeroSales() {
             return;
         }
         
-        tbody.innerHTML = sales.map(s => {
-            const totalSale = parseFloat(s.total_sale) || 0;
-            const gangShare = parseFloat(s.gang_share) || 0;
-            const memberShare = parseFloat(s.member_share) || 0;
-            
-            return `
-                <tr>
-                    <td>${s.full_name || 'Unbekannt'}</td>
-                    <td>${s.quantity || 0}</td>
-                    <td>$${totalSale.toFixed(2)}</td>
-                    <td>$${gangShare.toFixed(2)}</td>
-                    <td>$${memberShare.toFixed(2)}</td>
-                    <td>${formatDateTime(s.sale_date)}</td>
-                </tr>
-            `;
-        }).join('');
-    } catch (error) {
-        console.error('Fehler beim Laden der Verkäufe:', error);
-    }
-}
-
-async function loadHeroDistributions() {
-    try {
+        tbody.innerHTML = members.map(m => `
+            <tr>
+                <td>${m.full_name}</td>
+                <td>${m.username}</td>
+                <td>${m.rank}</td>
+                <td>
+                    ${m.is_password_set 
+                        ? '<span class="status-badge active"><i class="fas fa-check"></i> Eingerichtet</span>' 
+                        : '<span class="status-badge inactive"><i class="fas fa-clock"></i> Ausstehend</span>'}
+                    ${isBoss && m.is_password_set ? `<button class="btn-icon-small" onclick="showPassword(${m.id})" title="Passwort anzeigen"><i class="fas fa-eye"></i></button>` : ''}
+                </td>
+                <td>${m.phone || '-'}</td>
+                <td>${m.last_login ? formatDateTime(m.last_login) : 'Nie'}</td>
+                <td><span class="status-badge ${m.is_active ? 'active' : 'inactive'}">${m.is_active ? 'Aktiv' : 'Inaktiv'}</span></td>
+                <td>
+                    ${canEdit ? `
+                        <button class="btn-icon-small" onclick="editMember(${m.id})" title="Bearbeiten"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon-small" onclick="deleteMember(${m.id}, '${m.full_name}')" title="Löschen" style="background: #dc3545;"><i class="fas fa-trash"></i></button>
+                    ` : '-'}
+                </td>
+            </tr>
+        `).join('');
         const response = await fetch(`${API_URL}/hero/distributions`, {
             credentials: 'include'
         });

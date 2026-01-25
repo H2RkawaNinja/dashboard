@@ -395,17 +395,16 @@
                 <div id="fence-manage-tab" class="fence-tab-content">
                     <div class="card">
                         <div class="card-header-flex">
-                            <div>
-                                <h2><i class="fas fa-cog"></i> Produktverwaltung</h2>
-                                <p class="card-subtitle">Verwalten Sie Ihre Produkte und legen Sie Standard-Preise fest</p>
-                            </div>
-                            <button class="btn-primary" onclick="showAddProductModal()">
-                                <i class="fas fa-plus"></i> Neues Produkt
-                            </button>
-                        </div>
-                        
-                        <div class="manage-view-toggle">
-                            <button class="view-btn active" onclick="switchManageView('cards')" id="view-cards-btn">
+                            <tr>
+                                <th>Name</th>
+                                <th>Benutzername</th>
+                                <th>Rang</th>
+                                <th>Passwort</th>
+                                <th>Telefon</th>
+                                <th>Letzter Login</th>
+                                <th>Status</th>
+                                <th>Aktionen</th>
+                            </tr>
                                 <i class="fas fa-th-large"></i> Karten
                             </button>
                             <button class="view-btn" onclick="switchManageView('table')" id="view-table-btn">
