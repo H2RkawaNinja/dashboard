@@ -3960,10 +3960,10 @@ function displayRecipes(recipes) {
                             <span>${recipe.crafting_time} Min</span>
                         </div>
                     ` : ''}
-                    ${recipe.output_item ? `
+                    ${recipe.output_quantity > 1 ? `
                         <div class="recipe-info-item">
-                            <i class="fas fa-box-open"></i>
-                            <span>${recipe.output_item} x${recipe.output_quantity || 1}</span>
+                            <i class="fas fa-layer-group"></i>
+                            <span>${recipe.output_quantity}x pro Herstellung</span>
                         </div>
                     ` : ''}
                     <div class="recipe-info-item">
