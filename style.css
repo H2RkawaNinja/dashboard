@@ -167,10 +167,31 @@ body {
     justify-content: center;
     gap: 0.5rem;
     transition: background 0.2s;
+    margin-bottom: 0.75rem;
 }
 
 .btn-login:hover {
     background: #4f46e5;
+}
+
+.btn-demo {
+    width: 100%;
+    padding: 1rem;
+    background: var(--secondary);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+}
+
+.btn-demo:hover {
+    background: #059669;
 }
 
 .error-message {
@@ -2600,4 +2621,219 @@ body {
 .member-tag i {
     font-size: 0.8em;
     margin-right: 3px;
+}
+
+/* ========== REZEPTE STYLES ========== */
+
+.recipes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.recipe-card {
+    background: var(--dark-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.recipe-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+    border-color: var(--primary);
+}
+
+.recipe-image {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    background: var(--dark-bg);
+}
+
+.recipe-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.recipe-card:hover .recipe-image img {
+    transform: scale(1.05);
+}
+
+.recipe-card-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.recipe-card > .recipe-description,
+.recipe-card > .recipe-info,
+.recipe-card > .recipe-notes,
+.recipe-card > .btn-block {
+    padding: 0 1.5rem;
+}
+
+.recipe-card > .btn-block {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+.recipe-card-header h3 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.recipe-category-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.recipe-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.recipe-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.recipe-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 0.5rem;
+}
+
+.recipe-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.recipe-info-item i {
+    color: var(--primary);
+}
+
+.recipe-notes {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid var(--warning);
+    border-radius: 0.25rem;
+    margin: 1rem 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.recipe-notes i {
+    color: var(--warning);
+    margin-top: 0.1rem;
+}
+
+/* Zutaten-Zeilen im Modal */
+.ingredient-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.ingredient-row input {
+    padding: 0.6rem;
+    background: var(--dark-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.ingredient-row input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.ingredient-name {
+    grid-column: span 1;
+}
+
+.ingredient-quantity {
+    grid-column: span 1;
+}
+
+.ingredient-unit {
+    grid-column: span 1;
+}
+
+.btn-block {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+/* Bild-Upload Container */
+.image-upload-container {
+    position: relative;
+}
+
+.image-upload-container input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 200px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.image-preview {
+    width: 100%;
+    height: 200px;
+    background: var(--dark-bg);
+    border: 2px dashed var(--border);
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+}
+
+.image-preview:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.image-preview i {
+    font-size: 2rem;
+}
+
+.image-upload-container input[type="text"] {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--dark-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
 }

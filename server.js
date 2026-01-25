@@ -1902,7 +1902,7 @@ app.delete('/api/intelligence/:id', requireLogin, (req, res) => {
         const title = results[0].title;
         const category = results[0].category;
         
-        // Wenn es eine Gang ist, prüfe ob Personen zugeordnet sind
+        // Wenn es eine Gang ist, prüfe ob Personen zugeordnet sind und gib Info zurück
         if (category === 'Gang') {
             db.query('SELECT COUNT(*) as count FROM intelligence WHERE gang_id = ?', [id], (err, countResults) => {
                 if (err) {
@@ -1910,14 +1910,23 @@ app.delete('/api/intelligence/:id', requireLogin, (req, res) => {
                     return res.status(500).json({ error: err.message });
                 }
                 
-                if (countResults[0].count > 0) {
-                    return res.status(400).json({ 
-                        error: `Gang kann nicht gelöscht werden. ${countResults[0].count} Person(en) sind dieser Gang zugeordnet. Bitte zuerst die Personen löschen oder einer anderen Gang zuordnen.` 
-                    });
-                }
+                const personCount = countResults[0].count;
                 
-                // Keine Personen zugeordnet, Gang kann gelöscht werden
-                deleteIntelligence(id, title, req, res);
+                if (personCount > 0) {
+                    // Entferne die Gang-Zuordnung bei allen Personen
+                    db.query('UPDATE intelligence SET gang_id = NULL WHERE gang_id = ?', [id], (err) => {
+                        if (err) {
+                            console.error('Update gang_id error:', err);
+                            return res.status(500).json({ error: err.message });
+                        }
+                        
+                        // Jetzt die Gang löschen
+                        deleteIntelligence(id, title, req, res, `${personCount} Person(en) wurden von der Gang entfernt`);
+                    });
+                } else {
+                    // Keine Personen zugeordnet, Gang kann direkt gelöscht werden
+                    deleteIntelligence(id, title, req, res);
+                }
             });
         } else {
             // Personen können direkt gelöscht werden
@@ -1926,7 +1935,7 @@ app.delete('/api/intelligence/:id', requireLogin, (req, res) => {
     });
 });
 
-function deleteIntelligence(id, title, req, res) {
+function deleteIntelligence(id, title, req, res, additionalInfo = null) {
     db.query('DELETE FROM intelligence WHERE id = ?', [id], (err, result) => {
         if (err) {
             console.error('Delete query error:', err);
@@ -1939,12 +1948,212 @@ function deleteIntelligence(id, title, req, res) {
         console.log(`Intel gelöscht: ${title} (ID: ${id})`);
         
         // Log
+        const logMessage = additionalInfo ? `Intel gelöscht: ${title} (${additionalInfo})` : `Intel gelöscht: ${title}`;
         db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
-            [req.session.userId, 'intelligence', `Intel gelöscht: ${title}`]);
+            [req.session.userId, 'intelligence', logMessage]);
         
-        res.json({ success: true, message: 'Information gelöscht' });
+        const message = additionalInfo ? `Information gelöscht. ${additionalInfo}` : 'Information gelöscht';
+        res.json({ success: true, message: message });
     });
 }
+
+// ============================================
+// REZEPTE ROUTEN
+// ============================================
+
+// Alle Rezepte abrufen
+app.get('/api/recipes', requireLogin, (req, res) => {
+    const query = `
+        SELECT r.*, 
+               m.full_name as creator_name,
+               (SELECT COUNT(*) FROM recipe_ingredients WHERE recipe_id = r.id) as ingredient_count
+        FROM recipes r
+        LEFT JOIN members m ON r.created_by = m.id
+        WHERE r.is_active = TRUE
+        ORDER BY r.created_date DESC
+    `;
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Recipes query error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
+
+// Einzelnes Rezept mit Zutaten abrufen
+app.get('/api/recipes/:id', requireLogin, (req, res) => {
+    const recipeId = req.params.id;
+    
+    const recipeQuery = 'SELECT * FROM recipes WHERE id = ? AND is_active = TRUE';
+    const ingredientsQuery = 'SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id';
+    
+    db.query(recipeQuery, [recipeId], (err, recipeResults) => {
+        if (err) {
+            console.error('Recipe query error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (recipeResults.length === 0) {
+            return res.status(404).json({ error: 'Rezept nicht gefunden' });
+        }
+        
+        db.query(ingredientsQuery, [recipeId], (err, ingredientResults) => {
+            if (err) {
+                console.error('Ingredients query error:', err);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            const recipe = recipeResults[0];
+            recipe.ingredients = ingredientResults;
+            
+            res.json(recipe);
+        });
+    });
+});
+
+// Neues Rezept erstellen
+app.post('/api/recipes', requireLogin, (req, res) => {
+    const { recipe_name, category, description, crafting_time, output_item, output_quantity, notes, ingredients } = req.body;
+    
+    if (!recipe_name || !category) {
+        return res.status(400).json({ error: 'Rezeptname und Kategorie sind erforderlich' });
+    }
+    
+    if (!ingredients || ingredients.length === 0) {
+        return res.status(400).json({ error: 'Mindestens eine Zutat ist erforderlich' });
+    }
+    
+    const recipeQuery = `
+        INSERT INTO recipes (recipe_name, category, description, crafting_time, output_item, output_quantity, notes, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.query(recipeQuery, [recipe_name, category, description, crafting_time || 0, output_item, output_quantity || 1, notes, req.session.userId], (err, result) => {
+        if (err) {
+            console.error('Recipe insert error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const recipeId = result.insertId;
+        
+        // Zutaten einfügen
+        const ingredientValues = ingredients.map(ing => [recipeId, ing.ingredient_name, ing.quantity, ing.unit]);
+        const ingredientQuery = 'INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity, unit) VALUES ?';
+        
+        db.query(ingredientQuery, [ingredientValues], (err) => {
+            if (err) {
+                console.error('Ingredients insert error:', err);
+                // Rollback: Rezept wieder löschen
+                db.query('DELETE FROM recipes WHERE id = ?', [recipeId]);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            console.log(`Rezept erstellt: ${recipe_name} (ID: ${recipeId})`);
+            
+            // Log
+            db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                [req.session.userId, 'recipe', `Rezept erstellt: ${recipe_name}`]);
+            
+            res.json({ success: true, id: recipeId, message: 'Rezept erfolgreich erstellt' });
+        });
+    });
+});
+
+// Rezept aktualisieren
+app.put('/api/recipes/:id', requireLogin, (req, res) => {
+    const recipeId = req.params.id;
+    const { recipe_name, category, description, crafting_time, output_item, output_quantity, notes, ingredients } = req.body;
+    
+    if (!recipe_name || !category) {
+        return res.status(400).json({ error: 'Rezeptname und Kategorie sind erforderlich' });
+    }
+    
+    if (!ingredients || ingredients.length === 0) {
+        return res.status(400).json({ error: 'Mindestens eine Zutat ist erforderlich' });
+    }
+    
+    const updateQuery = `
+        UPDATE recipes 
+        SET recipe_name = ?, category = ?, description = ?, crafting_time = ?, 
+            output_item = ?, output_quantity = ?, notes = ?
+        WHERE id = ?
+    `;
+    
+    db.query(updateQuery, [recipe_name, category, description, crafting_time || 0, output_item, output_quantity || 1, notes, recipeId], (err, result) => {
+        if (err) {
+            console.error('Recipe update error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Rezept nicht gefunden' });
+        }
+        
+        // Alte Zutaten löschen
+        db.query('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [recipeId], (err) => {
+            if (err) {
+                console.error('Delete ingredients error:', err);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            // Neue Zutaten einfügen
+            const ingredientValues = ingredients.map(ing => [recipeId, ing.ingredient_name, ing.quantity, ing.unit]);
+            const ingredientQuery = 'INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity, unit) VALUES ?';
+            
+            db.query(ingredientQuery, [ingredientValues], (err) => {
+                if (err) {
+                    console.error('Ingredients insert error:', err);
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                console.log(`Rezept aktualisiert: ${recipe_name} (ID: ${recipeId})`);
+                
+                // Log
+                db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                    [req.session.userId, 'recipe', `Rezept aktualisiert: ${recipe_name}`]);
+                
+                res.json({ success: true, message: 'Rezept erfolgreich aktualisiert' });
+            });
+        });
+    });
+});
+
+// Rezept löschen
+app.delete('/api/recipes/:id', requireLogin, (req, res) => {
+    const recipeId = req.params.id;
+    
+    // Erst Rezeptname holen für Log
+    db.query('SELECT recipe_name FROM recipes WHERE id = ?', [recipeId], (err, results) => {
+        if (err) {
+            console.error('Recipe query error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Rezept nicht gefunden' });
+        }
+        
+        const recipeName = results[0].recipe_name;
+        
+        // Soft delete: is_active auf FALSE setzen
+        db.query('UPDATE recipes SET is_active = FALSE WHERE id = ?', [recipeId], (err, result) => {
+            if (err) {
+                console.error('Recipe delete error:', err);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            console.log(`Rezept gelöscht: ${recipeName} (ID: ${recipeId})`);
+            
+            // Log
+            db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                [req.session.userId, 'recipe', `Rezept gelöscht: ${recipeName}`]);
+            
+            res.json({ success: true, message: 'Rezept erfolgreich gelöscht' });
+        });
+    });
+});
 
 // Server starten
 app.listen(PORT, () => {

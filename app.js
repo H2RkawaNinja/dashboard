@@ -1,6 +1,16 @@
 const API_URL = window.location.origin + '/api';
 let currentUser = null;
 
+// ========== DEAKTIVIERTE BEREICHE ==========
+// Hier können Bereiche deaktiviert werden - sie werden dann aus der Navbar entfernt
+// Mögliche Werte: 'overview', 'members', 'hero', 'fence', 'warehouse', 'storage', 'recipes', 'intelligence', 'activity'
+const DISABLED_PAGES = [
+    // 'hero',        // Beispiel: Hero-Verkauf deaktivieren
+    // 'fence',       // Beispiel: Hehler-Geschäft deaktivieren
+    // 'warehouse',   // Beispiel: Sortier Bereich deaktivieren
+    // 'intelligence' // Beispiel: Intel-Sammlung deaktivieren
+];
+
 // ========== TOAST NOTIFICATIONS ==========
 
 function showToast(message, type = 'info', title = null, duration = 4000) {
@@ -92,6 +102,27 @@ function showDashboard() {
         userPhoto.src = 'https://via.placeholder.com/40';
     }
     
+    // Deaktivierte Bereiche aus der Navbar entfernen
+    DISABLED_PAGES.forEach(page => {
+        const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+        if (navItem) {
+            navItem.style.display = 'none';
+        }
+        
+        // Verstecke auch die entsprechende Seite
+        const pageElement = document.getElementById(`${page}-page`);
+        if (pageElement) {
+            pageElement.style.display = 'none';
+        }
+    });
+    
+    // Wenn die aktuelle Seite deaktiviert ist, wechsle zur Übersicht
+    const activeNav = document.querySelector('.nav-item.active');
+    const activePage = activeNav ? activeNav.dataset.page : null;
+    if (activePage && DISABLED_PAGES.includes(activePage)) {
+        document.querySelector('.nav-item[data-page="overview"]')?.click();
+    }
+    
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
     if (addMemberBtn) {
@@ -150,7 +181,7 @@ async function checkSession() {
             showDashboard();
         }
     } catch (error) {
-        console.log('Nicht eingeloggt');
+        // Session not found
     }
 }
 
@@ -202,6 +233,9 @@ function loadPageData(page) {
             break;
         case 'storage':
             loadStorageOverview();
+            break;
+        case 'recipes':
+            loadRecipes();
             break;
         case 'intelligence':
             loadIntelligence();
@@ -286,11 +320,9 @@ async function loadMembers() {
 // ========== HERO SYSTEM ==========
 
 async function loadHeroData() {
-    console.log('loadHeroData() called');
     await loadHeroInventory();
     await loadHeroDistributions();
     await loadHeroPaymentStats();
-    console.log('loadHeroData() completed');
 }
 
 async function loadHeroInventory() {
@@ -335,20 +367,13 @@ async function loadHeroPaymentStats() {
 }
 
 async function loadHeroSales() {
-    console.log('loadHeroSales() called');
     try {
-        console.log('Fetching from:', `${API_URL}/hero/sales`);
         const response = await fetch(`${API_URL}/hero/sales`, {
             credentials: 'include'
         });
-        console.log('Response status:', response.status);
         const sales = await response.json();
         
-        console.log('Loaded sales:', sales);
-        console.log('Number of sales:', sales.length);
-        
         const tbody = document.getElementById('hero-sales-table');
-        console.log('Sales table body element:', tbody);
         
         if (!sales || sales.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Keine Verkäufe vorhanden</td></tr>';
@@ -377,20 +402,13 @@ async function loadHeroSales() {
 }
 
 async function loadHeroDistributions() {
-    console.log('loadHeroDistributions() called');
     try {
-        console.log('Fetching from:', `${API_URL}/hero/distributions`);
         const response = await fetch(`${API_URL}/hero/distributions`, {
             credentials: 'include'
         });
-        console.log('Response status:', response.status);
         const distributions = await response.json();
         
-        console.log('Loaded distributions:', distributions);
-        console.log('Number of distributions:', distributions.length);
-        
         const tbody = document.getElementById('hero-distributions-table');
-        console.log('Table body element:', tbody);
         
         if (!distributions || distributions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary);">Keine Ausgaben vorhanden</td></tr>';
@@ -525,10 +543,8 @@ const restockForm = document.getElementById('restock-form');
 if (restockForm) {
     restockForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        console.log('Restock form submitted');
         
         const quantity = parseInt(document.getElementById('restock-quantity').value);
-        console.log('Quantity:', quantity);
         
         if (!quantity || quantity < 1) {
             showToast('Bitte eine gültige Menge eingeben', 'error');
@@ -543,9 +559,7 @@ if (restockForm) {
             body: JSON.stringify({ quantity })
         });
         
-        console.log('Response status:', response.status);
         const data = await response.json();
-        console.log('Response data:', data);
         
         if (response.ok && data.success) {
             showToast(`${quantity} Hero wurden dem Lager hinzugefügt`, 'success', 'Lager aufgefüllt');
@@ -568,7 +582,6 @@ const editStockForm = document.getElementById('edit-stock-form');
 if (editStockForm) {
     editStockForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    console.log('Edit stock form submitted');
     
     const newQuantity = parseInt(document.getElementById('edit-stock-quantity').value);
     
@@ -585,9 +598,7 @@ if (editStockForm) {
             body: JSON.stringify({ quantity: newQuantity })
         });
         
-        console.log('Response status:', response.status);
         const data = await response.json();
-        console.log('Response data:', data);
         
         if (response.ok && data.success) {
             showToast(`Lagerbestand wurde auf ${newQuantity} aktualisiert`, 'success', 'Bestand geändert');
@@ -610,12 +621,9 @@ const distributeForm = document.getElementById('distribute-form');
 if (distributeForm) {
     distributeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        console.log('Distribute form submitted');
         
         const member_id = parseInt(document.getElementById('distribute-member').value);
         const quantity = parseInt(document.getElementById('distribute-quantity').value);
-        
-        console.log('Member ID:', member_id, 'Quantity:', quantity);
         
         if (!member_id) {
             showToast('Bitte ein Mitglied auswählen', 'error');
@@ -635,9 +643,7 @@ if (distributeForm) {
             body: JSON.stringify({ member_id, quantity })
         });
         
-        console.log('Response status:', response.status);
         const data = await response.json();
-        console.log('Response data:', data);
         
         if (data.success) {
             showToast(`${quantity} Hero wurden an das Mitglied ausgegeben`, 'success', 'Hero ausgegeben');
@@ -848,8 +854,6 @@ async function loadFencePurchases() {
             credentials: 'include'
         });
         const purchases = await response.json();
-        
-        console.log('Ankäufe geladen:', purchases);
         
         const tbody = document.getElementById('fence-purchases-table');
         if (!tbody) {
@@ -1072,8 +1076,6 @@ async function loadFenceSales() {
             credentials: 'include'
         });
         const sales = await response.json();
-        
-        console.log('Verkäufe geladen:', sales);
         
         const tbody = document.getElementById('fence-sales-table');
         if (!tbody) {
@@ -1389,8 +1391,6 @@ async function loadWarehouse() {
             credentials: 'include'
         });
         const items = await response.json();
-        
-        console.log('Lager geladen:', items);
         
         // Lade Lagerplätze und dann Artikel
         await loadStorageSlots();
@@ -3368,7 +3368,6 @@ async function loadSalesProductsGrid() {
             `;
         }).join('');
         
-        console.log(`${availableItems.length} Lagerartikel zum Verkauf verfügbar`);
     } catch (error) {
         console.error('Fehler beim Laden der Lagerartikel:', error);
         const grid = document.getElementById('sales-products-grid');
@@ -3754,11 +3753,29 @@ async function editIntel(id) {
 }
 
 async function deleteIntel(id, name) {
-    if (!confirm(`Möchten Sie "${name}" wirklich löschen?`)) {
-        return;
-    }
-    
     try {
+        // Prüfe zuerst, ob es eine Gang mit zugeordneten Personen ist
+        const checkResponse = await fetch(`${API_URL}/intelligence`, {
+            credentials: 'include'
+        });
+        const allIntel = await checkResponse.json();
+        
+        const item = Array.isArray(allIntel) ? allIntel.find(i => i.id === id) : null;
+        const isGang = item && item.category === 'Gang';
+        
+        let confirmMessage = `Möchten Sie "${name}" wirklich löschen?`;
+        
+        if (isGang) {
+            const associatedPersons = allIntel.filter(i => i.category === 'Person' && i.gang_id === id);
+            if (associatedPersons.length > 0) {
+                confirmMessage = `Gang "${name}" löschen?\n\n⚠️ ${associatedPersons.length} Person(en) sind dieser Gang zugeordnet:\n${associatedPersons.map(p => '• ' + p.subject_name).join('\n')}\n\nDiese Personen bleiben erhalten, werden aber von der Gang entfernt.`;
+            }
+        }
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
         const response = await fetch(`${API_URL}/intelligence/${id}`, {
             method: 'DELETE',
             credentials: 'include'
@@ -3767,7 +3784,7 @@ async function deleteIntel(id, name) {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showToast('Kontakt gelöscht', 'success');
+            showToast(result.message || 'Kontakt gelöscht', 'success');
             loadIntelligence();
         } else {
             showToast(result.error || 'Fehler beim Löschen', 'error');
@@ -3827,6 +3844,416 @@ function filterIntelligence() {
     const categoryFilter = document.getElementById('intel-filter-category').value;
     
     const cards = document.querySelectorAll('.intel-card');
+    
+    cards.forEach(card => {
+        const category = card.getAttribute('data-category');
+        const text = card.textContent.toLowerCase();
+        
+        const matchesSearch = text.includes(searchTerm);
+        const matchesCategory = !categoryFilter || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// ========== REZEPTE FUNKTIONEN ==========
+
+let allRecipes = [];
+let ingredientCounter = 0;
+
+async function loadRecipes() {
+    try {
+        const response = await fetch(`${API_URL}/recipes`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Rezepte');
+        }
+        
+        allRecipes = await response.json();
+        displayRecipes(allRecipes);
+    } catch (error) {
+        console.error('Fehler beim Laden der Rezepte:', error);
+        showToast('Fehler beim Laden der Rezepte', 'error');
+    }
+}
+
+function displayRecipes(recipes) {
+    const container = document.getElementById('recipes-container');
+    
+    if (recipes.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                <i class="fas fa-book" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <p>Noch keine Rezepte vorhanden</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = recipes.map(recipe => `
+        <div class="recipe-card" data-category="${recipe.category}">
+            ${recipe.product_image ? `
+                <div class="recipe-image">
+                    <img src="${recipe.product_image}" alt="${recipe.recipe_name}" onerror="this.parentElement.style.display='none'">
+                </div>
+            ` : ''}
+            <div class="recipe-card-header">
+                <div>
+                    <h3>${recipe.recipe_name}</h3>
+                    <span class="recipe-category-badge">${recipe.category}</span>
+                </div>
+                <div class="recipe-card-actions">
+                    <button class="btn-icon" onclick="showEditRecipeModal(${recipe.id})" title="Bearbeiten">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon" onclick="deleteRecipe(${recipe.id}, '${recipe.recipe_name.replace(/'/g, "\\'")}')" title="Löschen">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            ${recipe.description ? `<p class="recipe-description">${recipe.description}</p>` : ''}
+            
+            <div class="recipe-info">
+                ${recipe.crafting_time > 0 ? `
+                    <div class="recipe-info-item">
+                        <i class="fas fa-clock"></i>
+                        <span>${recipe.crafting_time} Min</span>
+                    </div>
+                ` : ''}
+                ${recipe.output_item ? `
+                    <div class="recipe-info-item">
+                        <i class="fas fa-box"></i>
+                        <span>${recipe.output_item} x${recipe.output_quantity || 1}</span>
+                    </div>
+                ` : ''}
+                <div class="recipe-info-item">
+                    <i class="fas fa-list"></i>
+                    <span>${recipe.ingredient_count || 0} Zutaten</span>
+                </div>
+            </div>
+            
+            ${recipe.notes ? `
+                <div class="recipe-notes">
+                    <i class="fas fa-info-circle"></i>
+                    <span>${recipe.notes}</span>
+                </div>
+            ` : ''}
+            
+            <button class="btn-secondary btn-block" onclick="viewRecipeDetails(${recipe.id})">
+                <i class="fas fa-eye"></i> Details anzeigen
+            </button>
+        </div>
+    `).join('');
+}
+
+function showAddRecipeModal() {
+    document.getElementById('recipe-modal-title').textContent = 'Neues Rezept';
+    document.getElementById('recipe-form').reset();
+    document.getElementById('recipe-id').value = '';
+    
+    // Bild-Preview zurücksetzen
+    const preview = document.getElementById('recipe-image-preview');
+    preview.innerHTML = '<i class="fas fa-image"></i><span>Bild auswählen oder per URL eingeben</span>';
+    preview.style.backgroundImage = '';
+    document.getElementById('recipe-image-url').value = '';
+    
+    // Zutaten-Container leeren und eine leere Zeile hinzufügen
+    const container = document.getElementById('ingredients-container');
+    container.innerHTML = '';
+    ingredientCounter = 0;
+    addIngredientRow();
+    
+    document.getElementById('recipe-modal').style.display = 'block';
+}
+
+async function showEditRecipeModal(id) {
+    try {
+        const response = await fetch(`${API_URL}/recipes/${id}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden des Rezepts');
+        }
+        
+        const recipe = await response.json();
+        
+        document.getElementById('recipe-modal-title').textContent = 'Rezept bearbeiten';
+        document.getElementById('recipe-id').value = recipe.id;
+        document.getElementById('recipe-name').value = recipe.recipe_name;
+        document.getElementById('recipe-category').value = recipe.category;
+        document.getElementById('recipe-description').value = recipe.description || '';
+        document.getElementById('recipe-time').value = recipe.crafting_time || 0;
+        document.getElementById('recipe-output').value = recipe.output_item || '';
+        document.getElementById('recipe-output-quantity').value = recipe.output_quantity || 1;
+        document.getElementById('recipe-notes').value = recipe.notes || '';
+        
+        // Bild laden
+        if (recipe.product_image) {
+            const preview = document.getElementById('recipe-image-preview');
+            preview.style.backgroundImage = `url(${recipe.product_image})`;
+            preview.innerHTML = '';
+            document.getElementById('recipe-image-url').value = recipe.product_image;
+        }
+        
+        // Zutaten laden
+        const container = document.getElementById('ingredients-container');
+        container.innerHTML = '';
+        ingredientCounter = 0;
+        
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+            recipe.ingredients.forEach(ing => {
+                addIngredientRow(ing.ingredient_name, ing.quantity, ing.unit);
+            });
+        } else {
+            addIngredientRow();
+        }
+        
+        document.getElementById('recipe-modal').style.display = 'block';
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Fehler beim Laden des Rezepts', 'error');
+    }
+}
+
+function addIngredientRow(name = '', quantity = '', unit = '') {
+    const container = document.getElementById('ingredients-container');
+    const id = ingredientCounter++;
+    
+    const row = document.createElement('div');
+    row.className = 'ingredient-row';
+    row.id = `ingredient-row-${id}`;
+    row.innerHTML = `
+        <input type="text" 
+               class="ingredient-name" 
+               placeholder="Zutat" 
+               value="${name}" 
+               required>
+        <input type="number" 
+               class="ingredient-quantity" 
+               placeholder="Menge" 
+               value="${quantity}" 
+               min="1" 
+               required>
+        <input type="text" 
+               class="ingredient-unit" 
+               placeholder="Einheit" 
+               value="${unit}">
+        <button type="button" 
+                class="btn-icon btn-danger" 
+                onclick="removeIngredientRow(${id})"
+                ${container.children.length === 0 ? 'disabled' : ''}>
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    container.appendChild(row);
+}
+
+function removeIngredientRow(id) {
+    const row = document.getElementById(`ingredient-row-${id}`);
+    const container = document.getElementById('ingredients-container');
+    
+    // Mindestens eine Zutat muss bleiben
+    if (container.children.length > 1) {
+        row.remove();
+    } else {
+        showToast('Mindestens eine Zutat erforderlich', 'warning');
+    }
+}
+
+async function viewRecipeDetails(id) {
+    try {
+        const response = await fetch(`${API_URL}/recipes/${id}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden des Rezepts');
+        }
+        
+        const recipe = await response.json();
+        
+        const ingredientsList = recipe.ingredients.map(ing => 
+            `<li>${ing.ingredient_name}: ${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}</li>`
+        ).join('');
+        
+        showToast(`
+            <h3 style="margin-top: 0;">${recipe.recipe_name}</h3>
+            <p><strong>Kategorie:</strong> ${recipe.category}</p>
+            ${recipe.description ? `<p>${recipe.description}</p>` : ''}
+            ${recipe.crafting_time > 0 ? `<p><strong>Herstellungszeit:</strong> ${recipe.crafting_time} Minuten</p>` : ''}
+            ${recipe.output_item ? `<p><strong>Ergebnis:</strong> ${recipe.output_item} x${recipe.output_quantity || 1}</p>` : ''}
+            <p><strong>Zutaten:</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                ${ingredientsList}
+            </ul>
+            ${recipe.notes ? `<p><strong>Notizen:</strong><br>${recipe.notes}</p>` : ''}
+        `, 'info', 'Rezept Details', 10000);
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Fehler beim Laden der Details', 'error');
+    }
+}
+
+document.getElementById('recipe-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('recipe-id').value;
+    const recipeName = document.getElementById('recipe-name').value;
+    const category = document.getElementById('recipe-category').value;
+    const description = document.getElementById('recipe-description').value;
+    const craftingTime = document.getElementById('recipe-time').value;
+    const outputItem = document.getElementById('recipe-output').value;
+    const outputQuantity = document.getElementById('recipe-output-quantity').value;
+    const notes = document.getElementById('recipe-notes').value;
+    
+    // Zutaten sammeln
+    const ingredientRows = document.querySelectorAll('.ingredient-row');
+    const ingredients = [];
+    
+    for (const row of ingredientRows) {
+        const name = row.querySelector('.ingredient-name').value.trim();
+        const quantity = parseInt(row.querySelector('.ingredient-quantity').value);
+        const unit = row.querySelector('.ingredient-unit').value.trim();
+        
+        if (name && quantity) {
+            ingredients.push({
+                ingredient_name: name,
+                quantity: quantity,
+                unit: unit
+            });
+        }
+    }
+    
+    if (ingredients.length === 0) {
+        showToast('Mindestens eine Zutat erforderlich', 'warning');
+        return;
+    }
+    
+    // Bild-URL ermitteln
+    let productImage = document.getElementById('recipe-image-url').value.trim();
+    if (!productImage) {
+        const fileInput = document.getElementById('recipe-image');
+        if (fileInput.files && fileInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                productImage = e.target.result;
+                saveRecipe(id, recipeName, category, description, craftingTime, outputItem, outputQuantity, notes, ingredients, productImage);
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+            return;
+        }
+    }
+    
+    saveRecipe(id, recipeName, category, description, craftingTime, outputItem, outputQuantity, notes, ingredients, productImage);
+});
+
+async function saveRecipe(id, recipeName, category, description, craftingTime, outputItem, outputQuantity, notes, ingredients, productImage) {
+    const data = {
+        recipe_name: recipeName,
+        category: category,
+        description: description,
+        crafting_time: parseInt(craftingTime) || 0,
+        output_item: outputItem,
+        output_quantity: parseInt(outputQuantity) || 1,
+        product_image: productImage,
+        notes: notes,
+        ingredients: ingredients
+    };
+    
+    try {
+        const url = id ? `${API_URL}/recipes/${id}` : `${API_URL}/recipes`;
+        const method = id ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast(id ? 'Rezept aktualisiert' : 'Rezept hinzugefügt', 'success');
+            closeModals();
+            loadRecipes();
+        } else {
+            showToast(result.error || 'Fehler beim Speichern', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+        console.error('Fehler beim Speichern:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+});
+
+async function deleteRecipe(id, name) {
+    if (!confirm(`Möchten Sie das Rezept "${name}" wirklich löschen?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/recipes/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showToast('Rezept gelöscht', 'success');
+            loadRecipes();
+        } else {
+            showToast(result.error || 'Fehler beim Löschen', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler beim Löschen:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Bild-Vorschau und Upload Funktionen
+function previewRecipeImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('recipe-image-preview');
+            preview.style.backgroundImage = `url(${e.target.result})`;
+            preview.innerHTML = '';
+            document.getElementById('recipe-image-url').value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function loadRecipeImageFromUrl() {
+    const url = document.getElementById('recipe-image-url').value.trim();
+    if (url) {
+        const preview = document.getElementById('recipe-image-preview');
+        preview.style.backgroundImage = `url(${url})`;
+        preview.innerHTML = '';
+        document.getElementById('recipe-image').value = '';
+    }
+}
+
+function filterRecipes() {
+    const searchTerm = document.getElementById('recipe-search').value.toLowerCase();
+    const categoryFilter = document.getElementById('recipe-filter-category').value;
+    
+    const cards = document.querySelectorAll('.recipe-card');
     
     cards.forEach(card => {
         const category = card.getAttribute('data-category');

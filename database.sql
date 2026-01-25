@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS hero_distributions (
     quantity INT NOT NULL,
     unit_cost DECIMAL(10, 2) NOT NULL,
     total_cost DECIMAL(10, 2) NOT NULL,
+    expected_sale_price DECIMAL(10, 2) DEFAULT 0,
+    gang_share DECIMAL(10, 2) DEFAULT 0,
     distributed_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('outstanding', 'partial', 'paid') DEFAULT 'outstanding',
     notes TEXT,
@@ -59,6 +61,8 @@ CREATE TABLE IF NOT EXISTS hero_distributions_archive (
     quantity INT NOT NULL,
     unit_cost DECIMAL(10, 2) NOT NULL,
     total_cost DECIMAL(10, 2) NOT NULL,
+    expected_sale_price DECIMAL(10, 2) DEFAULT 0,
+    gang_share DECIMAL(10, 2) DEFAULT 0,
     distributed_date TIMESTAMP,
     status ENUM('outstanding', 'partial', 'paid') DEFAULT 'outstanding',
     notes TEXT,
@@ -281,6 +285,33 @@ INSERT INTO activity_log (member_id, action_type, description) VALUES
 (3, 'hero_distribution', 'Max Mustermann hat 10 Hero erhalten'),
 (3, 'hero_sale', 'Max Mustermann hat 5 Hero verkauft'),
 (2, 'fence_purchase', 'Vize Chef hat Gold-Schmuck angekauft für $15,000');
+
+-- Tabelle: Rezepte (Crafting/Herstellung)
+CREATE TABLE IF NOT EXISTS recipes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_name VARCHAR(100) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    description TEXT,
+    crafting_time INT DEFAULT 0,
+    output_item VARCHAR(100),
+    output_quantity INT DEFAULT 1,
+    product_image VARCHAR(255) DEFAULT NULL,
+    notes TEXT,
+    created_by INT,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (created_by) REFERENCES members(id) ON DELETE SET NULL
+);
+
+-- Tabelle: Rezept-Zutaten
+CREATE TABLE IF NOT EXISTS recipe_ingredients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    ingredient_name VARCHAR(100) NOT NULL,
+    quantity INT NOT NULL,
+    unit VARCHAR(20),
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+);
 
 -- Gang Stats
 INSERT INTO gang_stats (stat_key, stat_value) VALUES
