@@ -1,7 +1,6 @@
 const API_URL = window.location.origin + '/api';
 const BASE_URL = window.location.origin;
 let currentUser = null;
-let DISABLED_PAGES = []; // Wird aus der Datenbank geladen
 
 // Hilfsfunktion für Profilfoto-URLs
 function getProfilePhotoUrl(photoPath) {
@@ -12,44 +11,6 @@ function getProfilePhotoUrl(photoPath) {
     }
     // Relativen Pfad zur vollständigen URL machen
     return BASE_URL + photoPath;
-}
-
-// Deaktivierte Seiten aus der Datenbank laden
-async function loadDisabledPages() {
-    try {
-        const response = await fetch(`${API_URL}/settings/disabled-pages`);
-        const data = await response.json();
-        DISABLED_PAGES = data.disabledPages || [];
-        applyDisabledPages();
-    } catch (error) {
-        console.error('Fehler beim Laden der deaktivierten Seiten:', error);
-        DISABLED_PAGES = [];
-    }
-}
-
-// Deaktivierte Seiten anwenden
-function applyDisabledPages() {
-    // SuperAdmin sieht alles
-    if (currentUser && currentUser.is_superadmin) return;
-    
-    DISABLED_PAGES.forEach(page => {
-        const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
-        if (navItem && !navItem.classList.contains('nav-admin')) {
-            navItem.style.display = 'none';
-        }
-        
-        const pageElement = document.getElementById(`${page}-page`);
-        if (pageElement) {
-            pageElement.style.display = 'none';
-        }
-    });
-    
-    // Wenn aktuelle Seite deaktiviert, zur Übersicht wechseln
-    const activeNav = document.querySelector('.nav-item.active');
-    const activePage = activeNav ? activeNav.dataset.page : null;
-    if (activePage && DISABLED_PAGES.includes(activePage)) {
-        document.querySelector('.nav-item[data-page="overview"]')?.click();
-    }
 }
 
 // ========== TOAST NOTIFICATIONS ==========
@@ -139,15 +100,6 @@ function showDashboard() {
     const userPhoto = document.getElementById('user-profile-photo');
     userPhoto.src = getProfilePhotoUrl(currentUser.profile_photo);
     
-    // Lade deaktivierte Seiten aus der Datenbank
-    loadDisabledPages();
-    
-    // SuperAdmin-Panel anzeigen
-    const adminNav = document.querySelector('.nav-admin');
-    if (adminNav) {
-        adminNav.style.display = currentUser.is_superadmin ? 'flex' : 'none';
-    }
-    
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
     if (addMemberBtn) {
@@ -234,8 +186,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             'storage': 'Lager',
             'recipes': 'Rezepte',
             'intelligence': 'Intel-Sammlung',
-            'activity': 'Aktivitäten',
-            'admin': 'Admin Panel'
+            'activity': 'Aktivitäten'
         };
         
         document.getElementById('page-title').textContent = titles[page] || 'Dashboard';
@@ -269,9 +220,6 @@ function loadPageData(page) {
             break;
         case 'activity':
             loadActivity();
-            break;
-        case 'admin':
-            loadAdminData();
             break;
     }
 }
@@ -4428,142 +4376,5 @@ function filterRecipes() {
             emptyState.style.display = 'none';
             container.style.display = 'grid';
         }
-    }
-}
-
-// ========== ADMIN PANEL FUNKTIONEN ==========
-
-// Admin-Panel Daten laden
-async function loadAdminData() {
-    if (!currentUser || !currentUser.is_superadmin) return;
-    
-    loadAdminDatabaseStats();
-    loadAdminPageToggles();
-}
-
-// Datenbank-Statistiken laden
-async function loadAdminDatabaseStats() {
-    try {
-        const response = await fetch(`${API_URL}/admin/database-stats`, {
-            credentials: 'include'
-        });
-        
-        if (!response.ok) return;
-        
-        const stats = await response.json();
-        
-        Object.entries(stats).forEach(([table, count]) => {
-            const el = document.getElementById(`stat-db-${table}`);
-            if (el) el.textContent = count;
-        });
-    } catch (error) {
-        console.error('Fehler beim Laden der DB-Stats:', error);
-    }
-}
-
-// Toggle-Einstellungen laden
-async function loadAdminPageToggles() {
-    try {
-        const response = await fetch(`${API_URL}/settings/disabled-pages`);
-        const data = await response.json();
-        const disabledPages = data.disabledPages || [];
-        
-        // Setze die Toggles
-        document.querySelectorAll('#admin-page-toggles input[data-page]').forEach(input => {
-            const page = input.dataset.page;
-            input.checked = !disabledPages.includes(page);
-        });
-    } catch (error) {
-        console.error('Fehler beim Laden der Toggles:', error);
-    }
-}
-
-// Deaktivierte Seiten speichern
-async function saveDisabledPages() {
-    const disabledPages = [];
-    
-    document.querySelectorAll('#admin-page-toggles input[data-page]').forEach(input => {
-        if (!input.checked) {
-            disabledPages.push(input.dataset.page);
-        }
-    });
-    
-    try {
-        const response = await fetch(`${API_URL}/admin/settings/disabled-pages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ disabledPages })
-        });
-        
-        if (response.ok) {
-            showToast('Einstellungen gespeichert', 'success');
-            // Aktualisiere lokale Liste
-            DISABLED_PAGES = disabledPages;
-        } else {
-            showToast('Fehler beim Speichern', 'error');
-        }
-    } catch (error) {
-        showToast('Verbindungsfehler', 'error');
-    }
-}
-
-// Tabelle leeren
-async function clearTable(table) {
-    const tableNames = {
-        'hero_distributions': 'Hero-Ausgaben',
-        'hero_sales': 'Hero-Verkäufe',
-        'fence_purchases': 'Hehler-Ankäufe',
-        'fence_sales': 'Hehler-Verkäufe',
-        'warehouse': 'Lager',
-        'activity_log': 'Aktivitäten',
-        'intelligence': 'Intel-Einträge',
-        'recipes': 'Rezepte'
-    };
-    
-    const name = tableNames[table] || table;
-    
-    if (!confirm(`Bist du sicher, dass du ALLE ${name} löschen möchtest?\n\nDiese Aktion kann NICHT rückgängig gemacht werden!`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_URL}/admin/clear-table/${table}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showToast(data.message, 'success');
-            loadAdminDatabaseStats();
-        } else {
-            showToast(data.error || 'Fehler', 'error');
-        }
-    } catch (error) {
-        showToast('Verbindungsfehler', 'error');
-    }
-}
-
-// Hero-Lager zurücksetzen
-async function resetHeroInventory() {
-    if (!confirm('Bist du sicher, dass du den Hero-Lagerbestand auf 0 setzen möchtest?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_URL}/admin/reset-hero-inventory`, {
-            method: 'POST',
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            showToast('Hero-Lager zurückgesetzt', 'success');
-        } else {
-            showToast('Fehler beim Zurücksetzen', 'error');
-        }
-    } catch (error) {
-        showToast('Verbindungsfehler', 'error');
     }
 }

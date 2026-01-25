@@ -169,7 +169,6 @@ app.post('/api/auth/login', (req, res) => {
             req.session.canManageHero = user.can_manage_hero;
             req.session.canManageFence = user.can_manage_fence;
             req.session.canViewActivity = user.can_view_activity;
-            req.session.isSuperAdmin = user.is_superadmin || false;
 
             db.query('UPDATE members SET last_login = NOW() WHERE id = ?', [user.id]);
             db.query(
@@ -188,8 +187,7 @@ app.post('/api/auth/login', (req, res) => {
                     can_add_members: user.can_add_members,
                     can_manage_hero: user.can_manage_hero,
                     can_manage_fence: user.can_manage_fence,
-                    can_view_activity: user.can_view_activity,
-                    is_superadmin: user.is_superadmin || false
+                    can_view_activity: user.can_view_activity
                 }
             });
         }
@@ -293,8 +291,7 @@ app.get('/api/dashboard/stats', requireLogin, (req, res) => {
 // ========== MITGLIEDER ==========
 
 app.get('/api/members', requireLogin, (req, res) => {
-    // SuperAdmins werden aus der normalen Mitgliederliste ausgeblendet
-    db.query('SELECT id, username, full_name, rank, phone, profile_photo, joined_date, last_login, is_active, is_password_set FROM members WHERE is_superadmin = FALSE OR is_superadmin IS NULL ORDER BY rank, full_name', 
+    db.query('SELECT id, username, full_name, rank, phone, profile_photo, joined_date, last_login, is_active, is_password_set FROM members ORDER BY rank, full_name', 
         (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -2163,141 +2160,6 @@ app.delete('/api/recipes/:id', requireLogin, (req, res) => {
             
             res.json({ success: true, message: 'Rezept erfolgreich gelöscht' });
         });
-    });
-});
-
-// ========== SUPER ADMIN API ==========
-
-// Middleware: Nur SuperAdmins
-const requireSuperAdmin = (req, res, next) => {
-    if (!req.session.userId || !req.session.isSuperAdmin) {
-        return res.status(403).json({ error: 'Keine Berechtigung - SuperAdmin erforderlich' });
-    }
-    next();
-};
-
-// System-Einstellungen abrufen
-app.get('/api/admin/settings', requireSuperAdmin, (req, res) => {
-    db.query('SELECT * FROM system_settings', (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        const settings = {};
-        results.forEach(row => {
-            try {
-                settings[row.setting_key] = JSON.parse(row.setting_value);
-            } catch {
-                settings[row.setting_key] = row.setting_value;
-            }
-        });
-        res.json(settings);
-    });
-});
-
-// Deaktivierte Seiten aktualisieren
-app.post('/api/admin/settings/disabled-pages', requireSuperAdmin, (req, res) => {
-    const { disabledPages } = req.body;
-    const value = JSON.stringify(disabledPages || []);
-    
-    db.query(
-        'INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?',
-        ['disabled_pages', value, value],
-        (err) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({ success: true, message: 'Einstellungen gespeichert' });
-        }
-    );
-});
-
-// Deaktivierte Seiten abrufen (öffentlich für alle User)
-app.get('/api/settings/disabled-pages', (req, res) => {
-    db.query('SELECT setting_value FROM system_settings WHERE setting_key = ?', ['disabled_pages'], (err, results) => {
-        if (err || results.length === 0) {
-            return res.json({ disabledPages: [] });
-        }
-        try {
-            res.json({ disabledPages: JSON.parse(results[0].setting_value) });
-        } catch {
-            res.json({ disabledPages: [] });
-        }
-    });
-});
-
-// Datenbank-Statistiken abrufen
-app.get('/api/admin/database-stats', requireSuperAdmin, (req, res) => {
-    const queries = {
-        members: 'SELECT COUNT(*) as count FROM members WHERE is_superadmin = FALSE OR is_superadmin IS NULL',
-        hero_distributions: 'SELECT COUNT(*) as count FROM hero_distributions',
-        hero_sales: 'SELECT COUNT(*) as count FROM hero_sales',
-        fence_purchases: 'SELECT COUNT(*) as count FROM fence_purchases',
-        fence_sales: 'SELECT COUNT(*) as count FROM fence_sales',
-        warehouse: 'SELECT COUNT(*) as count FROM warehouse',
-        storage_slots: 'SELECT COUNT(*) as count FROM storage_slots',
-        activity_log: 'SELECT COUNT(*) as count FROM activity_log',
-        intelligence: 'SELECT COUNT(*) as count FROM intelligence',
-        recipes: 'SELECT COUNT(*) as count FROM recipes'
-    };
-    
-    const stats = {};
-    let completed = 0;
-    const total = Object.keys(queries).length;
-    
-    Object.entries(queries).forEach(([table, query]) => {
-        db.query(query, (err, results) => {
-            stats[table] = err ? 0 : results[0].count;
-            completed++;
-            if (completed === total) {
-                res.json(stats);
-            }
-        });
-    });
-});
-
-// Tabelle leeren
-app.delete('/api/admin/clear-table/:table', requireSuperAdmin, (req, res) => {
-    const { table } = req.params;
-    const allowedTables = [
-        'hero_distributions', 'hero_sales', 'hero_distributions_archive', 'hero_sales_archive',
-        'fence_purchases', 'fence_sales', 'warehouse', 'activity_log', 
-        'intelligence', 'recipes', 'recipe_ingredients'
-    ];
-    
-    if (!allowedTables.includes(table)) {
-        return res.status(400).json({ error: 'Diese Tabelle kann nicht geleert werden' });
-    }
-    
-    // Spezialfall: Rezepte löscht auch Zutaten
-    if (table === 'recipes') {
-        db.query('DELETE FROM recipe_ingredients', (err) => {
-            if (err) console.error('Fehler beim Löschen der Zutaten:', err);
-        });
-    }
-    
-    db.query(`DELETE FROM ${table}`, (err) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        
-        // Reset Auto-Increment
-        db.query(`ALTER TABLE ${table} AUTO_INCREMENT = 1`);
-        
-        // Log
-        db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
-            [req.session.userId, 'admin', `Tabelle geleert: ${table}`]);
-        
-        res.json({ success: true, message: `Tabelle "${table}" wurde geleert` });
-    });
-});
-
-// Hero-Lager zurücksetzen
-app.post('/api/admin/reset-hero-inventory', requireSuperAdmin, (req, res) => {
-    db.query('UPDATE hero_inventory SET quantity = 0', (err) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ success: true, message: 'Hero-Lager zurückgesetzt' });
     });
 });
 

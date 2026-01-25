@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS members (
     joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
     is_active BOOLEAN DEFAULT TRUE,
-    is_superadmin BOOLEAN DEFAULT FALSE,
     notes TEXT
 );
 
@@ -250,14 +249,6 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
 );
 
--- Tabelle: System-Einstellungen (für deaktivierte Bereiche etc.)
-CREATE TABLE IF NOT EXISTS system_settings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    setting_key VARCHAR(100) UNIQUE NOT NULL,
-    setting_value TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
 -- ========================================
 -- STANDARD-DATEN EINFÜGEN
 -- ========================================
@@ -273,13 +264,3 @@ INSERT INTO gang_stats (stat_key, stat_value) VALUES
 ('hero_sale_price', '250.00'),
 ('hero_gang_percentage', '60'),
 ('total_revenue_today', '0');
-
--- Standard System-Einstellungen
-INSERT INTO system_settings (setting_key, setting_value) VALUES
-('disabled_pages', '[]'),
-('maintenance_mode', 'false');
-
--- Super-Admin Benutzer erstellen (versteckt, mit allen Rechten)
--- Passwort: superadmin123 (bcrypt hash)
-INSERT INTO members (username, password, full_name, `rank`, can_add_members, can_manage_hero, can_manage_fence, can_view_activity, is_password_set, is_active, is_superadmin) 
-VALUES ('superadmin', '$2a$10$XQxBtVgPbOvNJkZqEtYLz.Zj5fGV8vZpZ5vC5XrPZvKvEpJlVQmMW', 'System Administrator', 'SuperAdmin', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
