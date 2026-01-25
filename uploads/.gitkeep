@@ -1,5 +1,0 @@
-# Upload Directory
-
-This directory is used for storing uploaded files (profile photos, etc.).
-
-The directory itself should be kept in version control, but its contents should be ignored.
