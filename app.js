@@ -3970,6 +3970,7 @@ function showAddRecipeModal() {
     ingredientCounter = 0;
     addIngredientRow();
     
+    document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('recipe-modal').style.display = 'block';
 }
 
@@ -4016,6 +4017,7 @@ async function showEditRecipeModal(id) {
             addIngredientRow();
         }
         
+        document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('recipe-modal').style.display = 'block';
     } catch (error) {
         console.error('Fehler:', error);
@@ -4179,6 +4181,15 @@ async function saveRecipe(id, recipeName, category, description, craftingTime, o
             credentials: 'include',
             body: JSON.stringify(data)
         });
+        
+        // Prüfe ob Antwort JSON ist
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Server returned non-JSON:', text);
+            showToast('Server-Fehler: Keine JSON-Antwort', 'error');
+            return;
+        }
         
         const result = await response.json();
         
