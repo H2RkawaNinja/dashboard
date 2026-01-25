@@ -542,35 +542,52 @@
 
             <!-- Recipes Page -->
             <div id="recipes-page" class="page">
-                <div class="page-header">
-                    <h2>Herstellungs-Rezepte</h2>
-                    <button class="btn-primary" onclick="showAddRecipeModal()">
+                <div class="recipes-page-header">
+                    <div class="recipes-title-section">
+                        <h2><i class="fas fa-book"></i> Herstellungs-Rezepte</h2>
+                        <p class="recipes-subtitle">Anleitungen für alle Produkte</p>
+                    </div>
+                    <button class="btn-primary btn-add-recipe" onclick="showAddRecipeModal()">
                         <i class="fas fa-plus"></i> Neues Rezept
                     </button>
                 </div>
 
                 <!-- Filter und Suche -->
-                <div class="card" style="margin-bottom: 1.5rem;">
-                    <div class="filters-row">
-                        <div class="form-group" style="flex: 1;">
-                            <input type="text" id="recipe-search" placeholder="Rezept suchen..." oninput="filterRecipes()">
-                        </div>
-                        <div class="form-group" style="width: 200px;">
-                            <select id="recipe-filter-category" onchange="filterRecipes()">
-                                <option value="">Alle Kategorien</option>
-                                <option value="Waffen">Waffen</option>
-                                <option value="Drogen">Drogen</option>
-                                <option value="Ausrüstung">Ausrüstung</option>
-                                <option value="Fahrzeuge">Fahrzeuge</option>
-                                <option value="Sonstiges">Sonstiges</option>
-                            </select>
-                        </div>
+                <div class="recipes-filter-bar">
+                    <div class="recipe-search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="recipe-search" placeholder="Rezept suchen..." oninput="filterRecipes()">
+                    </div>
+                    <div class="recipe-category-filters">
+                        <button class="recipe-filter-btn active" data-category="" onclick="setRecipeCategory(this, '')">
+                            <i class="fas fa-th"></i> Alle
+                        </button>
+                        <button class="recipe-filter-btn" data-category="Waffen" onclick="setRecipeCategory(this, 'Waffen')">
+                            <i class="fas fa-gun"></i> Waffen
+                        </button>
+                        <button class="recipe-filter-btn" data-category="Drogen" onclick="setRecipeCategory(this, 'Drogen')">
+                            <i class="fas fa-pills"></i> Drogen
+                        </button>
+                        <button class="recipe-filter-btn" data-category="Ausrüstung" onclick="setRecipeCategory(this, 'Ausrüstung')">
+                            <i class="fas fa-vest"></i> Ausrüstung
+                        </button>
+                        <button class="recipe-filter-btn" data-category="Fahrzeuge" onclick="setRecipeCategory(this, 'Fahrzeuge')">
+                            <i class="fas fa-car"></i> Fahrzeuge
+                        </button>
+                        <button class="recipe-filter-btn" data-category="Sonstiges" onclick="setRecipeCategory(this, 'Sonstiges')">
+                            <i class="fas fa-box"></i> Sonstiges
+                        </button>
                     </div>
                 </div>
 
                 <!-- Rezepte Liste -->
-                <div class="card">
-                    <div id="recipes-container" class="recipes-grid"></div>
+                <div id="recipes-container" class="recipes-grid-new"></div>
+                
+                <!-- Empty State -->
+                <div id="recipes-empty" class="recipes-empty-state" style="display: none;">
+                    <i class="fas fa-book-open"></i>
+                    <h3>Keine Rezepte gefunden</h3>
+                    <p>Es wurden keine Rezepte gefunden, die deinen Filterkriterien entsprechen.</p>
                 </div>
             </div>
 
@@ -1537,81 +1554,118 @@
         </div>
 
         <!-- Recipe Modal -->
-        <div id="recipe-modal" class="modal" style="display: none;">
-            <div class="modal-header">
-                <h2 id="recipe-modal-title">Neues Rezept</h2>
+        <div id="recipe-modal" class="modal recipe-modal-large" style="display: none;">
+            <div class="modal-header recipe-modal-header">
+                <div class="recipe-modal-title-wrapper">
+                    <i class="fas fa-book"></i>
+                    <h2 id="recipe-modal-title">Neues Rezept</h2>
+                </div>
                 <button class="close-modal" onclick="closeModals()">&times;</button>
             </div>
-            <form id="recipe-form">
+            <form id="recipe-form" class="recipe-form-grid">
                 <input type="hidden" id="recipe-id">
                 
-                <div class="form-group">
-                    <label>Rezeptname *</label>
-                    <input type="text" id="recipe-name" required placeholder="z.B. AK-47 Herstellung">
-                </div>
-                
-                <div class="form-group">
-                    <label>Kategorie *</label>
-                    <select id="recipe-category" required>
-                        <option value="">Kategorie wählen</option>
-                        <option value="Waffen">Waffen</option>
-                        <option value="Drogen">Drogen</option>
-                        <option value="Ausrüstung">Ausrüstung</option>
-                        <option value="Fahrzeuge">Fahrzeuge</option>
-                        <option value="Sonstiges">Sonstiges</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Beschreibung</label>
-                    <textarea id="recipe-description" rows="3" placeholder="Kurze Beschreibung des Rezepts..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Produkt-Foto</label>
-                    <div class="image-upload-container">
-                        <input type="file" id="recipe-image" accept="image/*" onchange="previewRecipeImage(event)">
-                        <div id="recipe-image-preview" class="image-preview">
-                            <i class="fas fa-image"></i>
-                            <span>Bild auswählen oder per URL eingeben</span>
+                <!-- Linke Spalte -->
+                <div class="recipe-form-left">
+                    <div class="recipe-form-section">
+                        <h3 class="recipe-section-title"><i class="fas fa-info-circle"></i> Grunddaten</h3>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Rezeptname *</label>
+                            <input type="text" id="recipe-name" required placeholder="z.B. AK-47 Herstellung">
                         </div>
-                        <input type="text" id="recipe-image-url" placeholder="Oder Bild-URL eingeben..." style="margin-top: 0.5rem;" oninput="loadRecipeImageFromUrl()">
-                    </div>
-                </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label><i class="fas fa-folder"></i> Kategorie *</label>
+                                <select id="recipe-category" required>
+                                    <option value="">Kategorie wählen</option>
+                                    <option value="Waffen">🔫 Waffen</option>
+                                    <option value="Drogen">💊 Drogen</option>
+                                    <option value="Ausrüstung">🎽 Ausrüstung</option>
+                                    <option value="Fahrzeuge">🚗 Fahrzeuge</option>
+                                    <option value="Sonstiges">📦 Sonstiges</option>
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="form-row">
-                    <div class="form-group" style="flex: 1;">
-                        <label>Herstellungszeit (Minuten)</label>
-                        <input type="number" id="recipe-time" min="0" value="0" placeholder="0">
+                        <div class="form-group">
+                            <label><i class="fas fa-align-left"></i> Beschreibung</label>
+                            <textarea id="recipe-description" rows="3" placeholder="Kurze Beschreibung des Rezepts..."></textarea>
+                        </div>
                     </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>Output-Item</label>
-                        <input type="text" id="recipe-output" placeholder="z.B. AK-47">
-                    </div>
-                    <div class="form-group" style="flex: 0.5;">
-                        <label>Menge</label>
-                        <input type="number" id="recipe-output-quantity" min="1" value="1" placeholder="1">
-                    </div>
-                </div>
 
-                <div class="form-group">
-                    <label style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>Zutaten *</span>
-                        <button type="button" class="btn-secondary" onclick="addIngredientRow()" style="padding: 0.3rem 0.8rem; font-size: 0.85rem;">
-                            <i class="fas fa-plus"></i> Zutat hinzufügen
-                        </button>
-                    </label>
-                    <div id="ingredients-container" style="margin-top: 0.5rem;">
-                        <!-- Ingredient rows will be added here -->
+                    <div class="recipe-form-section">
+                        <h3 class="recipe-section-title"><i class="fas fa-cog"></i> Herstellung</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label><i class="fas fa-clock"></i> Zeit (Min.)</label>
+                                <input type="number" id="recipe-time" min="0" value="0" placeholder="0">
+                            </div>
+                            <div class="form-group" style="flex: 1.5;">
+                                <label><i class="fas fa-box"></i> Output-Item</label>
+                                <input type="text" id="recipe-output" placeholder="z.B. AK-47">
+                            </div>
+                            <div class="form-group" style="flex: 0.7;">
+                                <label><i class="fas fa-hashtag"></i> Menge</label>
+                                <input type="number" id="recipe-output-quantity" min="1" value="1" placeholder="1">
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Zusätzliche Notizen</label>
-                    <textarea id="recipe-notes" rows="3" placeholder="Wichtige Hinweise, Tipps, etc..."></textarea>
                 </div>
                 
-                <button type="submit" class="btn-primary">Rezept speichern</button>
+                <!-- Rechte Spalte -->
+                <div class="recipe-form-right">
+                    <div class="recipe-form-section">
+                        <h3 class="recipe-section-title"><i class="fas fa-image"></i> Produktbild</h3>
+                        <div class="image-upload-container-new">
+                            <input type="file" id="recipe-image" accept="image/*" onchange="previewRecipeImage(event)">
+                            <div id="recipe-image-preview" class="image-preview-new">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>Bild hierher ziehen</span>
+                                <small>oder klicken zum Auswählen</small>
+                            </div>
+                        </div>
+                        <input type="text" id="recipe-image-url" class="image-url-input" placeholder="Oder Bild-URL eingeben..." oninput="loadRecipeImageFromUrl()">
+                    </div>
+
+                    <div class="recipe-form-section">
+                        <h3 class="recipe-section-title"><i class="fas fa-sticky-note"></i> Notizen</h3>
+                        <textarea id="recipe-notes" rows="3" placeholder="Wichtige Hinweise, Tipps, etc..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Zutaten - Volle Breite -->
+                <div class="recipe-form-full">
+                    <div class="recipe-form-section recipe-ingredients-section">
+                        <div class="recipe-section-header">
+                            <h3 class="recipe-section-title"><i class="fas fa-list"></i> Zutaten *</h3>
+                            <button type="button" class="btn-add-ingredient" onclick="addIngredientRow()">
+                                <i class="fas fa-plus"></i> Zutat hinzufügen
+                            </button>
+                        </div>
+                        <div class="ingredients-header">
+                            <span>Name</span>
+                            <span>Menge</span>
+                            <span>Einheit</span>
+                            <span></span>
+                        </div>
+                        <div id="ingredients-container" class="ingredients-list">
+                            <!-- Ingredient rows will be added here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="recipe-form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModals()">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </button>
+                    <button type="submit" class="btn-primary btn-save-recipe">
+                        <i class="fas fa-save"></i> Rezept speichern
+                    </button>
+                </div>
             </form>
         </div>
 

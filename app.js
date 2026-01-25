@@ -3885,70 +3885,105 @@ async function loadRecipes() {
 
 function displayRecipes(recipes) {
     const container = document.getElementById('recipes-container');
+    const emptyState = document.getElementById('recipes-empty');
     
     if (recipes.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
-                <i class="fas fa-book" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-                <p>Noch keine Rezepte vorhanden</p>
-            </div>
-        `;
+        container.style.display = 'none';
+        if (emptyState) {
+            emptyState.innerHTML = `
+                <i class="fas fa-book-open"></i>
+                <h3>Keine Rezepte vorhanden</h3>
+                <p>Erstelle dein erstes Rezept, um loszulegen!</p>
+            `;
+            emptyState.style.display = 'block';
+        }
         return;
     }
     
+    container.style.display = 'grid';
+    if (emptyState) emptyState.style.display = 'none';
+    
+    // Kategorie-Icons definieren
+    const categoryIcons = {
+        'Waffen': 'fa-gun',
+        'Drogen': 'fa-pills',
+        'Ausrüstung': 'fa-vest',
+        'Fahrzeuge': 'fa-car',
+        'Sonstiges': 'fa-box'
+    };
+    
+    // Kategorie-Farben definieren
+    const categoryColors = {
+        'Waffen': '#ef4444',
+        'Drogen': '#8b5cf6',
+        'Ausrüstung': '#3b82f6',
+        'Fahrzeuge': '#f59e0b',
+        'Sonstiges': '#6b7280'
+    };
+    
     container.innerHTML = recipes.map(recipe => `
         <div class="recipe-card" data-category="${recipe.category}">
-            ${recipe.product_image ? `
-                <div class="recipe-image">
-                    <img src="${recipe.product_image}" alt="${recipe.recipe_name}" onerror="this.parentElement.style.display='none'">
-                </div>
-            ` : ''}
-            <div class="recipe-card-header">
-                <div>
+            <div class="recipe-card-image-wrapper">
+                ${recipe.product_image ? `
+                    <div class="recipe-image">
+                        <img src="${recipe.product_image}" alt="${recipe.recipe_name}" onerror="this.parentElement.innerHTML='<div class=\\'recipe-no-image\\'><i class=\\'fas fa-image\\'></i></div>'">
+                    </div>
+                ` : `
+                    <div class="recipe-no-image">
+                        <i class="fas ${categoryIcons[recipe.category] || 'fa-box'}"></i>
+                    </div>
+                `}
+                <span class="recipe-category-badge" style="background: ${categoryColors[recipe.category] || '#6b7280'};">
+                    <i class="fas ${categoryIcons[recipe.category] || 'fa-box'}"></i>
+                    ${recipe.category}
+                </span>
+            </div>
+            <div class="recipe-card-body">
+                <div class="recipe-card-header">
                     <h3>${recipe.recipe_name}</h3>
-                    <span class="recipe-category-badge">${recipe.category}</span>
+                    <div class="recipe-card-actions">
+                        <button class="btn-icon-small" onclick="showEditRecipeModal(${recipe.id})" title="Bearbeiten">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon-small btn-delete" onclick="deleteRecipe(${recipe.id}, '${recipe.recipe_name.replace(/'/g, "\\'")}')" title="Löschen">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="recipe-card-actions">
-                    <button class="btn-icon" onclick="showEditRecipeModal(${recipe.id})" title="Bearbeiten">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon" onclick="deleteRecipe(${recipe.id}, '${recipe.recipe_name.replace(/'/g, "\\'")}')" title="Löschen">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            
-            ${recipe.description ? `<p class="recipe-description">${recipe.description}</p>` : ''}
-            
-            <div class="recipe-info">
-                ${recipe.crafting_time > 0 ? `
+                
+                ${recipe.description ? `<p class="recipe-description">${recipe.description.length > 100 ? recipe.description.substring(0, 100) + '...' : recipe.description}</p>` : ''}
+                
+                <div class="recipe-info-grid">
+                    ${recipe.crafting_time > 0 ? `
+                        <div class="recipe-info-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${recipe.crafting_time} Min</span>
+                        </div>
+                    ` : ''}
+                    ${recipe.output_item ? `
+                        <div class="recipe-info-item">
+                            <i class="fas fa-box-open"></i>
+                            <span>${recipe.output_item} x${recipe.output_quantity || 1}</span>
+                        </div>
+                    ` : ''}
                     <div class="recipe-info-item">
-                        <i class="fas fa-clock"></i>
-                        <span>${recipe.crafting_time} Min</span>
+                        <i class="fas fa-list"></i>
+                        <span>${recipe.ingredient_count || 0} Zutaten</span>
+                    </div>
+                </div>
+                
+                ${recipe.notes ? `
+                    <div class="recipe-notes-preview">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>${recipe.notes.length > 50 ? recipe.notes.substring(0, 50) + '...' : recipe.notes}</span>
                     </div>
                 ` : ''}
-                ${recipe.output_item ? `
-                    <div class="recipe-info-item">
-                        <i class="fas fa-box"></i>
-                        <span>${recipe.output_item} x${recipe.output_quantity || 1}</span>
-                    </div>
-                ` : ''}
-                <div class="recipe-info-item">
-                    <i class="fas fa-list"></i>
-                    <span>${recipe.ingredient_count || 0} Zutaten</span>
-                </div>
             </div>
-            
-            ${recipe.notes ? `
-                <div class="recipe-notes">
-                    <i class="fas fa-info-circle"></i>
-                    <span>${recipe.notes}</span>
-                </div>
-            ` : ''}
-            
-            <button class="btn-secondary btn-block" onclick="viewRecipeDetails(${recipe.id})">
-                <i class="fas fa-eye"></i> Details anzeigen
-            </button>
+            <div class="recipe-card-footer">
+                <button class="btn-view-recipe" onclick="viewRecipeDetails(${recipe.id})">
+                    <i class="fas fa-eye"></i> Details anzeigen
+                </button>
+            </div>
         </div>
     `).join('');
 }
@@ -4316,11 +4351,26 @@ function loadRecipeImageFromUrl() {
     }
 }
 
+// Variable für aktuellen Kategorie-Filter
+let currentRecipeCategory = '';
+
+function setRecipeCategory(btn, category) {
+    // Alle Buttons deaktivieren
+    document.querySelectorAll('.recipe-filter-btn').forEach(b => b.classList.remove('active'));
+    // Aktuellen Button aktivieren
+    btn.classList.add('active');
+    // Kategorie setzen
+    currentRecipeCategory = category;
+    // Filter anwenden
+    filterRecipes();
+}
+
 function filterRecipes() {
     const searchTerm = document.getElementById('recipe-search').value.toLowerCase();
-    const categoryFilter = document.getElementById('recipe-filter-category').value;
+    const categoryFilter = currentRecipeCategory;
     
     const cards = document.querySelectorAll('.recipe-card');
+    let visibleCount = 0;
     
     cards.forEach(card => {
         const category = card.getAttribute('data-category');
@@ -4331,8 +4381,22 @@ function filterRecipes() {
         
         if (matchesSearch && matchesCategory) {
             card.style.display = 'block';
+            visibleCount++;
         } else {
             card.style.display = 'none';
         }
     });
+    
+    // Empty State anzeigen/verstecken
+    const emptyState = document.getElementById('recipes-empty');
+    const container = document.getElementById('recipes-container');
+    if (emptyState) {
+        if (visibleCount === 0 && cards.length > 0) {
+            emptyState.style.display = 'block';
+            container.style.display = 'none';
+        } else {
+            emptyState.style.display = 'none';
+            container.style.display = 'grid';
+        }
+    }
 }
