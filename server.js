@@ -75,7 +75,8 @@ app.use(cors({
 // Handle preflight requests
 app.options('*', cors());
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('.'));
 app.use('/uploads', express.static('uploads')); // Statische Dateien für Uploads
 app.use(session({
@@ -2015,7 +2016,7 @@ app.get('/api/recipes/:id', requireLogin, (req, res) => {
 
 // Neues Rezept erstellen
 app.post('/api/recipes', requireLogin, (req, res) => {
-    const { recipe_name, category, description, crafting_time, output_item, output_quantity, notes, ingredients } = req.body;
+    const { recipe_name, category, description, crafting_time, output_item, output_quantity, product_image, notes, ingredients } = req.body;
     
     if (!recipe_name || !category) {
         return res.status(400).json({ error: 'Rezeptname und Kategorie sind erforderlich' });
@@ -2026,11 +2027,11 @@ app.post('/api/recipes', requireLogin, (req, res) => {
     }
     
     const recipeQuery = `
-        INSERT INTO recipes (recipe_name, category, description, crafting_time, output_item, output_quantity, notes, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO recipes (recipe_name, category, description, crafting_time, output_item, output_quantity, product_image, notes, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
-    db.query(recipeQuery, [recipe_name, category, description, crafting_time || 0, output_item, output_quantity || 1, notes, req.session.userId], (err, result) => {
+    db.query(recipeQuery, [recipe_name, category, description, crafting_time || 0, output_item, output_quantity || 1, product_image || null, notes, req.session.userId], (err, result) => {
         if (err) {
             console.error('Recipe insert error:', err);
             return res.status(500).json({ error: err.message });
@@ -2064,7 +2065,7 @@ app.post('/api/recipes', requireLogin, (req, res) => {
 // Rezept aktualisieren
 app.put('/api/recipes/:id', requireLogin, (req, res) => {
     const recipeId = req.params.id;
-    const { recipe_name, category, description, crafting_time, output_item, output_quantity, notes, ingredients } = req.body;
+    const { recipe_name, category, description, crafting_time, output_item, output_quantity, product_image, notes, ingredients } = req.body;
     
     if (!recipe_name || !category) {
         return res.status(400).json({ error: 'Rezeptname und Kategorie sind erforderlich' });
@@ -2077,11 +2078,11 @@ app.put('/api/recipes/:id', requireLogin, (req, res) => {
     const updateQuery = `
         UPDATE recipes 
         SET recipe_name = ?, category = ?, description = ?, crafting_time = ?, 
-            output_item = ?, output_quantity = ?, notes = ?
+            output_item = ?, output_quantity = ?, product_image = ?, notes = ?
         WHERE id = ?
     `;
     
-    db.query(updateQuery, [recipe_name, category, description, crafting_time || 0, output_item, output_quantity || 1, notes, recipeId], (err, result) => {
+    db.query(updateQuery, [recipe_name, category, description, crafting_time || 0, output_item, output_quantity || 1, product_image || null, notes, recipeId], (err, result) => {
         if (err) {
             console.error('Recipe update error:', err);
             return res.status(500).json({ error: err.message });
