@@ -4194,10 +4194,6 @@ async function saveRecipe(id, recipeName, category, description, craftingTime, o
         showToast('Verbindungsfehler', 'error');
     }
 }
-        console.error('Fehler beim Speichern:', error);
-        showToast('Verbindungsfehler', 'error');
-    }
-});
 
 async function deleteRecipe(id, name) {
     if (!confirm(`Möchten Sie das Rezept "${name}" wirklich löschen?`)) {
