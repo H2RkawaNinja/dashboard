@@ -131,27 +131,6 @@ function showDashboard() {
         document.querySelector('.nav-item[data-page="overview"]')?.click();
     }
     
-    // Deaktivierte Bereiche aus der Navbar entfernen
-    DISABLED_PAGES.forEach(page => {
-        const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
-        if (navItem) {
-            navItem.style.display = 'none';
-        }
-        
-        // Verstecke auch die entsprechende Seite
-        const pageElement = document.getElementById(`${page}-page`);
-        if (pageElement) {
-            pageElement.style.display = 'none';
-        }
-    });
-    
-    // Wenn die aktuelle Seite deaktiviert ist, wechsle zur Übersicht
-    const activeNav = document.querySelector('.nav-item.active');
-    const activePage = activeNav ? activeNav.dataset.page : null;
-    if (activePage && DISABLED_PAGES.includes(activePage)) {
-        document.querySelector('.nav-item[data-page="overview"]')?.click();
-    }
-    
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
     if (addMemberBtn) {
