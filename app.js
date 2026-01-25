@@ -2,17 +2,6 @@ const API_URL = window.location.origin + '/api';
 const BASE_URL = window.location.origin;
 let currentUser = null;
 
-// Hilfsfunktion für Profilfoto-URLs
-function getProfilePhotoUrl(photoPath) {
-    if (!photoPath) return 'https://via.placeholder.com/40';
-    // Falls bereits vollständige URL
-    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
-        return photoPath;
-    }
-    // Relativen Pfad zur vollständigen URL machen
-    return BASE_URL + photoPath;
-}
-
 // ========== TOAST NOTIFICATIONS ==========
 
 function showToast(message, type = 'info', title = null, duration = 4000) {
@@ -95,10 +84,6 @@ function showDashboard() {
     
     document.getElementById('user-display-name').textContent = currentUser.full_name;
     document.getElementById('user-rank').textContent = currentUser.rank;
-    
-    // Setze Profilfoto
-    const userPhoto = document.getElementById('user-profile-photo');
-    userPhoto.src = getProfilePhotoUrl(currentUser.profile_photo);
     
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
@@ -267,9 +252,6 @@ async function loadMembers() {
         
         tbody.innerHTML = members.map(m => `
             <tr>
-                <td>
-                    <img src="${getProfilePhotoUrl(m.profile_photo)}" alt="${m.full_name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                </td>
                 <td>${m.full_name}</td>
                 <td>${m.username}</td>
                 <td>${m.rank}</td>
@@ -2173,11 +2155,6 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
     formData.append('can_manage_fence', document.getElementById('new-member-can-fence').checked);
     formData.append('can_view_activity', document.getElementById('new-member-can-activity').checked);
     
-    const photoFile = document.getElementById('new-member-photo').files[0];
-    if (photoFile) {
-        formData.append('profile_photo', photoFile);
-    }
-    
     try {
         const response = await fetch(`${API_URL}/members/add`, {
             method: 'POST',
@@ -2222,14 +2199,6 @@ async function editMember(id) {
         document.getElementById('edit-member-can-fence').checked = member.can_manage_fence;
         document.getElementById('edit-member-can-activity').checked = member.can_view_activity;
         
-        // Zeige aktuelles Foto
-        const photoPreview = document.getElementById('current-photo-preview');
-        if (member.profile_photo) {
-            photoPreview.innerHTML = `<img src="${getProfilePhotoUrl(member.profile_photo)}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;"><br><small>Aktuelles Foto</small>`;
-        } else {
-            photoPreview.innerHTML = '<small style="color: #999;">Kein Foto vorhanden</small>';
-        }
-        
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('edit-member-modal').style.display = 'block';
     } catch (error) {
@@ -2250,11 +2219,6 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
     formData.append('can_manage_hero', document.getElementById('edit-member-can-hero').checked);
     formData.append('can_manage_fence', document.getElementById('edit-member-can-fence').checked);
     formData.append('can_view_activity', document.getElementById('edit-member-can-activity').checked);
-    
-    const photoFile = document.getElementById('edit-member-photo').files[0];
-    if (photoFile) {
-        formData.append('profile_photo', photoFile);
-    }
     
     try {
         const response = await fetch(`${API_URL}/members/${id}/edit`, {

@@ -2,48 +2,13 @@ const express = require('express');
 const mysql = require('mysql2');
 const session = require('express-session');
 const cors = require('cors');
-const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
-
-// Uploads-Ordner erstellen falls nicht vorhanden
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
-
-// Multer-Konfiguration für Datei-Uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    fileFilter: function (req, file, cb) {
-        const allowedTypes = /jpeg|jpg|png|gif/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        
-        if (mimetype && extname) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Nur Bilder erlaubt (JPG, PNG, GIF)'));
-        }
-    }
-});
 
 // Middleware
 app.use(cors({
@@ -78,13 +43,6 @@ app.options('*', cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('.'));
-
-// Statische Dateien für Uploads mit CORS-Headers
-app.use('/uploads', (req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public, max-age=31536000');
-    next();
-}, express.static('uploads'));
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
@@ -183,7 +141,6 @@ app.post('/api/auth/login', (req, res) => {
                     username: user.username,
                     full_name: user.full_name,
                     rank: user.rank,
-                    profile_photo: user.profile_photo,
                     can_add_members: user.can_add_members,
                     can_manage_hero: user.can_manage_hero,
                     can_manage_fence: user.can_manage_fence,
@@ -291,7 +248,7 @@ app.get('/api/dashboard/stats', requireLogin, (req, res) => {
 // ========== MITGLIEDER ==========
 
 app.get('/api/members', requireLogin, (req, res) => {
-    db.query('SELECT id, username, full_name, rank, phone, profile_photo, joined_date, last_login, is_active, is_password_set FROM members ORDER BY rank, full_name', 
+    db.query('SELECT id, username, full_name, rank, phone, joined_date, last_login, is_active, is_password_set FROM members ORDER BY rank, full_name', 
         (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -315,14 +272,13 @@ app.get('/api/members/:id', requireLogin, (req, res) => {
 
 // Mitglied hinzufügen
 // Mitglied hinzufügen
-app.post('/api/members/add', requireLogin, upload.single('profile_photo'), (req, res) => {
+app.post('/api/members/add', requireLogin, (req, res) => {
     // Prüfe Berechtigung
     if (!req.session.canAddMembers) {
         return res.status(403).json({ error: 'Keine Berechtigung zum Hinzufügen von Mitgliedern' });
     }
     
     const { username, full_name, rank, phone, can_add_members, can_manage_hero, can_manage_fence, can_view_activity } = req.body;
-    const profile_photo = req.file ? `/uploads/${req.file.filename}` : null;
     
     // Prüfe ob Username bereits existiert
     db.query('SELECT id FROM members WHERE username = ?', [username], (err, results) => {
@@ -340,9 +296,9 @@ app.post('/api/members/add', requireLogin, upload.single('profile_photo'), (req,
         const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 Tage gültig
         
         // Füge Mitglied hinzu
-        const query = 'INSERT INTO members (username, password, full_name, rank, phone, profile_photo, can_add_members, can_manage_hero, can_manage_fence, can_view_activity, invitation_token, is_password_set, token_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)';
+        const query = 'INSERT INTO members (username, password, full_name, rank, phone, can_add_members, can_manage_hero, can_manage_fence, can_view_activity, invitation_token, is_password_set, token_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)';
         
-        db.query(query, [username, tempPassword, full_name, rank, phone || null, profile_photo, can_add_members === 'true' || false, can_manage_hero === 'true' || false, can_manage_fence === 'true' || false, can_view_activity === 'true' || false, token, tokenExpires], (err, result) => {
+        db.query(query, [username, tempPassword, full_name, rank, phone || null, can_add_members === 'true' || false, can_manage_hero === 'true' || false, can_manage_fence === 'true' || false, can_view_activity === 'true' || false, token, tokenExpires], (err, result) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
@@ -366,7 +322,7 @@ app.post('/api/members/add', requireLogin, upload.single('profile_photo'), (req,
 });
 
 // Mitglied bearbeiten
-app.put('/api/members/:id/edit', requireLogin, upload.single('profile_photo'), (req, res) => {
+app.put('/api/members/:id/edit', requireLogin, (req, res) => {
     // Prüfe Berechtigung
     if (!req.session.canAddMembers) {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten von Mitgliedern' });
@@ -375,16 +331,8 @@ app.put('/api/members/:id/edit', requireLogin, upload.single('profile_photo'), (
     const { id } = req.params;
     const { full_name, rank, phone, can_add_members, can_manage_hero, can_manage_fence, can_view_activity, is_active } = req.body;
     
-    // Wenn neues Foto hochgeladen wurde
-    let query, params;
-    if (req.file) {
-        const profile_photo = `/uploads/${req.file.filename}`;
-        query = 'UPDATE members SET full_name = ?, rank = ?, phone = ?, profile_photo = ?, can_add_members = ?, can_manage_hero = ?, can_manage_fence = ?, can_view_activity = ?, is_active = ? WHERE id = ?';
-        params = [full_name, rank, phone, profile_photo, can_add_members === 'true', can_manage_hero === 'true', can_manage_fence === 'true', can_view_activity === 'true', is_active === 'true', id];
-    } else {
-        query = 'UPDATE members SET full_name = ?, rank = ?, phone = ?, can_add_members = ?, can_manage_hero = ?, can_manage_fence = ?, can_view_activity = ?, is_active = ? WHERE id = ?';
-        params = [full_name, rank, phone, can_add_members === 'true', can_manage_hero === 'true', can_manage_fence === 'true', can_view_activity === 'true', is_active === 'true', id];
-    }
+    const query = 'UPDATE members SET full_name = ?, rank = ?, phone = ?, can_add_members = ?, can_manage_hero = ?, can_manage_fence = ?, can_view_activity = ?, is_active = ? WHERE id = ?';
+    const params = [full_name, rank, phone, can_add_members === 'true', can_manage_hero === 'true', can_manage_fence === 'true', can_view_activity === 'true', is_active === 'true', id];
     
     db.query(query, params, (err) => {
         if (err) {

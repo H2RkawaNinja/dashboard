@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS members (
     can_manage_fence BOOLEAN DEFAULT FALSE,
     can_view_activity BOOLEAN DEFAULT FALSE,
     phone VARCHAR(20),
-    profile_photo VARCHAR(255) DEFAULT NULL,
     invitation_token VARCHAR(100) UNIQUE,
     is_password_set BOOLEAN DEFAULT FALSE,
     token_expires TIMESTAMP NULL,

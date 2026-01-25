@@ -43,7 +43,6 @@
                 <h2>Gang System</h2>
             </div>
             <div class="user-profile">
-                <img id="user-profile-photo" src="https://via.placeholder.com/40" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px;">
                 <div>
                     <strong id="user-display-name"></strong>
                     <span id="user-rank"></span>
@@ -144,7 +143,6 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Foto</th>
                                 <th>Name</th>
                                 <th>Benutzername</th>
                                 <th>Rang</th>
@@ -1391,11 +1389,6 @@
                     <input type="text" id="new-member-phone">
                 </div>
                 <div class="form-group">
-                    <label>Profilfoto (optional)</label>
-                    <input type="file" id="new-member-photo" accept="image/*">
-                    <small style="color: #666; font-size: 12px;">Max. 5MB - JPG, PNG oder GIF</small>
-                </div>
-                <div class="form-group">
                     <h4>Berechtigungen</h4>
                     <label class="checkbox-label">
                         <input type="checkbox" id="new-member-can-add">
@@ -1442,12 +1435,6 @@
                 <div class="form-group">
                     <label>Telefonnummer</label>
                     <input type="text" id="edit-member-phone">
-                </div>
-                <div class="form-group">
-                    <label>Profilfoto ändern (optional)</label>
-                    <input type="file" id="edit-member-photo" accept="image/*">
-                    <small style="color: #666; font-size: 12px;">Max. 5MB - JPG, PNG oder GIF</small>
-                    <div id="current-photo-preview" style="margin-top: 10px;"></div>
                 </div>
                 <div class="form-group">
                     <label class="checkbox-label">
