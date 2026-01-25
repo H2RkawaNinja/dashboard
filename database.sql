@@ -5,6 +5,10 @@
 CREATE DATABASE IF NOT EXISTS gang_management;
 USE gang_management;
 
+-- ========================================
+-- TABELLEN ERSTELLEN
+-- ========================================
+
 -- Tabelle: Mitglieder mit Login
 CREATE TABLE IF NOT EXISTS members (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -24,6 +28,7 @@ CREATE TABLE IF NOT EXISTS members (
     joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
     is_active BOOLEAN DEFAULT TRUE,
+    is_superadmin BOOLEAN DEFAULT FALSE,
     notes TEXT
 );
 
@@ -218,74 +223,6 @@ CREATE TABLE IF NOT EXISTS gang_stats (
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Beispieldaten einfügen
-
--- Mitglieder (Passwort: "password123" für alle - in Produktion würde man diese hashen)
-INSERT INTO members (username, password, full_name, `rank`, can_add_members, can_manage_hero, can_manage_fence, phone, is_password_set) VALUES
-('boss', 'password123', 'Der Boss', 'Boss', TRUE, TRUE, TRUE, '555-0001', TRUE),
-('vice', 'password123', 'Vize Chef', 'Stellvertreter', TRUE, TRUE, TRUE, '555-0002', TRUE),
-('member1', 'password123', 'Max Mustermann', 'Mitglied', FALSE, TRUE, TRUE, '555-0003', TRUE),
-('member2', 'password123', 'Anna Schmidt', 'Mitglied', FALSE, TRUE, TRUE, '555-0004', TRUE),
-('recruit1', 'password123', 'Tom Klein', 'Rekrut', FALSE, FALSE, FALSE, '555-0005', TRUE);
-
--- Vordefinierte Hehler-Artikel
-INSERT INTO fence_item_templates (item_name, category, typical_price) VALUES
-('Rolex Uhr', 'Schmuck', 5000),
-('Goldkette', 'Schmuck', 2500),
-('Diamantring', 'Schmuck', 8000),
-('iPhone 15 Pro', 'Elektronik', 800),
-('MacBook Pro', 'Elektronik', 1500),
-('PlayStation 5', 'Elektronik', 400),
-('Samsung TV 65"', 'Elektronik', 1200),
-('Designertasche', 'Luxusgüter', 3000),
-('Kunstgemälde', 'Kunst', 15000),
-('Antike Vase', 'Antiquitäten', 4000),
-('Sportwagen-Teile', 'Autoteile', 2000),
-('Goldbarren 100g', 'Edelmetalle', 6500),
-('Silberbarren 1kg', 'Edelmetalle', 800),
-('Designer-Sneakers', 'Kleidung', 500),
-('Pelzmantel', 'Kleidung', 4500);
-
--- Hero Lager Initial
-INSERT INTO hero_inventory (quantity, unit_cost, sale_price, gang_percentage) VALUES (500, 150.00, 250.00, 60);
-
--- Allgemeines Lager
-INSERT INTO warehouse (item_name, category, quantity, unit_value, location) VALUES
-('Waffen', 'weapons', 45, 2500.00, 'Lagerhaus Nord'),
-('Drogen (Kokain)', 'drugs', 150, 800.00, 'Lagerhaus Nord'),
-('Drogen (Weed)', 'drugs', 300, 200.00, 'Lagerhaus Nord'),
-('Schmuck', 'valuables', 25, 5000.00, 'Versteck Süd'),
-('Elektronik', 'electronics', 80, 400.00, 'Versteck Süd'),
-('Fahrzeugteile', 'parts', 120, 150.00, 'Garage');
-
--- Hero Ausgaben (Beispiel)
-INSERT INTO hero_distributions (member_id, quantity, unit_cost, total_cost, status) VALUES
-(3, 10, 150.00, 1500.00, 'outstanding'),
-(4, 8, 150.00, 1200.00, 'partial'),
-(5, 5, 150.00, 750.00, 'outstanding');
-
--- Hero Verkäufe (Beispiel)
-INSERT INTO hero_sales (member_id, quantity, unit_cost, sale_price, total_sale, gang_share, member_share) VALUES
-(3, 5, 150.00, 250.00, 1250.00, 750.00, 500.00),
-(4, 8, 150.00, 250.00, 2000.00, 1200.00, 800.00);
-
--- Hehler Ankäufe (Beispiel)
-INSERT INTO fence_purchases (member_id, item_name, quantity, unit_price, total_price, seller_info, stored_in_warehouse) VALUES
-(1, 'Gestohlene Laptops', 10, 200.00, 2000.00, 'Unbekannt', FALSE),
-(2, 'Gold-Schmuck', 5, 3000.00, 15000.00, 'Einbruch Downtown', TRUE),
-(3, 'Smartphones', 20, 150.00, 3000.00, 'Verschiedene', FALSE);
-
--- Hehler Verkäufe (Beispiel)
-INSERT INTO fence_sales (purchase_id, item_name, quantity, unit_price, total_price, profit, buyer_info) VALUES
-(1, 'Gestohlene Laptops', 10, 350.00, 3500.00, 1500.00, 'Abnehmer Ost');
-
--- Aktivitäten
-INSERT INTO activity_log (member_id, action_type, description) VALUES
-(1, 'login', 'Boss hat sich eingeloggt'),
-(3, 'hero_distribution', 'Max Mustermann hat 10 Hero erhalten'),
-(3, 'hero_sale', 'Max Mustermann hat 5 Hero verkauft'),
-(2, 'fence_purchase', 'Vize Chef hat Gold-Schmuck angekauft für $15,000');
-
 -- Tabelle: Rezepte (Crafting/Herstellung)
 CREATE TABLE IF NOT EXISTS recipes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -313,60 +250,6 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
 );
 
--- Gang Stats
-INSERT INTO gang_stats (stat_key, stat_value) VALUES
-('gang_name', 'Black Street Empire'),
-('total_members', '5'),
-('hero_stock', '500'),
-('hero_sale_price', '250.00'),
-('hero_gang_percentage', '60'),
-('total_revenue_today', '25000');
-
--- ========================================
--- UPDATE SCRIPTS (für bestehende Datenbanken)
--- ========================================
-
--- Update: Füge fehlende Spalten zur hero_distributions Tabelle hinzu
--- (Diese ALTER TABLE Befehle sind für bestehende Datenbanken, die aktualisiert werden müssen)
-
--- Füge expected_sale_price Spalte hinzu (falls nicht vorhanden)
-ALTER TABLE hero_distributions 
-ADD COLUMN IF NOT EXISTS expected_sale_price DECIMAL(10, 2) DEFAULT 0 AFTER total_cost;
-
--- Füge gang_share Spalte hinzu (falls nicht vorhanden)
-ALTER TABLE hero_distributions 
-ADD COLUMN IF NOT EXISTS gang_share DECIMAL(10, 2) DEFAULT 0 AFTER expected_sale_price;
-
--- Aktualisiere auch die Archive-Tabelle
-ALTER TABLE hero_distributions_archive 
-ADD COLUMN IF NOT EXISTS expected_sale_price DECIMAL(10, 2) DEFAULT 0 AFTER total_cost;
-
-ALTER TABLE hero_distributions_archive 
-ADD COLUMN IF NOT EXISTS gang_share DECIMAL(10, 2) DEFAULT 0 AFTER expected_sale_price;
-
--- Optional: Aktualisiere bestehende Einträge mit berechneten Werten
-UPDATE hero_distributions d
-JOIN hero_inventory i ON 1=1
-SET 
-    d.expected_sale_price = d.quantity * i.sale_price,
-    d.gang_share = (d.quantity * i.sale_price) * (i.gang_percentage / 100)
-WHERE d.expected_sale_price = 0 OR d.expected_sale_price IS NULL;
-
--- ========================================
--- REZEPTE TABELLEN
--- ========================================
-
--- Die Rezept-Tabellen wurden bereits oben erstellt (recipes und recipe_ingredients)
--- Keine Beispieldaten - Rezepte werden über das Dashboard hinzugefügt
-
--- ========================================
--- SUPER ADMIN & SYSTEM-EINSTELLUNGEN
--- ========================================
-
--- Füge is_superadmin Spalte zur members Tabelle hinzu
-ALTER TABLE members 
-ADD COLUMN IF NOT EXISTS is_superadmin BOOLEAN DEFAULT FALSE AFTER is_active;
-
 -- Tabelle: System-Einstellungen (für deaktivierte Bereiche etc.)
 CREATE TABLE IF NOT EXISTS system_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -375,14 +258,28 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- ========================================
+-- STANDARD-DATEN EINFÜGEN
+-- ========================================
+
+-- Hero Lager Initial
+INSERT INTO hero_inventory (quantity, unit_cost, sale_price, gang_percentage) VALUES (0, 150.00, 250.00, 60);
+
+-- Gang Stats
+INSERT INTO gang_stats (stat_key, stat_value) VALUES
+('gang_name', 'Black Street Empire'),
+('total_members', '0'),
+('hero_stock', '0'),
+('hero_sale_price', '250.00'),
+('hero_gang_percentage', '60'),
+('total_revenue_today', '0');
+
 -- Standard System-Einstellungen
 INSERT INTO system_settings (setting_key, setting_value) VALUES
 ('disabled_pages', '[]'),
-('maintenance_mode', 'false')
-ON DUPLICATE KEY UPDATE setting_key = setting_key;
+('maintenance_mode', 'false');
 
 -- Super-Admin Benutzer erstellen (versteckt, mit allen Rechten)
 -- Passwort: superadmin123 (bcrypt hash)
 INSERT INTO members (username, password, full_name, `rank`, can_add_members, can_manage_hero, can_manage_fence, can_view_activity, is_password_set, is_active, is_superadmin) 
-VALUES ('superadmin', '$2a$10$XQxBtVgPbOvNJkZqEtYLz.Zj5fGV8vZpZ5vC5XrPZvKvEpJlVQmMW', 'System Administrator', 'SuperAdmin', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)
-ON DUPLICATE KEY UPDATE is_superadmin = TRUE;
+VALUES ('superadmin', '$2a$10$XQxBtVgPbOvNJkZqEtYLz.Zj5fGV8vZpZ5vC5XrPZvKvEpJlVQmMW', 'System Administrator', 'SuperAdmin', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
