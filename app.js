@@ -3925,11 +3925,7 @@ function showAddRecipeModal() {
     document.getElementById('recipe-form').reset();
     document.getElementById('recipe-id').value = '';
     
-    // Bild-Preview zurücksetzen
-    const preview = document.getElementById('recipe-image-preview');
-    preview.innerHTML = '<i class="fas fa-image"></i><span>Bild auswählen oder per URL eingeben</span>';
-    preview.style.backgroundImage = '';
-    document.getElementById('recipe-image-url').value = '';
+    // ...Profilfoto/Bild-Preview entfernt...
     
     // Zutaten-Container leeren und eine leere Zeile hinzufügen
     const container = document.getElementById('ingredients-container');
@@ -3963,13 +3959,7 @@ async function showEditRecipeModal(id) {
         document.getElementById('recipe-output-quantity').value = recipe.output_quantity || 1;
         document.getElementById('recipe-notes').value = recipe.notes || '';
         
-        // Bild laden
-        if (recipe.product_image) {
-            const preview = document.getElementById('recipe-image-preview');
-            preview.style.backgroundImage = `url(${recipe.product_image})`;
-            preview.innerHTML = '';
-            document.getElementById('recipe-image-url').value = recipe.product_image;
-        }
+        // ...Profilfoto/Bild-Preview entfernt...
         
         // Zutaten laden
         const container = document.getElementById('ingredients-container');
@@ -4068,13 +4058,9 @@ async function viewRecipeDetails(id) {
             </div>`
         ).join('');
         
-        // Content erstellen
+        // Content erstellen (ohne Bild)
         const content = `
             <div class="recipe-detail-header">
-                ${recipe.product_image ? 
-                    `<div class="recipe-detail-image" style="background-image: url('${recipe.product_image}')"></div>` : 
-                    `<div class="recipe-detail-image recipe-detail-no-image"><i class="fas fa-image"></i></div>`
-                }
                 <div class="recipe-detail-info">
                     <div class="recipe-detail-category">
                         <i class="fas ${categoryIcon}"></i> ${recipe.category}
@@ -4167,22 +4153,8 @@ document.getElementById('recipe-form').addEventListener('submit', async (e) => {
         return;
     }
     
-    // Bild-URL ermitteln
-    let productImage = document.getElementById('recipe-image-url').value.trim();
-    if (!productImage) {
-        const fileInput = document.getElementById('recipe-image');
-        if (fileInput.files && fileInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                productImage = e.target.result;
-                saveRecipe(id, recipeName, category, description, craftingTime, outputItem, outputQuantity, notes, ingredients, productImage);
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-            return;
-        }
-    }
-    
-    saveRecipe(id, recipeName, category, description, craftingTime, outputItem, outputQuantity, notes, ingredients, productImage);
+    // ...Profilfoto/Bild-Upload entfernt...
+    saveRecipe(id, recipeName, category, description, craftingTime, outputItem, outputQuantity, notes, ingredients);
 });
 
 async function saveRecipe(id, recipeName, category, description, craftingTime, outputItem, outputQuantity, notes, ingredients, productImage) {
@@ -4193,7 +4165,6 @@ async function saveRecipe(id, recipeName, category, description, craftingTime, o
         crafting_time: parseInt(craftingTime) || 0,
         output_item: outputItem,
         output_quantity: parseInt(outputQuantity) || 1,
-        product_image: productImage,
         notes: notes,
         ingredients: ingredients
     };
@@ -4259,29 +4230,7 @@ async function deleteRecipe(id, name) {
 }
 
 // Bild-Vorschau und Upload Funktionen
-function previewRecipeImage(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const preview = document.getElementById('recipe-image-preview');
-            preview.style.backgroundImage = `url(${e.target.result})`;
-            preview.innerHTML = '';
-            document.getElementById('recipe-image-url').value = '';
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function loadRecipeImageFromUrl() {
-    const url = document.getElementById('recipe-image-url').value.trim();
-    if (url) {
-        const preview = document.getElementById('recipe-image-preview');
-        preview.style.backgroundImage = `url(${url})`;
-        preview.innerHTML = '';
-        document.getElementById('recipe-image').value = '';
-    }
-}
+// ...Profilfoto/Bild-Upload Funktionen entfernt...
 
 // Variable für aktuellen Kategorie-Filter
 let currentRecipeCategory = '';
