@@ -2135,21 +2135,25 @@ function showAddMemberModal() {
 document.getElementById('add-member-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const formData = new FormData();
-    formData.append('full_name', document.getElementById('new-member-name').value);
-    formData.append('username', document.getElementById('new-member-username').value);
-    formData.append('rank', document.getElementById('new-member-rank').value);
-    formData.append('phone', document.getElementById('new-member-phone').value);
-    formData.append('can_add_members', document.getElementById('new-member-can-add').checked);
-    formData.append('can_manage_hero', document.getElementById('new-member-can-hero').checked);
-    formData.append('can_manage_fence', document.getElementById('new-member-can-fence').checked);
-    formData.append('can_view_activity', document.getElementById('new-member-can-activity').checked);
+    const memberData = {
+        full_name: document.getElementById('new-member-name').value,
+        username: document.getElementById('new-member-username').value,
+        rank: document.getElementById('new-member-rank').value,
+        phone: document.getElementById('new-member-phone').value,
+        can_add_members: document.getElementById('new-member-can-add').checked,
+        can_manage_hero: document.getElementById('new-member-can-hero').checked,
+        can_manage_fence: document.getElementById('new-member-can-fence').checked,
+        can_view_activity: document.getElementById('new-member-can-activity').checked
+    };
     
     try {
         const response = await fetch(`${API_URL}/members/add`, {
             method: 'POST',
             credentials: 'include',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(memberData)
         });
         
         const result = await response.json();
@@ -2200,21 +2204,25 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
     e.preventDefault();
     
     const id = document.getElementById('edit-member-id').value;
-    const formData = new FormData();
-    formData.append('full_name', document.getElementById('edit-member-name').value);
-    formData.append('rank', document.getElementById('edit-member-rank').value);
-    formData.append('phone', document.getElementById('edit-member-phone').value);
-    formData.append('is_active', document.getElementById('edit-member-active').checked);
-    formData.append('can_add_members', document.getElementById('edit-member-can-add').checked);
-    formData.append('can_manage_hero', document.getElementById('edit-member-can-hero').checked);
-    formData.append('can_manage_fence', document.getElementById('edit-member-can-fence').checked);
-    formData.append('can_view_activity', document.getElementById('edit-member-can-activity').checked);
+    const memberData = {
+        full_name: document.getElementById('edit-member-name').value,
+        rank: document.getElementById('edit-member-rank').value,
+        phone: document.getElementById('edit-member-phone').value,
+        is_active: document.getElementById('edit-member-active').checked,
+        can_add_members: document.getElementById('edit-member-can-add').checked,
+        can_manage_hero: document.getElementById('edit-member-can-hero').checked,
+        can_manage_fence: document.getElementById('edit-member-can-fence').checked,
+        can_view_activity: document.getElementById('edit-member-can-activity').checked
+    };
     
     try {
         const response = await fetch(`${API_URL}/members/${id}/edit`, {
             method: 'PUT',
             credentials: 'include',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(memberData)
         });
         
         const result = await response.json();
