@@ -2228,7 +2228,6 @@ app.get('/api/maintenance/status/:module', requireLogin, (req, res) => {
         });
     });
 });
-});
 
 // Server starten
 app.listen(PORT, () => {
