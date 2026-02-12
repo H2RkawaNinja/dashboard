@@ -128,6 +128,14 @@ app.post('/api/auth/login', (req, res) => {
             req.session.canManageFence = user.can_manage_fence;
             req.session.canViewActivity = user.can_view_activity;
 
+            // Techniker haben alle Berechtigungen
+            if (user.rank === 'Techniker') {
+                req.session.canAddMembers = true;
+                req.session.canManageHero = true;
+                req.session.canManageFence = true;
+                req.session.canViewActivity = true;
+            }
+
             db.query('UPDATE members SET last_login = NOW() WHERE id = ?', [user.id]);
             db.query(
                 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
@@ -141,10 +149,10 @@ app.post('/api/auth/login', (req, res) => {
                     username: user.username,
                     full_name: user.full_name,
                     rank: user.rank,
-                    can_add_members: user.can_add_members,
-                    can_manage_hero: user.can_manage_hero,
-                    can_manage_fence: user.can_manage_fence,
-                    can_view_activity: user.can_view_activity
+                    can_add_members: req.session.canAddMembers,
+                    can_manage_hero: req.session.canManageHero,
+                    can_manage_fence: req.session.canManageFence,
+                    can_view_activity: req.session.canViewActivity
                 }
             });
         }
@@ -166,7 +174,17 @@ app.get('/api/auth/session', (req, res) => {
             if (err || results.length === 0) {
                 return res.json({ logged_in: false });
             }
-            res.json({ logged_in: true, user: results[0] });
+            
+            const user = results[0];
+            // Techniker haben alle Berechtigungen
+            if (user.rank === 'Techniker') {
+                user.can_add_members = true;
+                user.can_manage_hero = true;
+                user.can_manage_fence = true;
+                user.can_view_activity = true;
+            }
+            
+            res.json({ logged_in: true, user: user });
         });
     } else {
         res.json({ logged_in: false });
@@ -337,6 +355,15 @@ app.put('/api/members/:id/edit', requireLogin, (req, res) => {
     db.query(query, params, (err) => {
         if (err) {
             return res.status(500).json({ error: err.message });
+        }
+        
+        // Falls der bearbeitete User gerade eingeloggt ist und zum Techniker befördert wurde, 
+        // Session-Berechtigungen aktualisieren
+        if (parseInt(id) === req.session.userId && rank === 'Techniker') {
+            req.session.canAddMembers = true;
+            req.session.canManageHero = true;
+            req.session.canManageFence = true;
+            req.session.canViewActivity = true;
         }
         
         // Log
@@ -2109,6 +2136,98 @@ app.delete('/api/recipes/:id', requireLogin, (req, res) => {
             res.json({ success: true, message: 'Rezept erfolgreich gelöscht' });
         });
     });
+});
+
+// ========== SYSTEM WARTUNG (nur für Techniker) ==========
+
+// Wartungseinstellungen abrufen
+app.get('/api/maintenance/settings', requireLogin, (req, res) => {
+    // Nur Techniker können zugreifen
+    if (req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Nur Techniker können Wartungseinstellungen verwalten' });
+    }
+    
+    db.query('SELECT * FROM maintenance_settings', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const settings = {};
+        results.forEach(row => {
+            settings[row.module_name] = {
+                is_disabled: row.is_disabled,
+                disabled_by: row.disabled_by,
+                disabled_at: row.disabled_at,
+                reason: row.reason
+            };
+        });
+        
+        res.json({ success: true, settings: settings });
+    });
+});
+
+// Wartungseinstellungen speichern
+app.post('/api/maintenance/settings', requireLogin, (req, res) => {
+    // Nur Techniker können zugreifen
+    if (req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Nur Techniker können Wartungseinstellungen verwalten' });
+    }
+    
+    const { settings } = req.body;
+    let updateCount = 0;
+    let totalSettings = Object.keys(settings).length;
+    
+    Object.keys(settings).forEach(module_name => {
+        const is_disabled = settings[module_name];
+        const query = 'UPDATE maintenance_settings SET is_disabled = ?, disabled_by = ?, disabled_at = ?, reason = ? WHERE module_name = ?';
+        const params = [
+            is_disabled,
+            is_disabled ? req.session.userId : null,
+            is_disabled ? new Date() : null,
+            is_disabled ? `Wartungsmodus aktiviert von ${req.session.username}` : null,
+            module_name
+        ];
+        
+        db.query(query, params, (err) => {
+            if (err) {
+                console.error('Maintenance update error:', err);
+                return res.status(500).json({ error: err.message });
+            }
+            
+            updateCount++;
+            
+            if (updateCount === totalSettings) {
+                // Log
+                db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                    [req.session.userId, 'maintenance', 'Wartungseinstellungen geändert']);
+                
+                res.json({ success: true, message: 'Wartungseinstellungen gespeichert' });
+            }
+        });
+    });
+});
+
+// Wartungsstatus für spezifisches Modul prüfen
+app.get('/api/maintenance/status/:module', requireLogin, (req, res) => {
+    const { module } = req.params;
+    
+    db.query('SELECT is_disabled, reason FROM maintenance_settings WHERE module_name = ?', [module], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (results.length === 0) {
+            return res.json({ success: true, is_disabled: false });
+        }
+        
+        const setting = results[0];
+        res.json({ 
+            success: true, 
+            is_disabled: setting.is_disabled,
+            reason: setting.reason
+        });
+    });
+});
 });
 
 // Server starten

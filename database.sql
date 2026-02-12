@@ -252,6 +252,23 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
 -- STANDARD-DATEN EINFÜGEN
 -- ========================================
 
+-- Tabelle: System Wartungseinstellungen (nur für Techniker)
+CREATE TABLE IF NOT EXISTS maintenance_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    module_name VARCHAR(50) NOT NULL UNIQUE,
+    is_disabled BOOLEAN DEFAULT FALSE,
+    disabled_by INT,
+    disabled_at TIMESTAMP NULL,
+    reason TEXT,
+    FOREIGN KEY (disabled_by) REFERENCES members(id) ON DELETE SET NULL
+);
+
+-- Initial Wartungseinstellungen
+INSERT INTO maintenance_settings (module_name, is_disabled) VALUES
+('members', FALSE),
+('fence', FALSE),
+('storage', FALSE);
+
 -- Hero Lager Initial
 INSERT INTO hero_inventory (quantity, unit_cost, sale_price, gang_percentage) VALUES (0, 150.00, 250.00, 60);
 

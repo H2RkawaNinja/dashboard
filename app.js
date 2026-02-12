@@ -85,20 +85,13 @@ function showDashboard() {
     document.getElementById('user-display-name').textContent = currentUser.full_name;
     document.getElementById('user-rank').textContent = currentUser.rank;
     
+    // Speichere Benutzerrank für Wartungsrechte
+    sessionStorage.setItem('userRank', currentUser.rank);
+    
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
     if (addMemberBtn) {
         addMemberBtn.style.display = currentUser.can_add_members ? 'inline-flex' : 'none';
-    }
-    
-    // Hero-Management-Buttons zeigen/verstecken
-    const heroButtons = document.querySelectorAll('#hero-page .hero-header .btn-primary, #hero-page .hero-header .btn-warning');
-    const heroNoPermBanner = document.getElementById('hero-no-permission');
-    heroButtons.forEach(btn => {
-        btn.style.display = currentUser.can_manage_hero ? 'inline-flex' : 'none';
-    });
-    if (heroNoPermBanner) {
-        heroNoPermBanner.style.display = currentUser.can_manage_hero ? 'none' : 'block';
     }
     
     // Hehler-Ankauf-Button zeigen/verstecken
@@ -110,6 +103,12 @@ function showDashboard() {
     if (fenceNoPermBanner) {
         fenceNoPermBanner.style.display = currentUser.can_manage_fence ? 'none' : 'block';
     }
+    
+    // Wartungsbereich für Techniker anzeigen
+    updateMaintenanceAccess();
+    
+    // Wartungsmodus prüfen
+    checkMaintenanceModes();
     
     loadDashboardData();
     updateTime();
@@ -165,13 +164,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
         const titles = {
             'overview': 'Übersicht',
             'members': 'Mitglieder',
-            'hero': 'Hero-Verkauf',
             'fence': 'Hehler-Geschäft',
             'warehouse': 'Sortier Bereich',
             'storage': 'Lager',
             'recipes': 'Rezepte',
             'intelligence': 'Intel-Sammlung',
-            'activity': 'Aktivitäten'
+            'activity': 'Aktivitäten',
+            'maintenance': 'System Wartung'
         };
         
         document.getElementById('page-title').textContent = titles[page] || 'Dashboard';
@@ -184,9 +183,6 @@ function loadPageData(page) {
     switch(page) {
         case 'members':
             loadMembers();
-            break;
-        case 'hero':
-            loadHeroData();
             break;
         case 'fence':
             loadFenceData();
@@ -205,6 +201,9 @@ function loadPageData(page) {
             break;
         case 'activity':
             loadActivity();
+            break;
+        case 'maintenance':
+            loadMaintenanceSettings();
             break;
     }
 }
@@ -2141,7 +2140,6 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
         rank: document.getElementById('new-member-rank').value,
         phone: document.getElementById('new-member-phone').value,
         can_add_members: document.getElementById('new-member-can-add').checked,
-        can_manage_hero: document.getElementById('new-member-can-hero').checked,
         can_manage_fence: document.getElementById('new-member-can-fence').checked,
         can_view_activity: document.getElementById('new-member-can-activity').checked
     };
@@ -2189,7 +2187,6 @@ async function editMember(id) {
         document.getElementById('edit-member-phone').value = member.phone || '';
         document.getElementById('edit-member-active').checked = member.is_active;
         document.getElementById('edit-member-can-add').checked = member.can_add_members;
-        document.getElementById('edit-member-can-hero').checked = member.can_manage_hero;
         document.getElementById('edit-member-can-fence').checked = member.can_manage_fence;
         document.getElementById('edit-member-can-activity').checked = member.can_view_activity;
         
@@ -2210,7 +2207,6 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
         phone: document.getElementById('edit-member-phone').value,
         is_active: document.getElementById('edit-member-active').checked,
         can_add_members: document.getElementById('edit-member-can-add').checked,
-        can_manage_hero: document.getElementById('edit-member-can-hero').checked,
         can_manage_fence: document.getElementById('edit-member-can-fence').checked,
         can_view_activity: document.getElementById('edit-member-can-activity').checked
     };
@@ -4287,5 +4283,205 @@ function filterRecipes() {
             emptyState.style.display = 'none';
             container.style.display = 'grid';
         }
+    }
+}
+
+// ========================================
+// SYSTEM WARTUNG FUNKTIONEN (nur Techniker)
+// ========================================
+
+// Wartungsseite für Techniker anzeigen/verstecken
+function updateMaintenanceAccess() {
+    const maintenanceNav = document.getElementById('maintenance-nav');
+    const userRank = sessionStorage.getItem('userRank');
+    
+    if (maintenanceNav) {
+        maintenanceNav.style.display = userRank === 'Techniker' ? 'block' : 'none';
+    }
+}
+
+// Wartungseinstellungen laden
+async function loadMaintenanceSettings() {
+    try {
+        const response = await fetch(`${API_URL}/maintenance/settings`, {
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            Object.keys(result.settings).forEach(module => {
+                const config = result.settings[module];
+                const checkbox = document.getElementById(`maintenance-${module}`);
+                if (checkbox) {
+                    checkbox.checked = config.is_disabled;
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Wartungseinstellungen:', error);
+    }
+}
+
+// Wartungseinstellungen speichern
+async function saveMaintenanceSettings() {
+    const settings = {};
+    
+    ['members', 'fence', 'storage'].forEach(module => {
+        const checkbox = document.getElementById(`maintenance-${module}`);
+        if (checkbox) {
+            settings[module] = checkbox.checked;
+        }
+    });
+    
+    try {
+        const response = await fetch(`${API_URL}/maintenance/settings`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ settings })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Wartungseinstellungen gespeichert', 'success', 'System Wartung');
+            checkMaintenanceModes(); // Bereiche aktualisieren
+        } else {
+            showToast(result.error || 'Fehler beim Speichern', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern der Wartungseinstellungen:', error);
+        showToast('Fehler beim Speichern der Einstellungen', 'error');
+    }
+}
+
+// Alle Systeme deaktivieren
+function disableAllSystems() {
+    ['members', 'fence', 'storage'].forEach(module => {
+        const checkbox = document.getElementById(`maintenance-${module}`);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+    });
+    
+    saveMaintenanceSettings();
+}
+
+// Alle Systeme aktivieren
+function enableAllSystems() {
+    ['members', 'fence', 'storage'].forEach(module => {
+        const checkbox = document.getElementById(`maintenance-${module}`);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+    });
+    
+    saveMaintenanceSettings();
+}
+
+// Wartungsmodus für Bereiche prüfen und Banner anzeigen
+async function checkMaintenanceModes() {
+    const modules = ['members', 'fence', 'storage'];
+    
+    for (const module of modules) {
+        try {
+            const response = await fetch(`${API_URL}/maintenance/status/${module}`, {
+                credentials: 'include'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.is_disabled) {
+                showMaintenanceBanner(module, result.reason);
+            } else {
+                hideMaintenanceBanner(module);
+            }
+        } catch (error) {
+            console.error(`Fehler beim Prüfen des Wartungsmodus für ${module}:`, error);
+        }
+    }
+}
+
+// Wartungsbanner anzeigen
+function showMaintenanceBanner(module, reason) {
+    let pageId = '';
+    let moduleName = '';
+    
+    switch (module) {
+        case 'members':
+            pageId = 'members-page';
+            moduleName = 'Mitglieder-System';
+            break;
+        case 'fence':
+            pageId = 'fence-page';
+            moduleName = 'Hehler-System';
+            break;
+        case 'storage':
+            pageId = 'storage-page';
+            moduleName = 'Lager-System';
+            break;
+    }
+    
+    const page = document.getElementById(pageId);
+    if (page) {
+        // Banner erstellen falls nicht vorhanden
+        let banner = page.querySelector('.maintenance-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.className = 'maintenance-banner';
+            banner.innerHTML = `
+                <i class="fas fa-tools"></i>
+                <strong>Wartungsmodus:</strong> ${moduleName} ist temporär deaktiviert. ${reason || ''}
+            `;
+            page.insertBefore(banner, page.firstChild);
+        }
+        
+        // Alle interaktiven Elemente deaktivieren (außer für Techniker)
+        const userRank = sessionStorage.getItem('userRank');
+        if (userRank !== 'Techniker') {
+            const buttons = page.querySelectorAll('button, input, select, textarea');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            });
+        }
+    }
+}
+
+// Wartungsbanner verstecken
+function hideMaintenanceBanner(module) {
+    let pageId = '';
+    
+    switch (module) {
+        case 'members':
+            pageId = 'members-page';
+            break;
+        case 'fence':
+            pageId = 'fence-page';
+            break;
+        case 'storage':
+            pageId = 'storage-page';
+            break;
+    }
+    
+    const page = document.getElementById(pageId);
+    if (page) {
+        // Banner entfernen
+        const banner = page.querySelector('.maintenance-banner');
+        if (banner) {
+            banner.remove();
+        }
+        
+        // Alle Elemente wieder aktivieren
+        const buttons = page.querySelectorAll('button, input, select, textarea');
+        buttons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = '';
+        });
     }
 }

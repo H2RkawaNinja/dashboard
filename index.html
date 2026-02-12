@@ -55,9 +55,6 @@
                 <a href="#" class="nav-item" data-page="members">
                     <i class="fas fa-users"></i><span>Mitglieder</span>
                 </a>
-                <a href="#" class="nav-item" data-page="hero">
-                    <i class="fas fa-pills"></i><span>Hero-Verkauf</span>
-                </a>
                 <a href="#" class="nav-item" data-page="fence">
                     <i class="fas fa-handshake"></i><span>Hehler-Geschäft</span>
                 </a>
@@ -75,6 +72,9 @@
                 </a>
                 <a href="#" class="nav-item" data-page="activity">
                     <i class="fas fa-clipboard-list"></i><span>Aktivitäten</span>
+                </a>
+                <a href="#" class="nav-item" data-page="maintenance" id="maintenance-nav" style="display: none;">
+                    <i class="fas fa-tools"></i><span>System Wartung</span>
                 </a>
             </nav>
             <button id="logout-btn" class="btn-logout">
@@ -102,13 +102,7 @@
                             <p class="stat-number" id="stat-members">0</p>
                         </div>
                     </div>
-                    <div class="stat-card green">
-                        <i class="fas fa-pills"></i>
-                        <div>
-                            <h3>Hero Lagerbestand</h3>
-                            <p class="stat-number" id="stat-hero">0</p>
-                        </div>
-                    </div>
+
                     <div class="stat-card orange">
                         <i class="fas fa-exclamation-triangle"></i>
                         <div>
@@ -154,65 +148,6 @@
                             </tr>
                         </thead>
                         <tbody id="members-table"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Hero-Verkauf Page -->
-            <div id="hero-page" class="page">
-                <div id="hero-no-permission" class="info-banner" style="display: none; background: #ff9800; color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
-                    <i class="fas fa-exclamation-triangle"></i> 
-                    <strong>Keine Berechtigung:</strong> Sie haben keine Berechtigung, Hero-Lager zu verwalten. Wenden Sie sich an einen Administrator.
-                </div>
-                <div class="hero-header">
-                    <div class="hero-stock-card">
-                        <h3>Lagerbestand</h3>
-                        <p class="big-number" id="hero-stock">0</p>
-                        <p>Stück verfügbar</p>
-                        <p class="hero-price">Gang-Anteil wenn alles verkauft: <strong style="color: var(--success); font-size: 1.3em;">$<span id="hero-gang-potential">0</span></strong></p>
-                        <hr>
-                        <p class="hero-price">Einkaufspreis: $<span id="hero-unit-cost">0</span></p>
-                        <p class="hero-price">Verkaufspreis: $<span id="hero-sale-price">0</span></p>
-                        <p class="hero-price">Gang-Anteil: <span id="hero-gang-percent">0</span>%</p>
-                    </div>
-                    <div class="hero-stock-card">
-                        <h3>Ausgegeben & zu kassieren</h3>
-                        <p class="big-number" style="color: var(--success);" id="hero-total-expected">$0</p>
-                        <p>Gang-Anteil gesamt (60%)</p>
-                        <p class="hero-price" style="color: var(--success);">Bereits kassiert: $<span id="hero-paid-amount">0</span></p>
-                        <p class="hero-price" style="color: var(--danger);"><strong>Noch offen: $<span id="hero-outstanding-amount">0</span></strong></p>
-                    </div>
-                    <button class="btn-primary" onclick="showSettingsModal()">
-                        <i class="fas fa-cog"></i> Einstellungen
-                    </button>
-                    <button class="btn-primary" onclick="showRestockModal()">
-                        <i class="fas fa-plus"></i> Lager auffüllen
-                    </button>
-                    <button class="btn-warning" onclick="showEditStockModal()">
-                        <i class="fas fa-edit"></i> Lager bearbeiten
-                    </button>
-                    <button class="btn-primary" onclick="showDistributeModal()">
-                        <i class="fas fa-hand-holding"></i> Hero ausgeben
-                    </button>
-                </div>
-
-                <div class="card">
-                    <h2>Ausgaben & Abrechnungen</h2>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Mitglied</th>
-                                <th>Menge</th>
-                                <th>Erwarteter Erlös</th>
-                                <th>Gang-Anteil (muss abgeben)</th>
-                                <th>Bezahlt</th>
-                                <th>Offen</th>
-                                <th>Datum</th>
-                                <th>Status</th>
-                                <th>Aktion</th>
-                            </tr>
-                        </thead>
-                        <tbody id="hero-distributions-table"></tbody>
                     </table>
                 </div>
             </div>
@@ -537,6 +472,60 @@
                 </div>
             </div>
 
+            <!-- System Wartung Page (nur für Techniker) -->
+            <div id="maintenance-page" class="page">
+                <div class="card">
+                    <h2><i class="fas fa-tools"></i> System Wartung</h2>
+                    <p class="maintenance-info">Bereiche temporär deaktivieren, wenn sie unter Bearbeitung stehen.</p>
+                    
+                    <div class="maintenance-sections">
+                        <div class="maintenance-section">
+                            <h3>Mitglieder-System</h3>
+                            <label class="maintenance-toggle">
+                                <input type="checkbox" id="maintenance-members">
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-text">Wartungsmodus aktivieren</span>
+                            </label>
+                            <p class="maintenance-description">Verhindert Zugriff auf Mitgliederverwaltung</p>
+                        </div>
+                        
+
+                        
+                        <div class="maintenance-section">
+                            <h3>Hehler-System</h3>
+                            <label class="maintenance-toggle">
+                                <input type="checkbox" id="maintenance-fence">
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-text">Wartungsmodus aktivieren</span>
+                            </label>
+                            <p class="maintenance-description">Verhindert Zugriff auf Hehler-Geschäfte</p>
+                        </div>
+                        
+                        <div class="maintenance-section">
+                            <h3>Lager-System</h3>
+                            <label class="maintenance-toggle">
+                                <input type="checkbox" id="maintenance-storage">
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-text">Wartungsmodus aktivieren</span>
+                            </label>
+                            <p class="maintenance-description">Verhindert Zugriff auf Lager und Sortierbereich</p>
+                        </div>
+                    </div>
+                    
+                    <div class="maintenance-actions">
+                        <button class="btn-primary" onclick="saveMaintenanceSettings()">
+                            <i class="fas fa-save"></i> Einstellungen speichern
+                        </button>
+                        <button class="btn-warning" onclick="disableAllSystems()">
+                            <i class="fas fa-exclamation-triangle"></i> Alle Systeme deaktivieren
+                        </button>
+                        <button class="btn-success" onclick="enableAllSystems()">
+                            <i class="fas fa-check"></i> Alle Systeme aktivieren
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Recipes Page -->
             <div id="recipes-page" class="page">
                 <div class="recipes-page-header">
@@ -760,59 +749,6 @@
             </div>
         </div>
         
-        <!-- Lager auffüllen Modal -->
-        <div id="restock-modal" class="modal" style="display: none;">
-            <div class="modal-header">
-                <h2>Hero Lager auffüllen</h2>
-                <button class="close-modal" onclick="closeModals()">&times;</button>
-            </div>
-            <form id="restock-form">
-                <div class="form-group">
-                    <label>Menge (Stück)</label>
-                    <input type="number" id="restock-quantity" required min="1" placeholder="z.B. 100">
-                </div>
-                <button type="submit" class="btn-primary">Lager auffüllen</button>
-            </form>
-        </div>
-
-        <!-- Lager bearbeiten Modal -->
-        <div id="edit-stock-modal" class="modal" style="display: none;">
-            <div class="modal-header">
-                <h2>Lagerbestand korrigieren</h2>
-                <button class="close-modal" onclick="closeModals()">&times;</button>
-            </div>
-            <form id="edit-stock-form">
-                <div class="form-group">
-                    <label>Aktueller Bestand: <strong id="current-stock-display">0</strong> Stück</label>
-                </div>
-                <div class="form-group">
-                    <label>Neuer Bestand (Stück)</label>
-                    <input type="number" id="edit-stock-quantity" required min="0" placeholder="z.B. 50">
-                </div>
-                <button type="submit" class="btn-warning">Bestand aktualisieren</button>
-            </form>
-        </div>
-
-        <!-- Hero ausgeben Modal -->
-        <div id="distribute-modal" class="modal" style="display: none;">
-            <div class="modal-header">
-                <h2>Hero an Mitglied ausgeben</h2>
-                <button class="close-modal" onclick="closeModals()">&times;</button>
-            </div>
-            <form id="distribute-form">
-                <div class="form-group">
-                    <label>Mitglied</label>
-                    <select id="distribute-member" required></select>
-                </div>
-                <div class="form-group">
-                    <label>Menge</label>
-                    <input type="number" id="distribute-quantity" required min="1">
-                </div>
-                <button type="submit" class="btn-primary">Ausgeben</button>
-            </form>
-        </div>
-
-        <!-- Verkauf eintragen Modal -->
         <!-- Zahlung Modal -->
         <div id="payment-modal" class="modal" style="display: none;">
             <div class="modal-header">
@@ -1339,26 +1275,6 @@
             </form>
         </div>
 
-        <!-- Hero Einstellungen Modal -->
-        <div id="settings-modal" class="modal" style="display: none;">
-            <div class="modal-header">
-                <h2>Hero-Verkauf Einstellungen</h2>
-                <button class="close-modal" onclick="closeModals()">&times;</button>
-            </div>
-            <form id="settings-form">
-                <div class="form-group">
-                    <label>Verkaufspreis pro Hero ($)</label>
-                    <input type="number" id="settings-sale-price" required min="0" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Gang-Anteil (%)</label>
-                    <input type="number" id="settings-gang-percent" required min="0" max="100">
-                    <small>Mitglied behält: <span id="settings-member-percent">0</span>%</small>
-                </div>
-                <button type="submit" class="btn-primary">Einstellungen speichern</button>
-            </form>
-        </div>
-
         <!-- Mitglied hinzufügen Modal -->
         <div id="add-member-modal" class="modal" style="display: none;">
             <div class="modal-header">
@@ -1377,10 +1293,12 @@
                 <div class="form-group">
                     <label>Rang</label>
                     <select id="new-member-rank" required>
-                        <option value="Rekrut">Rekrut</option>
-                        <option value="Mitglied">Mitglied</option>
-                        <option value="Stellvertreter">Stellvertreter</option>
-                        <option value="Boss">Boss</option>
+                        <option value="OG">OG</option>
+                        <option value="2OG">2OG</option>
+                        <option value="Member">Member</option>
+                        <option value="Techniker">Techniker</option>
+                        <option value="Soldat">Soldat</option>
+                        <option value="Runner">Runner</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1392,10 +1310,6 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="new-member-can-add">
                         Kann Mitglieder hinzufügen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-hero">
-                        Kann Hero-System verwalten
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="new-member-can-fence">
@@ -1425,10 +1339,12 @@
                 <div class="form-group">
                     <label>Rang</label>
                     <select id="edit-member-rank" required>
-                        <option value="Rekrut">Rekrut</option>
-                        <option value="Mitglied">Mitglied</option>
-                        <option value="Stellvertreter">Stellvertreter</option>
-                        <option value="Boss">Boss</option>
+                        <option value="OG">OG</option>
+                        <option value="2OG">2OG</option>
+                        <option value="Member">Member</option>
+                        <option value="Techniker">Techniker</option>
+                        <option value="Soldat">Soldat</option>
+                        <option value="Runner">Runner</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1446,10 +1362,6 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="edit-member-can-add">
                         Kann Mitglieder hinzufügen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-hero">
-                        Kann Hero-System verwalten
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="edit-member-can-fence">
