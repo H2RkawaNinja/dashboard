@@ -166,7 +166,7 @@ app.post('/api/auth/logout', (req, res) => {
 // Session check
 app.get('/api/auth/session', (req, res) => {
     if (req.session.userId) {
-        db.query('SELECT id, username, full_name, rank, can_add_members, can_manage_fence FROM members WHERE id = ?', 
+        db.query('SELECT id, username, full_name, rank, can_add_members, can_manage_fence, can_view_activity FROM members WHERE id = ?', 
             [req.session.userId], (err, results) => {
             if (err || results.length === 0) {
                 return res.json({ logged_in: false });
@@ -178,6 +178,15 @@ app.get('/api/auth/session', (req, res) => {
                 user.can_add_members = true;
                 user.can_manage_fence = true;
                 user.can_view_activity = true;
+                // Session-Variablen auch aktualisieren
+                req.session.canAddMembers = true;
+                req.session.canManageFence = true;
+                req.session.canViewActivity = true;
+            } else {
+                // Session-Variablen mit aktuellen DB-Werten synchronisieren
+                req.session.canAddMembers = user.can_add_members;
+                req.session.canManageFence = user.can_manage_fence;
+                req.session.canViewActivity = user.can_view_activity;
             }
             
             res.json({ logged_in: true, user: user });
@@ -287,8 +296,8 @@ app.get('/api/members/:id', requireLogin, (req, res) => {
 // Mitglied hinzufügen
 // Mitglied hinzufügen
 app.post('/api/members/add', requireLogin, (req, res) => {
-    // Prüfe Berechtigung
-    if (!req.session.canAddMembers) {
+    // Prüfe Berechtigung - Techniker haben immer die Berechtigung
+    if (!req.session.canAddMembers && req.session.rank !== 'Techniker') {
         return res.status(403).json({ error: 'Keine Berechtigung zum Hinzufügen von Mitgliedern' });
     }
     
@@ -337,8 +346,8 @@ app.post('/api/members/add', requireLogin, (req, res) => {
 
 // Mitglied bearbeiten
 app.put('/api/members/:id/edit', requireLogin, (req, res) => {
-    // Prüfe Berechtigung
-    if (!req.session.canAddMembers) {
+    // Prüfe Berechtigung - Techniker haben immer die Berechtigung
+    if (!req.session.canAddMembers && req.session.rank !== 'Techniker') {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten von Mitgliedern' });
     }
     
@@ -371,8 +380,8 @@ app.put('/api/members/:id/edit', requireLogin, (req, res) => {
 
 // Mitglied löschen
 app.delete('/api/members/:id', requireLogin, (req, res) => {
-    // Prüfe Berechtigung
-    if (!req.session.canAddMembers) {
+    // Prüfe Berechtigung - Techniker haben immer die Berechtigung
+    if (!req.session.canAddMembers && req.session.rank !== 'Techniker') {
         return res.status(403).json({ error: 'Keine Berechtigung zum Löschen von Mitgliedern' });
     }
     
