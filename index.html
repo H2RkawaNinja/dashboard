@@ -1883,7 +1883,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="transaction-amount">Betrag (€)</label>
+                    <label for="transaction-amount">Betrag ($)</label>
                     <input type="number" id="transaction-amount" step="0.01" min="0" required>
                 </div>
                 <div class="form-group">
@@ -1913,29 +1913,30 @@
             </div>
             <form id="set-contribution-form">
                 <div class="form-group">
-                    <label for="contribution-period-month">Monat</label>
-                    <select id="contribution-period-month" required>
-                        <option value="">Monat auswählen</option>
-                        <option value="1">Januar</option>
-                        <option value="2">Februar</option>
-                        <option value="3">März</option>
-                        <option value="4">April</option>
-                        <option value="5">Mai</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Dezember</option>
+                    <label for="contribution-period-type">Beitragstyp</label>
+                    <select id="contribution-period-type" required onchange="updatePeriodFields()">
+                        <option value="">Typ auswählen</option>
+                        <option value="weekly">Wöchentlich</option>
+                        <option value="biweekly">Alle 2 Wochen</option>
+                        <option value="monthly">Monatlich</option>
+                        <option value="quarterly">Vierteljährlich</option>
+                        <option value="custom">Benutzerdefiniert</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="contribution-period-year">Jahr</label>
-                    <input type="number" id="contribution-period-year" min="2024" max="2030" required>
+                    <label for="contribution-period-start">Zeitraum Start</label>
+                    <input type="date" id="contribution-period-start" required onchange="updatePeriodEnd()">
                 </div>
                 <div class="form-group">
-                    <label for="contribution-amount">Beitragshöhe (€)</label>
+                    <label for="contribution-period-end">Zeitraum Ende</label>
+                    <input type="date" id="contribution-period-end" required>
+                </div>
+                <div class="form-group">
+                    <label for="contribution-description">Beschreibung (automatisch generiert)</label>
+                    <input type="text" id="contribution-description" readonly style="background: var(--dark-bg);">
+                </div>
+                <div class="form-group">
+                    <label for="contribution-amount">Beitragshöhe ($)</label>
                     <input type="number" id="contribution-amount" step="0.01" min="0" required>
                 </div>
                 <div class="form-group">
@@ -1967,7 +1968,23 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="mark-contribution-period">Zeitraum</label>
+                    <label for="mark-contribution-period">Offene Beiträge</label>
+                    <select id="mark-contribution-period" required>
+                        <option value="">Beitrag auswählen</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mark-contribution-amount">Betrag ($)</label>
+                    <input type="number" id="mark-contribution-amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="mark-contribution-payment-date">Zahlungsdatum</label>
+                    <input type="datetime-local" id="mark-contribution-payment-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="mark-contribution-notes">Notizen (optional)</label>
+                    <textarea id="mark-contribution-notes" rows="3" maxlength="1000"></textarea>
+                </div>
                     <select id="mark-contribution-period" required>
                         <option value="">Zeitraum auswählen</option>
                     </select>

@@ -189,7 +189,8 @@ CREATE TABLE IF NOT EXISTS maintenance_settings (
 -- Tabelle: Gangkasse Kontostand
 CREATE TABLE IF NOT EXISTS gang_treasury (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    current_balance DECIMAL(15, 2) DEFAULT 0,
+    current_balance_usd DECIMAL(15, 2) DEFAULT 0,
+    currency VARCHAR(3) DEFAULT 'USD',
     updated_by INT,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     notes TEXT,
@@ -201,7 +202,8 @@ CREATE TABLE IF NOT EXISTS gang_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     member_id INT,
     type ENUM('einzahlung', 'auszahlung', 'korrektur') NOT NULL,
-    amount DECIMAL(15, 2) NOT NULL,
+    amount_usd DECIMAL(15, 2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'USD',
     description VARCHAR(500),
     reference_number VARCHAR(50),
     recorded_by INT,
@@ -216,10 +218,12 @@ CREATE TABLE IF NOT EXISTS gang_transactions (
 CREATE TABLE IF NOT EXISTS member_contributions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     member_id INT NOT NULL,
-    period_month INT NOT NULL,
-    period_year INT NOT NULL,
-    required_amount DECIMAL(10, 2) DEFAULT 0,
-    paid_amount DECIMAL(10, 2) DEFAULT 0,
+    period_type ENUM('weekly', 'biweekly', 'monthly', 'quarterly', 'custom') DEFAULT 'monthly',
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    period_description VARCHAR(100), -- z.B. "KW 7 2026", "Februar 2026", etc.
+    required_amount_usd DECIMAL(10, 2) DEFAULT 0,
+    paid_amount_usd DECIMAL(10, 2) DEFAULT 0,
     status ENUM('nicht_bezahlt', 'teilweise_bezahlt', 'vollständig_bezahlt') DEFAULT 'nicht_bezahlt',
     due_date DATE,
     payment_date TIMESTAMP NULL,
@@ -227,7 +231,7 @@ CREATE TABLE IF NOT EXISTS member_contributions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_member_period (member_id, period_month, period_year)
+    UNIQUE KEY unique_member_period (member_id, period_start, period_end)
 );
 
 -- Initial Wartungseinstellungen
@@ -238,8 +242,8 @@ INSERT INTO maintenance_settings (module_name, is_disabled) VALUES
 ('treasury', FALSE);
 
 -- Initial Gangkasse Setup
-INSERT INTO gang_treasury (current_balance, notes) VALUES 
-(0.00, 'Startsaldo der Gangkasse');
+INSERT INTO gang_treasury (current_balance_usd, currency, notes) VALUES 
+(0.00, 'USD', 'Startsaldo der Gangkasse in US-Dollar');
 
 -- Gang Stats
 INSERT INTO gang_stats (stat_key, stat_value) VALUES
@@ -247,5 +251,6 @@ INSERT INTO gang_stats (stat_key, stat_value) VALUES
 ('total_members', '0'),
 ('total_revenue_today', '0'),
 ('overview_notes', ''),
-('treasury_balance', '0.00'),
-('monthly_contribution', '1000.00');
+('treasury_balance_usd', '0.00'),
+('default_contribution_usd', '100.00'),
+('default_contribution_period', 'weekly');

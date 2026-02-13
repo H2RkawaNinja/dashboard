@@ -298,8 +298,8 @@ async function loadDashboardTreasuryStats() {
             const balanceEl = document.getElementById('stat-treasury-balance');
             const balanceCardEl = document.getElementById('treasury-balance-card');
             if (balanceEl && balanceCardEl) {
-                const balance = treasuryStats.balance || 0;
-                balanceEl.textContent = `€ ${formatCurrency(balance)}`;
+                const balance = treasuryStats.balance_usd || 0;
+                balanceEl.textContent = `$ ${formatCurrency(balance)}`;
                 
                 // Färbung je nach positiv/negativ
                 balanceCardEl.classList.remove('negative');
@@ -311,13 +311,13 @@ async function loadDashboardTreasuryStats() {
             // Monatliche Einzahlungen
             const depositsEl = document.getElementById('stat-treasury-deposits');
             if (depositsEl) {
-                depositsEl.textContent = `€ ${formatCurrency(treasuryStats.monthly_deposits || 0)}`;
+                depositsEl.textContent = `$ ${formatCurrency(treasuryStats.monthly_deposits || 0)}`;
             }
             
             // Monatliche Auszahlungen
             const withdrawalsEl = document.getElementById('stat-treasury-withdrawals');
             if (withdrawalsEl) {
-                withdrawalsEl.textContent = `€ ${formatCurrency(treasuryStats.monthly_withdrawals || 0)}`;
+                withdrawalsEl.textContent = `$ ${formatCurrency(treasuryStats.monthly_withdrawals || 0)}`;
             }
             
             // Bezahlte Beiträge
@@ -329,7 +329,7 @@ async function loadDashboardTreasuryStats() {
             // Ausstehende Beiträge
             const outstandingEl = document.getElementById('stat-treasury-outstanding');
             if (outstandingEl) {
-                outstandingEl.textContent = `€ ${formatCurrency(treasuryStats.outstanding_contributions || 0)}`;
+                outstandingEl.textContent = `$ ${formatCurrency(treasuryStats.outstanding_contributions || 0)}`;
             }
         }
     } catch (error) {
@@ -4995,7 +4995,7 @@ async function loadTreasuryBalance() {
             const data = await response.json();
             const balanceEl = document.getElementById('treasury-balance');
             if (balanceEl) {
-                balanceEl.textContent = `€ ${formatCurrency(data.balance)}`;
+                balanceEl.textContent = `$ ${formatCurrency(data.balance)}`;
                 balanceEl.className = `balance-amount ${data.balance >= 0 ? 'positive' : 'negative'}`;
             }
         }
@@ -5098,7 +5098,7 @@ function renderTransactions() {
                     <div class="transaction-header">
                         <span class="transaction-type">${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</span>
                         <span class="transaction-amount ${transaction.type === 'auszahlung' ? 'negative' : 'positive'}">
-                            ${transaction.type === 'auszahlung' ? '-' : '+'}€ ${formatCurrency(transaction.amount)}
+                            ${transaction.type === 'auszahlung' ? '-' : '+'}$ ${formatCurrency(transaction.amount_usd)}
                         </span>
                     </div>
                     <div class="transaction-description">${transaction.description || 'Keine Beschreibung'}</div>
@@ -5283,10 +5283,13 @@ function showSetContributionModal() {
     document.getElementById('set-contribution-modal').style.display = 'block';
     document.getElementById('modal-overlay').style.display = 'flex';
     
-    // Aktuelle Werte setzen
+    // Standardwerte setzen
     const now = new Date();
-    document.getElementById('contribution-period-month').value = now.getMonth() + 1;
-    document.getElementById('contribution-period-year').value = now.getFullYear();
+    document.getElementById('contribution-period-start').value = now.toISOString().slice(0, 10);
+    
+    // Standard-Beitragstyp setzen
+    document.getElementById('contribution-period-type').value = 'weekly';
+    updatePeriodFields();
 }
 
 function showMarkContributionModal() {
@@ -5409,8 +5412,10 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             
             const formData = {
-                period_month: parseInt(document.getElementById('contribution-period-month').value),
-                period_year: parseInt(document.getElementById('contribution-period-year').value),
+                period_type: document.getElementById('contribution-period-type').value,
+                period_start: document.getElementById('contribution-period-start').value,
+                period_end: document.getElementById('contribution-period-end').value,
+                period_description: document.getElementById('contribution-description').value,
                 required_amount: parseFloat(document.getElementById('contribution-amount').value),
                 due_date: document.getElementById('contribution-due-date').value,
                 notes: document.getElementById('contribution-notes').value || null
@@ -5449,13 +5454,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const memberSelect = document.getElementById('mark-contribution-member');
             const periodSelect = document.getElementById('mark-contribution-period');
-            const [month, year] = periodSelect.value.split('-');
             
             const formData = {
-                member_id: parseInt(memberSelect.value),
-                period_month: parseInt(month),
-                period_year: parseInt(year),
-                paid_amount: parseFloat(document.getElementById('mark-contribution-paid-amount').value),
+                contribution_id: parseInt(periodSelect.value),
+                paid_amount: parseFloat(document.getElementById('mark-contribution-amount').value),
                 payment_date: document.getElementById('mark-contribution-payment-date').value,
                 notes: document.getElementById('mark-contribution-notes').value || null
             };
@@ -5497,26 +5499,29 @@ async function loadMemberContributions() {
     const periodSelect = document.getElementById('mark-contribution-period');
     
     if (!memberSelect.value) {
-        periodSelect.innerHTML = '<option value="">Zeitraum auswählen</option>';
+        periodSelect.innerHTML = '<option value="">Beitrag auswählen</option>';
         return;
     }
     
     try {
-        const response = await fetch(`${API_URL}/treasury/contributions?member_id=${memberSelect.value}`, {
+        const response = await fetch(`${API_URL}/treasury/contributions`, {
             credentials: 'include'
         });
         
         if (response.ok) {
-            const contributions = await response.json();
+            const allContributions = await response.json();
+            const memberContributions = allContributions.filter(c => 
+                c.member_id == memberSelect.value && 
+                c.status !== 'vollständig_bezahlt'
+            );
             
-            periodSelect.innerHTML = '<option value="">Zeitraum auswählen</option>';
-            contributions.forEach(contribution => {
-                if (contribution.status !== 'vollständig_bezahlt') {
-                    const option = document.createElement('option');
-                    option.value = `${contribution.period_month}-${contribution.period_year}`;
-                    option.textContent = `${getMonthName(contribution.period_month)} ${contribution.period_year} (€${formatCurrency(contribution.required_amount - contribution.paid_amount)} ausstehend)`;
-                    periodSelect.appendChild(option);
-                }
+            periodSelect.innerHTML = '<option value="">Beitrag auswählen</option>';
+            memberContributions.forEach(contribution => {
+                const option = document.createElement('option');
+                option.value = contribution.id;
+                const outstanding = contribution.required_amount_usd - contribution.paid_amount_usd;
+                option.textContent = `${contribution.period_description} ($${formatCurrency(outstanding)} ausstehend)`;
+                periodSelect.appendChild(option);
             });
         }
     } catch (error) {
@@ -5583,6 +5588,96 @@ function getStatusText(status) {
         'vollständig_bezahlt': 'Vollständig bezahlt'
     };
     return statusTexts[status] || status;
+}
+
+// Flexible Beitragszeitraum-Funktionen
+function updatePeriodFields() {
+    const periodType = document.getElementById('contribution-period-type').value;
+    const startDate = document.getElementById('contribution-period-start').value;
+    
+    if (periodType && startDate) {
+        const start = new Date(startDate);
+        let end = new Date(start);
+        
+        switch (periodType) {
+            case 'weekly':
+                end.setDate(start.getDate() + 6);
+                break;
+            case 'biweekly':
+                end.setDate(start.getDate() + 13);
+                break;
+            case 'monthly':
+                end.setMonth(start.getMonth() + 1);
+                end.setDate(end.getDate() - 1);
+                break;
+            case 'quarterly':
+                end.setMonth(start.getMonth() + 3);
+                end.setDate(end.getDate() - 1);
+                break;
+            default:
+                // Bei custom wird das Ende-Datum manuell gesetzt
+                return;
+        }
+        
+        document.getElementById('contribution-period-end').value = end.toISOString().slice(0, 10);
+        updatePeriodDescription();
+    }
+}
+
+function updatePeriodEnd() {
+    updatePeriodDescription();
+}
+
+function updatePeriodDescription() {
+    const periodType = document.getElementById('contribution-period-type').value;
+    const startDate = document.getElementById('contribution-period-start').value;
+    const endDate = document.getElementById('contribution-period-end').value;
+    
+    if (periodType && startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        let description = '';
+        
+        switch (periodType) {
+            case 'weekly':
+                const weekNumber = getWeekNumber(start);
+                description = `KW ${weekNumber} ${start.getFullYear()}`;
+                break;
+            case 'biweekly':
+                description = `${formatDate(start)} - ${formatDate(end)}`;
+                break;
+            case 'monthly':
+                description = `${getMonthName(start.getMonth() + 1)} ${start.getFullYear()}`;
+                break;
+            case 'quarterly':
+                const quarter = Math.floor(start.getMonth() / 3) + 1;
+                description = `Q${quarter} ${start.getFullYear()}`;
+                break;
+            case 'custom':
+                description = `${formatDate(start)} - ${formatDate(end)}`;
+                break;
+        }
+        
+        document.getElementById('contribution-description').value = description;
+    }
+}
+
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayOfWeek = d.getUTCDay();
+    d.setUTCDate(d.getUTCDate() + 4 - (dayOfWeek || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNo;
+}
+
+function formatDate(date) {
+    return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
 }
 
 function getMonthName(monthNumber) {

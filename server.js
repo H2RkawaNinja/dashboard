@@ -2311,17 +2311,18 @@ app.get('/api/maintenance/status/:module', requireLogin, (req, res) => {
 
 // Treasury Balance abrufen
 app.get('/api/treasury/balance', requireLogin, (req, res) => {
-    db.query('SELECT current_balance, last_updated, notes FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, results) => {
+    db.query('SELECT current_balance_usd, currency, last_updated, notes FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
         
         if (results.length === 0) {
-            return res.json({ balance: 0, last_updated: null, notes: null });
+            return res.json({ balance: 0, currency: 'USD', last_updated: null, notes: null });
         }
         
         res.json({
-            balance: results[0].current_balance,
+            balance: results[0].current_balance_usd,
+            currency: results[0].currency || 'USD',
             last_updated: results[0].last_updated,
             notes: results[0].notes
         });
@@ -2332,7 +2333,7 @@ app.get('/api/treasury/balance', requireLogin, (req, res) => {
 app.get('/api/treasury/transactions', requireLogin, (req, res) => {
     const query = `
         SELECT 
-            gt.id, gt.type, gt.amount, gt.description, gt.reference_number,
+            gt.id, gt.type, gt.amount_usd, gt.currency, gt.description, gt.reference_number,
             gt.transaction_date, gt.status, gt.notes,
             m.full_name as member_name,
             rb.full_name as recorded_by_name
@@ -2359,12 +2360,12 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
     }
     
     // Berechne neuen Saldo
-    db.query('SELECT current_balance FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, balanceResults) => {
+    db.query('SELECT current_balance_usd FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, balanceResults) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
         
-        let currentBalance = balanceResults.length > 0 ? balanceResults[0].current_balance : 0;
+        let currentBalance = balanceResults.length > 0 ? balanceResults[0].current_balance_usd : 0;
         let newBalance;
         
         if (type === 'einzahlung' || type === 'korrektur') {
@@ -2388,8 +2389,8 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
                 // Transaktion hinzufügen
                 const insertQuery = `
                     INSERT INTO gang_transactions 
-                    (member_id, type, amount, description, reference_number, notes, recorded_by) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (member_id, type, amount_usd, currency, description, reference_number, notes, recorded_by) 
+                    VALUES (?, ?, ?, 'USD', ?, ?, ?, ?)
                 `;
                 
                 connection.query(insertQuery, [
@@ -2404,8 +2405,8 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
                     
                     // Balance update
                     const updateBalanceQuery = `
-                        INSERT INTO gang_treasury (current_balance, updated_by, notes) 
-                        VALUES (?, ?, ?)
+                        INSERT INTO gang_treasury (current_balance_usd, currency, updated_by, notes) 
+                        VALUES (?, 'USD', ?, ?)
                     `;
                     
                     connection.query(updateBalanceQuery, [
@@ -2433,7 +2434,7 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
                             db.query(logQuery, [
                                 req.session.userId, 
                                 'treasury_transaction', 
-                                `${type.charAt(0).toUpperCase() + type.slice(1)} von €${amount} ${member_id ? `für ${member_id}` : ''}`
+                                `${type.charAt(0).toUpperCase() + type.slice(1)} von $${amount} ${member_id ? `für ${member_id}` : ''}`
                             ]);
                             
                             res.json({ 
@@ -2451,12 +2452,12 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
 
 // Beiträge für einen Zeitraum abrufen
 app.get('/api/treasury/contributions', requireLogin, (req, res) => {
-    const { month, year } = req.query;
+    const { period_type, start_date, end_date } = req.query;
     
     let query = `
         SELECT 
-            mc.id, mc.member_id, mc.period_month, mc.period_year,
-            mc.required_amount, mc.paid_amount, mc.status, mc.due_date,
+            mc.id, mc.member_id, mc.period_type, mc.period_start, mc.period_end, mc.period_description,
+            mc.required_amount_usd, mc.paid_amount_usd, mc.status, mc.due_date,
             mc.payment_date, mc.notes,
             m.full_name as member_name, m.rank
         FROM member_contributions mc
@@ -2464,12 +2465,19 @@ app.get('/api/treasury/contributions', requireLogin, (req, res) => {
     `;
     let params = [];
     
-    if (month && year) {
-        query += ' WHERE mc.period_month = ? AND mc.period_year = ?';
-        params = [month, year];
+    if (period_type) {
+        query += ' WHERE mc.period_type = ?';
+        params.push(period_type);
     }
     
-    query += ' ORDER BY m.full_name, mc.period_year DESC, mc.period_month DESC';
+    if (start_date && end_date) {
+        if (params.length > 0) query += ' AND';
+        else query += ' WHERE';
+        query += ' mc.period_start >= ? AND mc.period_end <= ?';
+        params.push(start_date, end_date);
+    }
+    
+    query += ' ORDER BY m.full_name, mc.period_start DESC';
     
     db.query(query, params, (err, results) => {
         if (err) {
@@ -2481,10 +2489,10 @@ app.get('/api/treasury/contributions', requireLogin, (req, res) => {
 
 // Beitrag für alle Mitglieder festlegen
 app.post('/api/treasury/contributions/set', requireLogin, (req, res) => {
-    const { period_month, period_year, required_amount, due_date, notes } = req.body;
+    const { period_type, period_start, period_end, period_description, required_amount, due_date, notes } = req.body;
     
-    if (!period_month || !period_year || !required_amount) {
-        return res.status(400).json({ error: 'Monat, Jahr und Betrag sind erforderlich' });
+    if (!period_type || !period_start || !period_end || !required_amount) {
+        return res.status(400).json({ error: 'Typ, Start-/Enddatum und Betrag sind erforderlich' });
     }
     
     // Alle aktiven Mitglieder abrufen
@@ -2502,17 +2510,17 @@ app.post('/api/treasury/contributions/set', requireLogin, (req, res) => {
             return new Promise((resolve, reject) => {
                 const insertQuery = `
                     INSERT INTO member_contributions 
-                    (member_id, period_month, period_year, required_amount, due_date, notes)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (member_id, period_type, period_start, period_end, period_description, required_amount_usd, due_date, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
-                    required_amount = VALUES(required_amount),
+                    required_amount_usd = VALUES(required_amount_usd),
                     due_date = VALUES(due_date),
                     notes = VALUES(notes),
                     updated_at = CURRENT_TIMESTAMP
                 `;
                 
                 db.query(insertQuery, [
-                    member.id, period_month, period_year, required_amount, due_date, notes
+                    member.id, period_type, period_start, period_end, period_description, required_amount, due_date, notes
                 ], (err, result) => {
                     if (err) reject(err);
                     else resolve(result);
@@ -2527,7 +2535,7 @@ app.post('/api/treasury/contributions/set', requireLogin, (req, res) => {
                 db.query(logQuery, [
                     req.session.userId, 
                     'treasury_contribution_set', 
-                    `Beiträge für ${period_month}/${period_year} festgelegt: €${required_amount}`
+                    `Beiträge für ${period_description || period_type} festgelegt: $${required_amount}`
                 ]);
                 
                 res.json({ 
@@ -2543,16 +2551,16 @@ app.post('/api/treasury/contributions/set', requireLogin, (req, res) => {
 
 // Beitrag als bezahlt markieren
 app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
-    const { member_id, period_month, period_year, paid_amount, payment_date, notes } = req.body;
+    const { contribution_id, paid_amount, payment_date, notes } = req.body;
     
-    if (!member_id || !period_month || !period_year || !paid_amount) {
-        return res.status(400).json({ error: 'Alle Felder sind erforderlich' });
+    if (!contribution_id || !paid_amount) {
+        return res.status(400).json({ error: 'Beitrags-ID und Betrag sind erforderlich' });
     }
     
     // Prüfe ob Beitrag existiert
     db.query(
-        'SELECT * FROM member_contributions WHERE member_id = ? AND period_month = ? AND period_year = ?',
-        [member_id, period_month, period_year],
+        'SELECT * FROM member_contributions WHERE id = ?',
+        [contribution_id],
         (err, existingResults) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
@@ -2563,22 +2571,22 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
             }
             
             const contribution = existingResults[0];
-            const newPaidAmount = contribution.paid_amount + parseFloat(paid_amount);
+            const newPaidAmount = contribution.paid_amount_usd + parseFloat(paid_amount);
             let newStatus = 'teilweise_bezahlt';
             
-            if (newPaidAmount >= contribution.required_amount) {
+            if (newPaidAmount >= contribution.required_amount_usd) {
                 newStatus = 'vollständig_bezahlt';
             }
             
             // Update Beitrag
             const updateQuery = `
                 UPDATE member_contributions 
-                SET paid_amount = ?, status = ?, payment_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE member_id = ? AND period_month = ? AND period_year = ?
+                SET paid_amount_usd = ?, status = ?, payment_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
             `;
             
             db.query(updateQuery, [
-                newPaidAmount, newStatus, payment_date, notes, member_id, period_month, period_year
+                newPaidAmount, newStatus, payment_date, notes, contribution_id
             ], (err) => {
                 if (err) {
                     return res.status(500).json({ error: err.message });
@@ -2589,7 +2597,7 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                 db.query(logQuery, [
                     req.session.userId, 
                     'treasury_contribution_paid', 
-                    `Beitrag von €${paid_amount} für Mitglied ${member_id} verbucht`
+                    `Beitrag von $${paid_amount} für Mitglied ${contribution.member_id} verbucht`
                 ]);
                 
                 res.json({ 
@@ -2605,34 +2613,36 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
 app.get('/api/treasury/stats', requireLogin, (req, res) => {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
+    const currentWeekStart = new Date();
+    currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
     
     // Balance
-    const balanceQuery = 'SELECT current_balance FROM gang_treasury ORDER BY last_updated DESC LIMIT 1';
+    const balanceQuery = 'SELECT current_balance_usd, currency FROM gang_treasury ORDER BY last_updated DESC LIMIT 1';
     
     // Monatliche Ein-/Auszahlungen
     const monthlyQuery = `
         SELECT 
-            SUM(CASE WHEN type = 'einzahlung' THEN amount ELSE 0 END) as deposits,
-            SUM(CASE WHEN type = 'auszahlung' THEN amount ELSE 0 END) as withdrawals
+            SUM(CASE WHEN type = 'einzahlung' THEN amount_usd ELSE 0 END) as deposits,
+            SUM(CASE WHEN type = 'auszahlung' THEN amount_usd ELSE 0 END) as withdrawals
         FROM gang_transactions 
         WHERE MONTH(transaction_date) = ? AND YEAR(transaction_date) = ?
     `;
     
-    // Beitragsstatus
+    // Aktuelle Beitragsstatus (flexibel für verschiedene Zeiträume)
     const contributionsQuery = `
         SELECT 
             COUNT(CASE WHEN status = 'vollständig_bezahlt' THEN 1 END) as paid_count,
             COUNT(*) as total_count,
-            SUM(CASE WHEN status != 'vollständig_bezahlt' THEN (required_amount - paid_amount) ELSE 0 END) as outstanding_amount
+            SUM(CASE WHEN status != 'vollständig_bezahlt' THEN (required_amount_usd - paid_amount_usd) ELSE 0 END) as outstanding_amount
         FROM member_contributions 
-        WHERE period_month = ? AND period_year = ?
+        WHERE period_start <= CURDATE() AND period_end >= CURDATE()
     `;
     
     Promise.all([
         new Promise((resolve, reject) => {
             db.query(balanceQuery, (err, results) => {
                 if (err) reject(err);
-                else resolve(results.length > 0 ? results[0].current_balance : 0);
+                else resolve(results.length > 0 ? results[0] : { current_balance_usd: 0, currency: 'USD' });
             });
         }),
         new Promise((resolve, reject) => {
@@ -2642,14 +2652,15 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
             });
         }),
         new Promise((resolve, reject) => {
-            db.query(contributionsQuery, [currentMonth, currentYear], (err, results) => {
+            db.query(contributionsQuery, (err, results) => {
                 if (err) reject(err);
                 else resolve(results[0]);
             });
         })
     ]).then(([balance, monthly, contributions]) => {
         res.json({
-            balance: balance || 0,
+            balance_usd: balance.current_balance_usd || 0,
+            currency: balance.currency || 'USD',
             monthly_deposits: monthly.deposits || 0,
             monthly_withdrawals: monthly.withdrawals || 0,
             paid_members: `${contributions.paid_count || 0}/${contributions.total_count || 0}`,
@@ -2658,6 +2669,7 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
     }).catch(err => {
         res.status(500).json({ error: err.message });
     });
+});
 });
 
 // Server starten
