@@ -2679,15 +2679,9 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                     });
                 });
             });
-                ]);
-                
-                res.json({ 
-                    success: true,
-                    new_paid_amount: newPaidAmount,
-                    new_status: newStatus
-                });
-            });
         });
+    });
+});
 });
 
 // Treasury Statistiken
