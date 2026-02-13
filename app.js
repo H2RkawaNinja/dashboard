@@ -258,6 +258,7 @@ function updateNavigationAccess() {
 
 async function loadDashboardStats() {
     try {
+        // Standard Dashboard Stats laden
         const response = await fetch(`${API_URL}/stats/dashboard`, {
             credentials: 'include'
         });
@@ -267,15 +268,79 @@ async function loadDashboardStats() {
         const statHero = document.getElementById('stat-hero');
         const statFence = document.getElementById('stat-fence');
         const statWarehouse = document.getElementById('stat-warehouse');
+        const statPending = document.getElementById('stat-pending');
         
         if (statMembers) statMembers.textContent = stats.total_members || 0;
         if (statHero) statHero.textContent = stats.hero_stock || 0;
         if (statFence) statFence.textContent = `$${(stats.fence_pending || 0).toLocaleString()}`;
         if (statWarehouse) statWarehouse.textContent = `$${(stats.warehouse_value || 0).toLocaleString()}`;
+        if (statPending) statPending.textContent = stats.pending_payments || 0;
         
-        // Dashboard Stats geladen
+        // Treasury Stats laden
+        await loadDashboardTreasuryStats();
+        
     } catch (error) {
         console.error('Fehler beim Laden der Statistiken:', error);
+    }
+}
+
+// Treasury-Statistiken für Dashboard laden
+async function loadDashboardTreasuryStats() {
+    try {
+        const response = await fetch(`${API_URL}/treasury/stats`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const treasuryStats = await response.json();
+            
+            // Treasury Balance
+            const balanceEl = document.getElementById('stat-treasury-balance');
+            const balanceCardEl = document.getElementById('treasury-balance-card');
+            if (balanceEl && balanceCardEl) {
+                const balance = treasuryStats.balance || 0;
+                balanceEl.textContent = `€ ${formatCurrency(balance)}`;
+                
+                // Färbung je nach positiv/negativ
+                balanceCardEl.classList.remove('negative');
+                if (balance < 0) {
+                    balanceCardEl.classList.add('negative');
+                }
+            }
+            
+            // Monatliche Einzahlungen
+            const depositsEl = document.getElementById('stat-treasury-deposits');
+            if (depositsEl) {
+                depositsEl.textContent = `€ ${formatCurrency(treasuryStats.monthly_deposits || 0)}`;
+            }
+            
+            // Monatliche Auszahlungen
+            const withdrawalsEl = document.getElementById('stat-treasury-withdrawals');
+            if (withdrawalsEl) {
+                withdrawalsEl.textContent = `€ ${formatCurrency(treasuryStats.monthly_withdrawals || 0)}`;
+            }
+            
+            // Bezahlte Beiträge
+            const contributionsEl = document.getElementById('stat-treasury-contributions');
+            if (contributionsEl) {
+                contributionsEl.textContent = treasuryStats.paid_members || '0/0';
+            }
+            
+            // Ausstehende Beiträge
+            const outstandingEl = document.getElementById('stat-treasury-outstanding');
+            if (outstandingEl) {
+                outstandingEl.textContent = `€ ${formatCurrency(treasuryStats.outstanding_contributions || 0)}`;
+            }
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Treasury-Statistiken:', error);
+        // Falls Treasury-API nicht verfügbar ist, Element ausblenden
+        const treasuryCards = document.querySelectorAll('.stat-card.treasury, .stat-card.green, .stat-card.red, .stat-card.teal, .stat-card.warning');
+        treasuryCards.forEach(card => {
+            if (card.querySelector('[id^="stat-treasury"]')) {
+                card.style.opacity = '0.5';
+            }
+        });
     }
 }
 
@@ -5324,7 +5389,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     await Promise.all([
                         loadTreasuryBalance(),
                         loadTreasuryTransactions(),
-                        loadTreasuryStats()
+                        loadTreasuryStats(),
+                        loadDashboardTreasuryStats() // Dashboard Stats auch aktualisieren
                     ]);
                 } else {
                     showToast(result.error || 'Fehler beim Hinzufügen der Transaktion', 'error');
@@ -5411,7 +5477,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     await Promise.all([
                         loadTreasuryBalance(),
                         loadContributions(),
-                        loadTreasuryStats()
+                        loadTreasuryStats(),
+                        loadDashboardTreasuryStats() // Dashboard Stats auch aktualisieren
                     ]);
                 } else {
                     showToast(result.error || 'Fehler beim Verbuchen des Beitrags', 'error');

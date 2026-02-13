@@ -496,6 +496,21 @@ body {
     margin-bottom: 2rem;
 }
 
+/* Mobile Anpassung für mehr Cards */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
 .stat-card {
     background: var(--dark-card);
     padding: 1.5rem;
@@ -514,6 +529,15 @@ body {
 .stat-card.green i { color: var(--success); }
 .stat-card.orange i { color: var(--warning); }
 .stat-card.purple i { color: var(--primary); }
+.stat-card.red i { color: var(--danger); }
+.stat-card.teal i { color: #14b8a6; }
+.stat-card.warning i { color: var(--warning); }
+.stat-card.treasury i { 
+    color: var(--success); /* default green for positive balance */ 
+}
+.stat-card.treasury.negative i { 
+    color: var(--danger); /* red for negative balance */ 
+}
 
 .stat-card h3 {
     font-size: 0.875rem;
