@@ -17,9 +17,12 @@ CREATE TABLE IF NOT EXISTS members (
     full_name VARCHAR(100) NOT NULL,
     `rank` VARCHAR(50) NOT NULL,
     can_add_members BOOLEAN DEFAULT FALSE,
-    can_manage_hero BOOLEAN DEFAULT FALSE,
     can_manage_fence BOOLEAN DEFAULT FALSE,
+    can_manage_recipes BOOLEAN DEFAULT FALSE,
+    can_manage_storage BOOLEAN DEFAULT FALSE,
     can_view_activity BOOLEAN DEFAULT FALSE,
+    can_view_stats BOOLEAN DEFAULT FALSE,
+    can_manage_system BOOLEAN DEFAULT FALSE,
     phone VARCHAR(20),
     invitation_token VARCHAR(100) UNIQUE,
     is_password_set BOOLEAN DEFAULT FALSE,
@@ -30,49 +33,12 @@ CREATE TABLE IF NOT EXISTS members (
     notes TEXT
 );
 
--- Tabelle: Hero Lager
-CREATE TABLE IF NOT EXISTS hero_inventory (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    quantity INT DEFAULT 0,
-    unit_cost DECIMAL(10, 2) DEFAULT 0,
-    sale_price DECIMAL(10, 2) DEFAULT 250.00,
-    gang_percentage INT DEFAULT 60,
-    last_restocked TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Tabelle: Hero Ausgaben an Mitglieder
-CREATE TABLE IF NOT EXISTS hero_distributions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    member_id INT NOT NULL,
-    quantity INT NOT NULL,
-    unit_cost DECIMAL(10, 2) NOT NULL,
-    total_cost DECIMAL(10, 2) NOT NULL,
-    expected_sale_price DECIMAL(10, 2) DEFAULT 0,
+-- Tabelle: Hehler Ankauf
     gang_share DECIMAL(10, 2) DEFAULT 0,
     distributed_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('outstanding', 'partial', 'paid') DEFAULT 'outstanding',
     notes TEXT,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
-);
-
--- Tabelle: Hero Ausgaben Archiv (für alte Lieferungen)
-CREATE TABLE IF NOT EXISTS hero_distributions_archive (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    original_id INT,
-    member_id INT NOT NULL,
-    member_name VARCHAR(100),
-    quantity INT NOT NULL,
-    unit_cost DECIMAL(10, 2) NOT NULL,
-    total_cost DECIMAL(10, 2) NOT NULL,
-    expected_sale_price DECIMAL(10, 2) DEFAULT 0,
-    gang_share DECIMAL(10, 2) DEFAULT 0,
-    distributed_date TIMESTAMP,
-    status ENUM('outstanding', 'partial', 'paid') DEFAULT 'outstanding',
-    notes TEXT,
-    archived_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    archived_by INT,
-    delivery_number INT,
-    FOREIGN KEY (archived_by) REFERENCES members(id) ON DELETE SET NULL
 );
 
 -- Tabelle: Vordefinierte Hehler-Artikel
@@ -82,49 +48,6 @@ CREATE TABLE IF NOT EXISTS fence_item_templates (
     category VARCHAR(50) NOT NULL,
     typical_price DECIMAL(10, 2) DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE
-);
-
--- Tabelle: Hero Verkäufe & Abrechnungen
-CREATE TABLE IF NOT EXISTS hero_sales (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    member_id INT NOT NULL,
-    quantity INT NOT NULL,
-    unit_cost DECIMAL(10, 2) NOT NULL,
-    sale_price DECIMAL(10, 2) NOT NULL,
-    total_sale DECIMAL(10, 2) NOT NULL,
-    gang_share DECIMAL(10, 2) NOT NULL,
-    member_share DECIMAL(10, 2) NOT NULL,
-    sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
-);
-
--- Tabelle: Hero Verkäufe Archiv (für alte Lieferungen)
-CREATE TABLE IF NOT EXISTS hero_sales_archive (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    original_id INT,
-    member_id INT NOT NULL,
-    member_name VARCHAR(100),
-    quantity INT NOT NULL,
-    unit_cost DECIMAL(10, 2) NOT NULL,
-    sale_price DECIMAL(10, 2) NOT NULL,
-    total_sale DECIMAL(10, 2) NOT NULL,
-    gang_share DECIMAL(10, 2) NOT NULL,
-    member_share DECIMAL(10, 2) NOT NULL,
-    sale_date TIMESTAMP,
-    archived_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    archived_by INT,
-    delivery_number INT,
-    FOREIGN KEY (archived_by) REFERENCES members(id) ON DELETE SET NULL
-);
-
--- Tabelle: Hero Lieferungen (Tracking)
-CREATE TABLE IF NOT EXISTS hero_deliveries (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    delivery_number INT UNIQUE NOT NULL,
-    quantity INT NOT NULL,
-    delivery_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    received_by INT,
-    FOREIGN KEY (received_by) REFERENCES members(id) ON DELETE SET NULL
 );
 
 -- Tabelle: Allgemeines Lager
@@ -269,15 +192,9 @@ INSERT INTO maintenance_settings (module_name, is_disabled) VALUES
 ('fence', FALSE),
 ('storage', FALSE);
 
--- Hero Lager Initial
-INSERT INTO hero_inventory (quantity, unit_cost, sale_price, gang_percentage) VALUES (0, 150.00, 250.00, 60);
-
 -- Gang Stats
 INSERT INTO gang_stats (stat_key, stat_value) VALUES
 ('gang_name', 'Black Street Empire'),
 ('total_members', '0'),
-('hero_stock', '0'),
-('hero_sale_price', '250.00'),
-('hero_gang_percentage', '60'),
 ('total_revenue_today', '0'),
 ('overview_notes', '');

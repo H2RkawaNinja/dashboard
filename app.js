@@ -91,17 +91,16 @@ function showDashboard() {
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
     if (addMemberBtn) {
-        addMemberBtn.style.display = currentUser.can_add_members ? 'inline-flex' : 'none';
+        addMemberBtn.style.display = (currentUser.can_add_members || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'inline-flex' : 'none';
     }
     
     // Hehler-Ankauf-Button zeigen/verstecken
     const fenceBuyButton = document.querySelector('#fence-page .page-header .btn-primary');
     const fenceNoPermBanner = document.getElementById('fence-no-permission');
-    if (fenceBuyButton) {
-        fenceBuyButton.style.display = currentUser.can_manage_fence ? 'inline-flex' : 'none';
-    }
-    if (fenceNoPermBanner) {
-        fenceNoPermBanner.style.display = currentUser.can_manage_fence ? 'none' : 'block';
+    if (fenceBuyButton && fenceNoPermBanner) {
+        const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker';
+        fenceBuyButton.style.display = canManageFence ? 'inline-flex' : 'none';
+        fenceNoPermBanner.style.display = canManageFence ? 'none' : 'block';
     }
     
     // Wartungsbereich für Techniker anzeigen
@@ -211,9 +210,46 @@ function loadPageData(page) {
 // ========== DASHBOARD ==========
 
 function loadDashboardData() {
+    // Lade Navigation und prüfe Berechtigungen
+    updateNavigationAccess();
     loadDashboardStats();
     loadMembers();
     loadOverviewNotes();
+}
+
+// Navigation basierend auf Berechtigungen anzeigen/verstecken
+function updateNavigationAccess() {
+    if (!currentUser) return;
+    
+    // Hehler Navigation
+    const fenceNav = document.querySelector('[data-page="fence"]');
+    if (fenceNav) {
+        fenceNav.style.display = (currentUser.can_manage_fence || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+    }
+    
+    // Rezepte Navigation
+    const recipesNav = document.querySelector('[data-page="recipes"]');
+    if (recipesNav) {
+        recipesNav.style.display = (currentUser.can_manage_recipes || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+    }
+    
+    // Lager Navigation
+    const storageNav = document.querySelector('[data-page="storage-overview"]');
+    if (storageNav) {
+        storageNav.style.display = (currentUser.can_manage_storage || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+    }
+    
+    // Aktivitäten Navigation
+    const activityNav = document.querySelector('[data-page="activity"]');
+    if (activityNav) {
+        activityNav.style.display = (currentUser.can_view_activity || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+    }
+    
+    // System/Wartung Navigation
+    const maintenanceNav = document.querySelector('[data-page="maintenance"]');
+    if (maintenanceNav) {
+        maintenanceNav.style.display = (currentUser.can_manage_system || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+    }
 }
 
 async function loadDashboardStats() {
@@ -2317,8 +2353,13 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
         rank: document.getElementById('new-member-rank').value,
         phone: document.getElementById('new-member-phone').value,
         can_add_members: document.getElementById('new-member-can-add').checked,
+        can_manage_hero: document.getElementById('new-member-can-hero').checked,
         can_manage_fence: document.getElementById('new-member-can-fence').checked,
-        can_view_activity: document.getElementById('new-member-can-activity').checked
+        can_manage_recipes: document.getElementById('new-member-can-recipes').checked,
+        can_manage_storage: document.getElementById('new-member-can-storage').checked,
+        can_view_activity: document.getElementById('new-member-can-activity').checked,
+        can_view_stats: document.getElementById('new-member-can-stats').checked,
+        can_manage_system: document.getElementById('new-member-can-system').checked
     };
     
     try {
@@ -2364,8 +2405,13 @@ async function editMember(id) {
         document.getElementById('edit-member-phone').value = member.phone || '';
         document.getElementById('edit-member-active').checked = member.is_active;
         document.getElementById('edit-member-can-add').checked = member.can_add_members;
+        document.getElementById('edit-member-can-hero').checked = member.can_manage_hero;
         document.getElementById('edit-member-can-fence').checked = member.can_manage_fence;
+        document.getElementById('edit-member-can-recipes').checked = member.can_manage_recipes;
+        document.getElementById('edit-member-can-storage').checked = member.can_manage_storage;
         document.getElementById('edit-member-can-activity').checked = member.can_view_activity;
+        document.getElementById('edit-member-can-stats').checked = member.can_view_stats;
+        document.getElementById('edit-member-can-system').checked = member.can_manage_system;
         
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('edit-member-modal').style.display = 'block';
@@ -2384,8 +2430,13 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
         phone: document.getElementById('edit-member-phone').value,
         is_active: document.getElementById('edit-member-active').checked,
         can_add_members: document.getElementById('edit-member-can-add').checked,
+        can_manage_hero: document.getElementById('edit-member-can-hero').checked,
         can_manage_fence: document.getElementById('edit-member-can-fence').checked,
-        can_view_activity: document.getElementById('edit-member-can-activity').checked
+        can_manage_recipes: document.getElementById('edit-member-can-recipes').checked,
+        can_manage_storage: document.getElementById('edit-member-can-storage').checked,
+        can_view_activity: document.getElementById('edit-member-can-activity').checked,
+        can_view_stats: document.getElementById('edit-member-can-stats').checked,
+        can_manage_system: document.getElementById('edit-member-can-system').checked
     };
     
     try {
