@@ -2372,7 +2372,7 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
         rank: document.getElementById('new-member-rank').value,
         phone: document.getElementById('new-member-phone').value,
         can_add_members: document.getElementById('new-member-can-add').checked,
-        can_manage_hero: document.getElementById('new-member-can-hero').checked,
+
         can_manage_fence: document.getElementById('new-member-can-fence').checked,
         can_manage_recipes: document.getElementById('new-member-can-recipes').checked,
         can_manage_storage: document.getElementById('new-member-can-storage').checked,
@@ -2424,7 +2424,7 @@ async function editMember(id) {
         document.getElementById('edit-member-phone').value = member.phone || '';
         document.getElementById('edit-member-active').checked = member.is_active;
         document.getElementById('edit-member-can-add').checked = member.can_add_members;
-        document.getElementById('edit-member-can-hero').checked = member.can_manage_hero;
+
         document.getElementById('edit-member-can-fence').checked = member.can_manage_fence;
         document.getElementById('edit-member-can-recipes').checked = member.can_manage_recipes;
         document.getElementById('edit-member-can-storage').checked = member.can_manage_storage;
@@ -2449,7 +2449,7 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
         phone: document.getElementById('edit-member-phone').value,
         is_active: document.getElementById('edit-member-active').checked,
         can_add_members: document.getElementById('edit-member-can-add').checked,
-        can_manage_hero: document.getElementById('edit-member-can-hero').checked,
+
         can_manage_fence: document.getElementById('edit-member-can-fence').checked,
         can_manage_recipes: document.getElementById('edit-member-can-recipes').checked,
         can_manage_storage: document.getElementById('edit-member-can-storage').checked,

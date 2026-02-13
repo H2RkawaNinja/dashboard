@@ -101,7 +101,7 @@ VerfU00fcgbare Bereiche: `overview`, `members`, `hero`, `fence`, `warehouse`, `s
 ## Berechtigungssystem
 
 - **can_add_members**: Darf neue Mitglieder hinzufügen
-- **can_manage_hero**: Darf Hero-Lager verwalten und ausgeben
+
 - **can_manage_fence**: Darf Hehler-Geschäfte tätigen
 - **can_view_activity**: Darf Aktivitätslog einsehen
 

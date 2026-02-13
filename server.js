@@ -166,7 +166,7 @@ app.post('/api/auth/logout', (req, res) => {
 // Session check
 app.get('/api/auth/session', (req, res) => {
     if (req.session.userId) {
-        db.query('SELECT id, username, full_name, rank, can_add_members, can_manage_hero, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?', 
+        db.query('SELECT id, username, full_name, rank, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?', 
             [req.session.userId], (err, results) => {
             if (err || results.length === 0) {
                 return res.json({ logged_in: false });
@@ -176,7 +176,7 @@ app.get('/api/auth/session', (req, res) => {
             // Techniker haben alle Berechtigungen
             if (user.rank === 'Techniker') {
                 user.can_add_members = true;
-                user.can_manage_hero = true;
+
                 user.can_manage_fence = true;
                 user.can_manage_recipes = true;
                 user.can_manage_storage = true;
@@ -195,7 +195,7 @@ app.get('/api/auth/session', (req, res) => {
             } else {
                 // Session-Variablen mit aktuellen DB-Werten synchronisieren
                 req.session.canAddMembers = user.can_add_members;
-                req.session.canManageHero = user.can_manage_hero;
+
                 req.session.canManageFence = user.can_manage_fence;
                 req.session.canManageRecipes = user.can_manage_recipes;
                 req.session.canManageStorage = user.can_manage_storage;
@@ -373,7 +373,7 @@ app.post('/api/members/add', requireLogin, (req, res) => {
         return res.status(403).json({ error: 'Keine Berechtigung zum Hinzufügen von Mitgliedern' });
     }
     
-    const { username, full_name, rank, phone, can_add_members, can_manage_hero, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system } = req.body;
+    const { username, full_name, rank, phone, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system } = req.body;
     
     // Prüfe ob Username bereits existiert
     db.query('SELECT id FROM members WHERE username = ?', [username], (err, results) => {
@@ -391,9 +391,9 @@ app.post('/api/members/add', requireLogin, (req, res) => {
         const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 Tage gültig
         
         // Füge Mitglied hinzu
-        const query = 'INSERT INTO members (username, password, full_name, rank, phone, can_add_members, can_manage_hero, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system, invitation_token, is_password_set, token_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)';
+        const query = 'INSERT INTO members (username, password, full_name, rank, phone, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system, invitation_token, is_password_set, token_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)';
         
-        db.query(query, [username, tempPassword, full_name, rank, phone || null, can_add_members || false, can_manage_hero || false, can_manage_fence || false, can_manage_recipes || false, can_manage_storage || false, can_view_activity || false, can_view_stats || false, can_manage_system || false, token, tokenExpires], (err, result) => {
+        db.query(query, [username, tempPassword, full_name, rank, phone || null, can_add_members || false, can_manage_fence || false, can_manage_recipes || false, can_manage_storage || false, can_view_activity || false, can_view_stats || false, can_manage_system || false, token, tokenExpires], (err, result) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
@@ -424,10 +424,10 @@ app.put('/api/members/:id/edit', requireLogin, (req, res) => {
     }
     
     const { id } = req.params;
-const { full_name, rank, phone, can_add_members, can_manage_hero, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system, is_active } = req.body;
+const { full_name, rank, phone, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system, is_active } = req.body;
 
-    const query = 'UPDATE members SET full_name = ?, rank = ?, phone = ?, can_add_members = ?, can_manage_hero = ?, can_manage_fence = ?, can_manage_recipes = ?, can_manage_storage = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?, is_active = ? WHERE id = ?';
-    const params = [full_name, rank, phone, can_add_members, can_manage_hero, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system, is_active, id];
+    const query = 'UPDATE members SET full_name = ?, rank = ?, phone = ?, can_add_members = ?, can_manage_fence = ?, can_manage_recipes = ?, can_manage_storage = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?, is_active = ? WHERE id = ?';
+    const params = [full_name, rank, phone, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system, is_active, id];
     
     db.query(query, params, (err) => {
         if (err) {
