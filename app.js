@@ -5103,7 +5103,7 @@ function renderTransactions() {
                     </div>
                     <div class="transaction-description">${transaction.description || 'Keine Beschreibung'}</div>
                     <div class="transaction-meta">
-                        <span class="transaction-date">${formatDate(transaction.transaction_date)}</span>
+                        <span class="transaction-date">${formatTransactionDate(transaction.transaction_date)}</span>
                         ${transaction.member_name ? `<span class="transaction-member">von ${transaction.member_name}</span>` : ''}
                         ${transaction.recorded_by_name ? `<span class="transaction-recorder">erfasst von ${transaction.recorded_by_name}</span>` : ''}
                     </div>
@@ -5202,8 +5202,8 @@ function renderContributions() {
             'vollständig_bezahlt': 'green'
         };
         
-        const percentage = contribution.required_amount > 0 ? 
-            (contribution.paid_amount / contribution.required_amount * 100) : 0;
+        const percentage = contribution.required_amount_usd > 0 ? 
+            (contribution.paid_amount_usd / contribution.required_amount_usd * 100) : 0;
         
         return `
             <div class="contribution-item ${statusColor[contribution.status]}">
@@ -5220,15 +5220,15 @@ function renderContributions() {
                 <div class="contribution-amounts">
                     <div class="amount-row">
                         <span class="label">Erforderlich:</span>
-                        <span class="amount">€ ${formatCurrency(contribution.required_amount)}</span>
+                        <span class="amount">$ ${formatCurrency(contribution.required_amount_usd)}</span>
                     </div>
                     <div class="amount-row">
                         <span class="label">Bezahlt:</span>
-                        <span class="amount paid">€ ${formatCurrency(contribution.paid_amount)}</span>
+                        <span class="amount paid">$ ${formatCurrency(contribution.paid_amount_usd)}</span>
                     </div>
                     <div class="amount-row outstanding">
                         <span class="label">Ausstehend:</span>
-                        <span class="amount">€ ${formatCurrency(contribution.required_amount - contribution.paid_amount)}</span>
+                        <span class="amount">$ ${formatCurrency(contribution.required_amount_usd - contribution.paid_amount_usd)}</span>
                     </div>
                 </div>
                 <div class="contribution-progress">
@@ -5289,6 +5289,11 @@ function showSetContributionModal() {
     
     // Standard-Beitragstyp setzen
     document.getElementById('contribution-period-type').value = 'weekly';
+    
+    // Fälligkeitsdatum-Feld initial verstecken
+    const dueDateGroup = document.querySelector('#contribution-due-date').closest('.form-group');
+    dueDateGroup.style.display = 'none';
+    
     updatePeriodFields();
 }
 
@@ -5567,7 +5572,7 @@ function formatCurrency(amount) {
     });
 }
 
-function formatDate(dateString) {
+function formatTransactionDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('de-DE', {
         day: '2-digit',
@@ -5594,33 +5599,53 @@ function getStatusText(status) {
 function updatePeriodFields() {
     const periodType = document.getElementById('contribution-period-type').value;
     const startDate = document.getElementById('contribution-period-start').value;
+    const dueDateGroup = document.querySelector('#contribution-due-date').closest('.form-group');
+    const dueDateField = document.getElementById('contribution-due-date');
     
     if (periodType && startDate) {
         const start = new Date(startDate);
         let end = new Date(start);
+        let dueDate = new Date(start);
         
         switch (periodType) {
             case 'weekly':
                 end.setDate(start.getDate() + 6);
+                dueDate.setDate(start.getDate() + 6); // Fällig am Ende der Woche
+                dueDateGroup.style.display = 'none'; // Verstecke Feld
                 break;
             case 'biweekly':
                 end.setDate(start.getDate() + 13);
+                dueDate.setDate(start.getDate() + 13); // Fällig am Ende der 2 Wochen
+                dueDateGroup.style.display = 'none'; // Verstecke Feld
                 break;
             case 'monthly':
                 end.setMonth(start.getMonth() + 1);
                 end.setDate(end.getDate() - 1);
+                dueDate.setMonth(start.getMonth() + 1);
+                dueDate.setDate(0); // Letzter Tag des Monats
+                dueDateGroup.style.display = 'none'; // Verstecke Feld
                 break;
             case 'quarterly':
                 end.setMonth(start.getMonth() + 3);
                 end.setDate(end.getDate() - 1);
+                dueDate.setMonth(start.getMonth() + 3);
+                dueDate.setDate(0); // Letzter Tag des Quartals
+                dueDateGroup.style.display = 'none'; // Verstecke Feld
                 break;
+            case 'custom':
+                dueDateGroup.style.display = 'block'; // Zeige Feld für manuelle Eingabe
+                return; // Bei custom wird alles manuell gesetzt
             default:
-                // Bei custom wird das Ende-Datum manuell gesetzt
+                dueDateGroup.style.display = 'block';
                 return;
         }
         
         document.getElementById('contribution-period-end').value = end.toISOString().slice(0, 10);
+        dueDateField.value = dueDate.toISOString().slice(0, 10);
         updatePeriodDescription();
+    } else {
+        // Wenn kein Typ gewählt, zeige das Feld
+        dueDateGroup.style.display = 'block';
     }
 }
 
@@ -5673,7 +5698,11 @@ function getWeekNumber(date) {
 }
 
 function formatDate(date) {
-    return date.toLocaleDateString('de-DE', {
+    if (!date) return '';
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) return '';
+    
+    return dateObj.toLocaleDateString('de-DE', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
