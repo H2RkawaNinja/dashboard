@@ -5186,13 +5186,11 @@ function renderContributions() {
     const contributionsHtml = openContributions.map(contribution => {
         const statusIcon = {
             'nicht_bezahlt': 'fa-times-circle',
-            'teilweise_bezahlt': 'fa-clock',
             'vollständig_bezahlt': 'fa-check-circle'
         };
         
         const statusColor = {
             'nicht_bezahlt': 'red',
-            'teilweise_bezahlt': 'orange',
             'vollständig_bezahlt': 'green'
         };
         
@@ -5537,7 +5535,7 @@ async function loadMemberContributions() {
             const allContributions = await response.json();
             const memberContributions = allContributions.filter(c => 
                 c.member_id == memberSelect.value && 
-                c.status !== 'vollständig_bezahlt'
+                c.status === 'nicht_bezahlt'
             );
             
             // Daten für spätere Verwendung speichern
@@ -5548,7 +5546,7 @@ async function loadMemberContributions() {
                 const option = document.createElement('option');
                 option.value = contribution.id;
                 const outstanding = contribution.required_amount_usd - contribution.paid_amount_usd;
-                option.textContent = `${contribution.period_description} ($${formatCurrency(outstanding)} ausstehend)`;
+                option.textContent = `${contribution.period_description} ($${formatCurrency(contribution.required_amount_usd)} ausstehend)`;
                 periodSelect.appendChild(option);
             });
             
@@ -5572,8 +5570,8 @@ function updateContributionAmount() {
     
     const selectedContribution = currentMemberContributions.find(c => c.id == periodSelect.value);
     if (selectedContribution) {
-        const outstanding = selectedContribution.required_amount_usd - selectedContribution.paid_amount_usd;
-        amountField.value = outstanding.toFixed(2);
+        // Vollständigen Betrag eintragen
+        amountField.value = selectedContribution.required_amount_usd.toFixed(2);
     }
 }
 
@@ -5667,8 +5665,7 @@ function getStatusText(status) {
         'confirmed': 'Bestätigt',
         'cancelled': 'Storniert',
         'nicht_bezahlt': 'Nicht bezahlt',
-        'teilweise_bezahlt': 'Teilweise bezahlt',
-        'vollständig_bezahlt': 'Vollständig bezahlt'
+        'vollständig_bezahlt': 'Bezahlt'
     };
     return statusTexts[status] || status;
 }

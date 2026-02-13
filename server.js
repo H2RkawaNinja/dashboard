@@ -2577,22 +2577,23 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
             }
             
             const contribution = existingResults[0];
-            const newPaidAmount = contribution.paid_amount_usd + parseFloat(paid_amount);
-            let newStatus = 'teilweise_bezahlt';
+            const newPaidAmount = parseFloat(paid_amount);
+            let newStatus = 'nicht_bezahlt';
+            
+            // Prüfe ob der Betrag dem erforderlichen Betrag entspricht
+            if (Math.abs(newPaidAmount - contribution.required_amount_usd) < 0.01) {
+                newStatus = 'vollständig_bezahlt';
+            } else {
+                return res.status(400).json({ 
+                    error: `Bitte den kompletten Betrag von $${contribution.required_amount_usd.toFixed(2)} bezahlen` 
+                });
+            }
             
             console.log(`DEBUG - Beitrag aktualisieren:`);
             console.log(`  - Contribution ID: ${contribution_id}`);
-            console.log(`  - Alter Betrag: ${contribution.paid_amount_usd}`);
-            console.log(`  - Neuer Zahlbetrag: ${paid_amount}`);
-            console.log(`  - Neuer Gesamtbetrag: ${newPaidAmount}`);
             console.log(`  - Erforderlicher Betrag: ${contribution.required_amount_usd}`);
-            
-            if (newPaidAmount >= contribution.required_amount_usd) {
-                newStatus = 'vollständig_bezahlt';
-                console.log(`  - Status: vollständig_bezahlt`);
-            } else {
-                console.log(`  - Status: teilweise_bezahlt`);
-            }
+            console.log(`  - Zahlbetrag: ${paid_amount}`);
+            console.log(`  - Status: ${newStatus}`);
             
             // Update Query definieren
             const updateQuery = `
@@ -2649,7 +2650,7 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                             const description = `Beitragszahlung: ${contribution.period_description || 'Beitrag'}`;
                             
                             connection.query(insertTransactionQuery, [
-                                contribution.member_id, paid_amount, description, req.session.userId
+                                contribution.member_id, newPaidAmount, description, req.session.userId
                             ], (err, transactionResult) => {
                             if (err) {
                                 return connection.rollback(() => {
@@ -2668,7 +2669,7 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                                 }
                                 
                                 const currentBalance = balanceResults.length > 0 ? balanceResults[0].current_balance_usd : 0;
-                                const newBalance = currentBalance + parseFloat(paid_amount);
+                                const newBalance = currentBalance + parseFloat(newPaidAmount);
                                 
                                 const updateBalanceQuery = `
                                     INSERT INTO gang_treasury (current_balance_usd, currency, updated_by, notes) 
@@ -2702,7 +2703,7 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                                         db.query(logQuery, [
                                             req.session.userId, 
                                             'treasury_contribution_paid', 
-                                            `Beitrag von $${paid_amount} für Mitglied ${contribution.member_id} verbucht`
+                                            `Beitrag von $${newPaidAmount} für Mitglied ${contribution.member_id} verbucht`
                                         ]);
                                         
                                         res.json({ 
