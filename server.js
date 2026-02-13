@@ -268,6 +268,49 @@ app.get('/api/dashboard/stats', requireLogin, (req, res) => {
     });
 });
 
+// ========== ÜBERSICHTS-NOTIZEN ==========
+
+app.get('/api/stats/overview-notes', requireLogin, (req, res) => {
+    db.query('SELECT stat_value as notes FROM gang_stats WHERE stat_key = "overview_notes"', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        const notes = results.length > 0 ? results[0].notes : '';
+        res.json({ notes });
+    });
+});
+
+app.post('/api/stats/overview-notes', requireLogin, (req, res) => {
+    const { notes } = req.body;
+    
+    // Überprüfe ob bereits ein Eintrag existiert
+    db.query('SELECT id FROM gang_stats WHERE stat_key = "overview_notes"', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (results.length > 0) {
+            // Update existing
+            db.query('UPDATE gang_stats SET stat_value = ? WHERE stat_key = "overview_notes"', 
+                [notes], (err, results) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                res.json({ success: true });
+            });
+        } else {
+            // Insert new
+            db.query('INSERT INTO gang_stats (stat_key, stat_value) VALUES ("overview_notes", ?)', 
+                [notes], (err, results) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                res.json({ success: true });
+            });
+        }
+    });
+});
+
 // ========== MITGLIEDER ==========
 
 app.get('/api/members', requireLogin, (req, res) => {

@@ -213,6 +213,8 @@ function loadPageData(page) {
 function loadDashboardData() {
     loadDashboardStats();
     loadMembers();
+    loadRecentActivity();
+    loadOverviewNotes();
 }
 
 async function loadDashboardStats() {
@@ -231,9 +233,199 @@ async function loadDashboardStats() {
         if (statHero) statHero.textContent = stats.hero_stock || 0;
         if (statFence) statFence.textContent = `$${(stats.fence_pending || 0).toLocaleString()}`;
         if (statWarehouse) statWarehouse.textContent = `$${(stats.warehouse_value || 0).toLocaleString()}`;
+        
+        // Lade auch die letzten Aktivitäten wenn wir auf der Übersicht sind
+        const currentPage = document.querySelector('.nav-item.active').dataset.page;
+        if (currentPage === 'overview') {
+            loadRecentActivity();
+        }
     } catch (error) {
         console.error('Fehler beim Laden der Statistiken:', error);
     }
+}
+
+// ========== ÜBERSICHTS-NOTIZEN ==========
+
+async function loadOverviewNotes() {
+    try {
+        const response = await fetch(`${API_URL}/stats/overview-notes`, {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        const notesTextarea = document.getElementById('overview-notes');
+        if (notesTextarea) {
+            notesTextarea.value = data.notes || '';
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Übersichts-Notizen:', error);
+    }
+}
+
+async function saveOverviewNotes() {
+    const notesTextarea = document.getElementById('overview-notes');
+    const statusSpan = document.getElementById('notes-status');
+    
+    if (!notesTextarea || !statusSpan) return;
+    
+    const notes = notesTextarea.value;
+    
+    try {
+        statusSpan.textContent = 'Speichere...';
+        statusSpan.className = 'notes-status saving';
+        
+        const response = await fetch(`${API_URL}/stats/overview-notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ notes })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            statusSpan.textContent = 'Gespeichert!';
+            statusSpan.className = 'notes-status saved';
+            setTimeout(() => {
+                statusSpan.textContent = '';
+                statusSpan.className = 'notes-status';
+            }, 3000);
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern der Notizen:', error);
+        statusSpan.textContent = 'Speichern fehlgeschlagen!';
+        statusSpan.className = 'notes-status error';
+        setTimeout(() => {
+            statusSpan.textContent = '';
+            statusSpan.className = 'notes-status';
+        }, 3000);
+    }
+}
+
+// ========== LETZTE AKTIVITÄTEN ==========
+
+async function loadRecentActivity() {
+    try {
+        const response = await fetch(`${API_URL}/activity/recent?limit=5`, {
+            credentials: 'include'
+        });
+        const activities = await response.json();
+        
+        const activityDiv = document.getElementById('recent-activity');
+        
+        if (!activities || activities.length === 0) {
+            activityDiv.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                    <i class="fas fa-inbox" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Noch keine Aktivitäten vorhanden</p>
+                </div>
+            `;
+            return;
+        }
+        
+        activityDiv.innerHTML = activities.map(a => {
+            const icon = getActivityIcon(a.action_type);
+            const iconColor = getActivityIconColor(a.action_type);
+            
+            return `
+                <div class="activity-item">
+                    <div class="activity-icon" style="color: ${iconColor};">
+                        <i class="fas fa-${icon}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-main">
+                            <strong>${a.member_name}</strong>
+                            <span>${formatActivityAction(a.action_type, a.details)}</span>
+                        </div>
+                        <div class="activity-time">
+                            ${formatTimeAgo(a.created_at)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Fehler beim Laden der letzten Aktivitäten:', error);
+        const activityDiv = document.getElementById('recent-activity');
+        if (activityDiv) {
+            activityDiv.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: var(--danger);">
+                    <i class="fas fa-exclamation-circle" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Fehler beim Laden der Aktivitäten</p>
+                </div>
+            `;
+        }
+    }
+}
+
+function getActivityIcon(actionType) {
+    const icons = {
+        'hero_purchase': 'shopping-cart',
+        'hero_sale': 'dollar-sign',
+        'hero_payment': 'money-bill-wave',
+        'fence_sale': 'handshake',
+        'storage_purchase': 'warehouse',
+        'member_added': 'user-plus',
+        'member_edited': 'user-edit',
+        'member_deleted': 'user-minus',
+        'login': 'sign-in-alt',
+        'logout': 'sign-out-alt'
+    };
+    return icons[actionType] || 'info-circle';
+}
+
+function getActivityIconColor(actionType) {
+    const colors = {
+        'hero_purchase': 'var(--warning)',
+        'hero_sale': 'var(--success)',
+        'hero_payment': 'var(--info)',
+        'fence_sale': 'var(--secondary)',
+        'storage_purchase': 'var(--primary)',
+        'member_added': 'var(--success)',
+        'member_edited': 'var(--info)',
+        'member_deleted': 'var(--danger)',
+        'login': 'var(--success)',
+        'logout': 'var(--text-secondary)'
+    };
+    return colors[actionType] || 'var(--text-secondary)';
+}
+
+function formatActivityAction(actionType, details) {
+    const actions = {
+        'hero_purchase': `hat ${details.quantity || 0} Hero gekauft`,
+        'hero_sale': `hat Hero verkauft`,
+        'hero_payment': `wurde bezahlt`,
+        'fence_sale': `hat Waren an Hehler verkauft`,
+        'storage_purchase': `hat Lager aufgestockt`,
+        'member_added': `wurde hinzugefügt`,
+        'member_edited': `wurde bearbeitet`,
+        'member_deleted': `wurde entfernt`,
+        'login': `hat sich eingeloggt`,
+        'logout': `hat sich ausgeloggt`
+    };
+    return actions[actionType] || 'hat eine Aktion durchgeführt';
+}
+
+function formatTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'gerade eben';
+    if (diffMins < 60) return `vor ${diffMins} Min.`;
+    if (diffHours < 24) return `vor ${diffHours} Std.`;
+    if (diffDays < 7) return `vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`;
+    
+    return date.toLocaleDateString('de-DE', { 
+        day: '2-digit', 
+        month: '2-digit',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
 }
 
 // ========== MITGLIEDER ==========
@@ -4485,3 +4677,25 @@ function hideMaintenanceBanner(module) {
         });
     }
 }
+
+// ========================================
+// EVENT LISTENERS
+// ========================================
+
+// Event Listener für Notizen speichern Button
+document.addEventListener('DOMContentLoaded', function() {
+    const saveNotesBtn = document.getElementById('save-notes-btn');
+    if (saveNotesBtn) {
+        saveNotesBtn.addEventListener('click', saveOverviewNotes);
+    }
+    
+    // Auto-Save für Notizen (nach 2 Sekunden ohne Eingabe)
+    const notesTextarea = document.getElementById('overview-notes');
+    if (notesTextarea) {
+        let saveTimeout;
+        notesTextarea.addEventListener('input', function() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveOverviewNotes, 2000);
+        });
+    }
+});

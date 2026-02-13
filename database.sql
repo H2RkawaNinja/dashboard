@@ -279,4 +279,5 @@ INSERT INTO gang_stats (stat_key, stat_value) VALUES
 ('hero_stock', '0'),
 ('hero_sale_price', '250.00'),
 ('hero_gang_percentage', '60'),
-('total_revenue_today', '0');
+('total_revenue_today', '0'),
+('overview_notes', '');

@@ -3961,3 +3961,58 @@ body {
         max-width: none;
     }
 }
+
+/* Notes Section */
+.notes-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notes-section textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--dark-card);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.notes-section textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.notes-section textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+.notes-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notes-status {
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
+}
+
+.notes-status.saving {
+    color: var(--warning);
+}
+
+.notes-status.saved {
+    color: var(--success);
+}
+
+.notes-status.error {
+    color: var(--danger);
+}
