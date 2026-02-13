@@ -4633,6 +4633,9 @@ async function loadMaintenanceSettings() {
                     checkbox.checked = config.is_disabled;
                 }
             });
+            
+            // Nach dem Laden der Einstellungen, prüfe aktive Wartungsmodi
+            checkMaintenanceModes();
         }
     } catch (error) {
         console.error('Fehler beim Laden der Wartungseinstellungen:', error);
@@ -4650,6 +4653,8 @@ async function saveMaintenanceSettings() {
         }
     });
     
+    console.log('DEBUG - Speichere Wartungseinstellungen:', settings);
+    
     try {
         const response = await fetch(`${API_URL}/maintenance/settings`, {
             method: 'POST',
@@ -4661,6 +4666,7 @@ async function saveMaintenanceSettings() {
         });
         
         const result = await response.json();
+        console.log('DEBUG - Server Response:', result);
         
         if (result.success) {
             showToast('Wartungseinstellungen gespeichert', 'success', 'System Wartung');
@@ -4701,6 +4707,7 @@ function enableAllSystems() {
 // Wartungsmodus für Bereiche prüfen und Banner anzeigen
 async function checkMaintenanceModes() {
     const modules = ['members', 'hero', 'fence', 'warehouse', 'storage', 'treasury', 'recipes', 'intelligence', 'activity'];
+    console.log('DEBUG - Prüfe Wartungsmodi für Module:', modules);
     
     for (const module of modules) {
         try {
@@ -4709,10 +4716,13 @@ async function checkMaintenanceModes() {
             });
             
             const result = await response.json();
+            console.log(`DEBUG - Wartungsstatus für ${module}:`, result);
             
             if (result.success && result.is_disabled) {
+                console.log(`DEBUG - Zeige Wartungsbanner für ${module}`);
                 showMaintenanceBanner(module, result.reason);
             } else {
+                console.log(`DEBUG - Verstecke Wartungsbanner für ${module}`);
                 hideMaintenanceBanner(module);
             }
         } catch (error) {
