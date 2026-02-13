@@ -234,12 +234,17 @@ CREATE TABLE IF NOT EXISTS member_contributions (
     UNIQUE KEY unique_member_period (member_id, period_start, period_end)
 );
 
--- Initial Wartungseinstellungen
+-- Initial Wartungseinstellungen  
 INSERT INTO maintenance_settings (module_name, is_disabled) VALUES
 ('members', FALSE),
+('hero', FALSE),
 ('fence', FALSE),
+('warehouse', FALSE),
 ('storage', FALSE),
-('treasury', FALSE);
+('treasury', FALSE),
+('recipes', FALSE),
+('intelligence', FALSE),
+('activity', FALSE);
 
 -- Initial Gangkasse Setup
 INSERT INTO gang_treasury (current_balance_usd, currency, notes) VALUES 

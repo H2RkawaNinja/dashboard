@@ -4643,7 +4643,7 @@ async function loadMaintenanceSettings() {
 async function saveMaintenanceSettings() {
     const settings = {};
     
-    ['members', 'fence', 'storage'].forEach(module => {
+    ['members', 'hero', 'fence', 'warehouse', 'storage', 'treasury', 'recipes', 'intelligence', 'activity'].forEach(module => {
         const checkbox = document.getElementById(`maintenance-${module}`);
         if (checkbox) {
             settings[module] = checkbox.checked;
@@ -4676,7 +4676,7 @@ async function saveMaintenanceSettings() {
 
 // Alle Systeme deaktivieren
 function disableAllSystems() {
-    ['members', 'fence', 'storage'].forEach(module => {
+    ['members', 'hero', 'fence', 'warehouse', 'storage', 'treasury', 'recipes', 'intelligence', 'activity'].forEach(module => {
         const checkbox = document.getElementById(`maintenance-${module}`);
         if (checkbox) {
             checkbox.checked = true;
@@ -4688,7 +4688,7 @@ function disableAllSystems() {
 
 // Alle Systeme aktivieren
 function enableAllSystems() {
-    ['members', 'fence', 'storage'].forEach(module => {
+    ['members', 'hero', 'fence', 'warehouse', 'storage', 'treasury', 'recipes', 'intelligence', 'activity'].forEach(module => {
         const checkbox = document.getElementById(`maintenance-${module}`);
         if (checkbox) {
             checkbox.checked = false;
@@ -4700,7 +4700,7 @@ function enableAllSystems() {
 
 // Wartungsmodus für Bereiche prüfen und Banner anzeigen
 async function checkMaintenanceModes() {
-    const modules = ['members', 'fence', 'storage'];
+    const modules = ['members', 'hero', 'fence', 'warehouse', 'storage', 'treasury', 'recipes', 'intelligence', 'activity'];
     
     for (const module of modules) {
         try {
@@ -4731,13 +4731,37 @@ function showMaintenanceBanner(module, reason) {
             pageId = 'members-page';
             moduleName = 'Mitglieder-System';
             break;
+        case 'hero':
+            pageId = 'hero-page';
+            moduleName = 'Hero-Verkauf';
+            break;
         case 'fence':
             pageId = 'fence-page';
             moduleName = 'Hehler-System';
             break;
+        case 'warehouse':
+            pageId = 'warehouse-page';
+            moduleName = 'Sortier-Bereich';
+            break;
         case 'storage':
             pageId = 'storage-page';
             moduleName = 'Lager-System';
+            break;
+        case 'treasury':
+            pageId = 'treasury-page';
+            moduleName = 'Gangkasse';
+            break;
+        case 'recipes':
+            pageId = 'recipes-page';
+            moduleName = 'Rezepte';
+            break;
+        case 'intelligence':
+            pageId = 'intelligence-page';
+            moduleName = 'Intel-Sammlung';
+            break;
+        case 'activity':
+            pageId = 'activity-page';
+            moduleName = 'Aktivitäts-Log';
             break;
     }
     
@@ -4776,11 +4800,29 @@ function hideMaintenanceBanner(module) {
         case 'members':
             pageId = 'members-page';
             break;
+        case 'hero':
+            pageId = 'hero-page';
+            break;
         case 'fence':
             pageId = 'fence-page';
             break;
+        case 'warehouse':
+            pageId = 'warehouse-page';
+            break;
         case 'storage':
             pageId = 'storage-page';
+            break;
+        case 'treasury':
+            pageId = 'treasury-page';
+            break;
+        case 'recipes':
+            pageId = 'recipes-page';
+            break;
+        case 'intelligence':
+            pageId = 'intelligence-page';
+            break;
+        case 'activity':
+            pageId = 'activity-page';
             break;
     }
     
