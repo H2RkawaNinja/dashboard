@@ -1490,10 +1490,7 @@ function showProductManagementModal() {
     document.getElementById('product-management-modal').style.display = 'block';
 }
 
-function showAddProductModal() {
-    document.getElementById('product-management-modal').style.display = 'none';
-    document.getElementById('add-product-modal').style.display = 'block';
-}
+// Alte showAddProductModal Funktion entfernt - verwende die neue Version weiter unten
 
 async function loadProductTemplates() {
     try {
@@ -1529,36 +1526,7 @@ async function loadProductTemplates() {
     }
 }
 
-document.getElementById('add-product-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const data = {
-        item_name: document.getElementById('new-product-name').value,
-        category: document.getElementById('new-product-category').value,
-        typical_price: parseFloat(document.getElementById('new-product-price').value)
-    };
-    
-    try {
-        const response = await fetch(`${API_URL}/fence/templates`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        
-        if (result.success) {
-            showToast('Produkt hinzugefügt', 'success');
-            document.getElementById('add-product-form').reset();
-            document.getElementById('add-product-modal').style.display = 'none';
-            document.getElementById('product-management-modal').style.display = 'block';
-            loadProductTemplates();
-            loadFenceItemsForSelect();
-        }
-    } catch (error) {
-        showToast('Fehler beim Hinzufügen', 'error');
-    }
-});
+// Alte add-product-form Event Listener entfernt - verwende das neue product-form System
 
 async function editProduct(id) {
     try {
@@ -3185,6 +3153,15 @@ function showAddProductModal() {
     document.getElementById('product-modal-title').textContent = 'Neues Produkt';
     document.getElementById('product-form').reset();
     document.getElementById('product-id').value = '';
+    
+    // Setze Standardwerte für die neuen UI-Felder
+    document.getElementById('product-icon').value = 'fa-box';
+    document.getElementById('product-category').value = 'Sonstiges';
+    document.getElementById('product-status').value = 'active';
+    document.getElementById('product-purchase-price').value = '';
+    document.getElementById('product-sale-price').value = '';
+    document.getElementById('product-description').value = '';
+    
     document.getElementById('margin-display').style.display = 'none';
     
     document.getElementById('modal-overlay').style.display = 'flex';
@@ -3210,9 +3187,9 @@ async function editProduct(productId) {
         document.getElementById('product-icon').value = product.icon || 'fa-box';
         document.getElementById('product-category').value = product.category;
         document.getElementById('product-status').value = product.is_active ? 'active' : 'inactive';
-        document.getElementById('product-purchase-price').value = product.purchase_price || product.typical_price || '';
-        document.getElementById('product-sale-price').value = product.sale_price || '';
-        document.getElementById('product-description').value = product.description || '';
+        document.getElementById('product-purchase-price').value = product.typical_price || '';
+        document.getElementById('product-sale-price').value = '';
+        document.getElementById('product-description').value = '';
         
         calculateProductMargin();
         
@@ -3269,19 +3246,31 @@ async function deleteProduct(productId) {
 // Produkt Form Submit
 const productForm = document.getElementById('product-form');
 if (productForm) {
+    console.log('Product Form Event Listener attached'); // Debug log
     productForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        console.log('Product Form submitted'); // Debug log
         
         const productId = document.getElementById('product-id').value;
         const productData = {
-            item_name: document.getElementById('product-name').value,
+            item_name: document.getElementById('product-name').value.trim(),
             category: document.getElementById('product-category').value,
-            icon: document.getElementById('product-icon').value,
-            purchase_price: parseFloat(document.getElementById('product-purchase-price').value) || 0,
-            sale_price: parseFloat(document.getElementById('product-sale-price').value) || null,
-            description: document.getElementById('product-description').value,
+            typical_price: parseFloat(document.getElementById('product-purchase-price').value) || 0,
             is_active: document.getElementById('product-status').value === 'active'
         };
+        
+        // Validierung
+        if (!productData.item_name) {
+            showToast('Bitte Produktname eingeben', 'error');
+            return;
+        }
+        
+        if (!productData.category) {
+            showToast('Bitte Kategorie auswählen', 'error');
+            return;
+        }
+        
+        console.log('Sende Produktdaten:', productData); // Debug log
         
         try {
             const url = productId 
@@ -3298,10 +3287,18 @@ if (productForm) {
             const data = await response.json();
             
             if (data.success) {
-                showToast(productId ? 'Produkt aktualisiert' : 'Produkt erstellt', 'success');
+                const action = productId ? 'aktualisiert' : 'erstellt';
+                showToast(`Produkt ${action}`, 'success');
+                console.log(`Produkt ${action}:`, productData); // Debug log
+                
                 closeModals();
-                loadProductsManagement();
-                loadProductsGrid();
+                
+                // Neue Daten laden mit kleiner Verzögerung
+                setTimeout(() => {
+                    loadProductsManagement();
+                    loadProductsGrid();
+                    loadFenceData(); // Zusätzlich Fence-Daten neu laden
+                }, 100);
             } else {
                 showToast(data.error || 'Fehler beim Speichern', 'error');
             }

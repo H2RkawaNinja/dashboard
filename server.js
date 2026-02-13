@@ -1230,11 +1230,11 @@ app.get('/api/fence/templates/:id', requireLogin, (req, res) => {
 
 // Produkt hinzufügen
 app.post('/api/fence/templates', requireLogin, (req, res) => {
-    const { item_name, category, typical_price } = req.body;
+    const { item_name, category, typical_price, is_active = true } = req.body;
     
     db.query(
-        'INSERT INTO fence_item_templates (item_name, category, typical_price) VALUES (?, ?, ?)',
-        [item_name, category, typical_price],
+        'INSERT INTO fence_item_templates (item_name, category, typical_price, is_active) VALUES (?, ?, ?, ?)',
+        [item_name, category, typical_price, is_active],
         (err, result) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
