@@ -122,8 +122,18 @@
                 <div class="card notes-card">
                     <h2>Notizen & Informationen</h2>
                     <div class="notes-section">
-                        <!-- Rich Text Toolbar -->
-                        <div class="notes-toolbar">
+                        <!-- Edit Mode Toggle -->
+                        <div class="notes-header">
+                            <button id="edit-notes-btn" class="btn-secondary edit-toggle">
+                                <i class="fas fa-edit"></i> Bearbeiten
+                            </button>
+                            <button id="view-notes-btn" class="btn-secondary edit-toggle" style="display: none;">
+                                <i class="fas fa-eye"></i> Ansicht
+                            </button>
+                        </div>
+                        
+                        <!-- Rich Text Toolbar (hidden by default) -->
+                        <div class="notes-toolbar" id="notes-toolbar" style="display: none;">
                             <div class="toolbar-group">
                                 <button type="button" class="toolbar-btn" data-command="bold" title="Fett">
                                     <i class="fas fa-bold"></i>
@@ -175,14 +185,14 @@
                         <!-- Rich Text Editor -->
                         <div 
                             id="overview-notes" 
-                            class="rich-text-editor"
-                            contenteditable="true"
+                            class="rich-text-editor view-mode"
+                            contenteditable="false"
                             placeholder="Hier können wichtige Informationen, Notizen oder Ankündigungen für alle Mitglieder eingetragen werden..."
                         ></div>
                         
-                        <div class="notes-actions">
+                        <div class="notes-actions" id="edit-actions" style="display: none;">
                             <button id="save-notes-btn" class="btn-primary">
-                                <i class="fas fa-save"></i> Notizen speichern
+                                <i class="fas fa-save"></i> Speichern & Fertig
                             </button>
                             <button id="clear-notes-btn" class="btn-secondary">
                                 <i class="fas fa-trash"></i> Leeren

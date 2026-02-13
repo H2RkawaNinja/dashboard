@@ -281,10 +281,13 @@ async function saveOverviewNotes() {
         if (data.success) {
             statusSpan.textContent = 'Gespeichert!';
             statusSpan.className = 'notes-status saved';
+            
+            // Zurück zur Ansicht nach dem Speichern
             setTimeout(() => {
                 statusSpan.textContent = '';
                 statusSpan.className = 'notes-status';
-            }, 3000);
+                exitEditMode();
+            }, 2000);
         } else {
             throw new Error(data.error);
         }
@@ -301,10 +304,59 @@ async function saveOverviewNotes() {
 
 function clearOverviewNotes() {
     const notesEditor = document.getElementById('overview-notes');
-    if (notesEditor) {
+    if (notesEditor && confirm('Notizen wirklich leeren?')) {
         notesEditor.innerHTML = '';
         saveOverviewNotes();
     }
+}
+
+// Edit Mode Management
+function enterEditMode() {
+    const toolbar = document.getElementById('notes-toolbar');
+    const editor = document.getElementById('overview-notes');
+    const editActions = document.getElementById('edit-actions');
+    const editBtn = document.getElementById('edit-notes-btn');
+    const viewBtn = document.getElementById('view-notes-btn');
+    
+    // Zeige Toolbar und Aktionen
+    if (toolbar) toolbar.style.display = 'flex';
+    if (editActions) editActions.style.display = 'flex';
+    
+    // Editor editierbar machen
+    if (editor) {
+        editor.contentEditable = 'true';
+        editor.classList.remove('view-mode');
+        editor.classList.add('edit-mode');
+        editor.focus();
+    }
+    
+    // Toggle Buttons
+    if (editBtn) editBtn.style.display = 'none';
+    if (viewBtn) viewBtn.style.display = 'inline-flex';
+}
+
+function exitEditMode() {
+    const toolbar = document.getElementById('notes-toolbar');
+    const editor = document.getElementById('overview-notes');
+    const editActions = document.getElementById('edit-actions');
+    const editBtn = document.getElementById('edit-notes-btn');
+    const viewBtn = document.getElementById('view-notes-btn');
+    
+    // Verstecke Toolbar und Aktionen
+    if (toolbar) toolbar.style.display = 'none';
+    if (editActions) editActions.style.display = 'none';
+    
+    // Editor nicht editierbar machen
+    if (editor) {
+        editor.contentEditable = 'false';
+        editor.classList.remove('edit-mode');
+        editor.classList.add('view-mode');
+        editor.blur();
+    }
+    
+    // Toggle Buttons
+    if (editBtn) editBtn.style.display = 'inline-flex';
+    if (viewBtn) viewBtn.style.display = 'none';
 }
 
 // Rich Text Editor Funktionen
@@ -4617,9 +4669,19 @@ function hideMaintenanceBanner(module) {
 
 // Event Listener für Rich Text Editor
 document.addEventListener('DOMContentLoaded', function() {
-    // Notizen Buttons
+    // Edit Mode Buttons
+    const editBtn = document.getElementById('edit-notes-btn');
+    const viewBtn = document.getElementById('view-notes-btn');
     const saveNotesBtn = document.getElementById('save-notes-btn');
     const clearNotesBtn = document.getElementById('clear-notes-btn');
+    
+    if (editBtn) {
+        editBtn.addEventListener('click', enterEditMode);
+    }
+    
+    if (viewBtn) {
+        viewBtn.addEventListener('click', exitEditMode);
+    }
     
     if (saveNotesBtn) {
         saveNotesBtn.addEventListener('click', saveOverviewNotes);
@@ -4629,23 +4691,74 @@ document.addEventListener('DOMContentLoaded', function() {
         clearNotesBtn.addEventListener('click', clearOverviewNotes);
     }
     
-    // Auto-Save für Notizen (nach 3 Sekunden ohne Eingabe)
+    // Auto-Save für Notizen im Edit-Mode (nach 5 Sekunden ohne Eingabe)
     const notesEditor = document.getElementById('overview-notes');
     if (notesEditor) {
         let saveTimeout;
+        let isEditMode = false;
+        
         notesEditor.addEventListener('input', function() {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(saveOverviewNotes, 3000);
-            updateToolbarState();
+            if (notesEditor.contentEditable === 'true') {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    // Auto-save aber nicht zurück zur Ansicht
+                    const saveFunc = async () => {
+                        const statusSpan = document.getElementById('notes-status');
+                        const notes = notesEditor.innerHTML;
+                        
+                        try {
+                            const response = await fetch(`${API_URL}/stats/overview-notes`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ notes })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success && statusSpan) {
+                                statusSpan.textContent = 'Auto-gespeichert';
+                                statusSpan.className = 'notes-status saved';
+                                setTimeout(() => {
+                                    statusSpan.textContent = '';
+                                    statusSpan.className = 'notes-status';
+                                }, 2000);
+                            }
+                        } catch (error) {
+                            console.error('Auto-Save Fehler:', error);
+                        }
+                    };
+                    saveFunc();
+                }, 5000);
+                updateToolbarState();
+            }
         });
         
         // Cursor Position ändern - Toolbar Status aktualisieren
-        notesEditor.addEventListener('keyup', updateToolbarState);
-        notesEditor.addEventListener('mouseup', updateToolbarState);
+        notesEditor.addEventListener('keyup', function() {
+            if (notesEditor.contentEditable === 'true') {
+                updateToolbarState();
+            }
+        });
+        
+        notesEditor.addEventListener('mouseup', function() {
+            if (notesEditor.contentEditable === 'true') {
+                updateToolbarState();
+            }
+        });
+        
+        // Doppelklick zum Bearbeiten
+        notesEditor.addEventListener('dblclick', function() {
+            if (notesEditor.contentEditable === 'false') {
+                enterEditMode();
+            }
+        });
     }
     
-    // Toolbar Event Listeners
+    // Toolbar Event Listeners (nur im Edit-Mode)
     document.addEventListener('click', function(e) {
+        // Prüfe ob im Edit-Mode
+        if (!notesEditor || notesEditor.contentEditable === 'false') return;
+        
         // Format Buttons
         if (e.target.closest('[data-command]')) {
             e.preventDefault();
@@ -4673,13 +4786,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const fontSizeSelect = document.getElementById('font-size');
     if (fontSizeSelect) {
         fontSizeSelect.addEventListener('change', function() {
-            const size = this.value;
-            applyFontSize(size);
+            if (notesEditor && notesEditor.contentEditable === 'true') {
+                const size = this.value;
+                applyFontSize(size);
+            }
         });
     }
     
-    // Shortcuts
+    // Shortcuts (nur im Edit-Mode)
     document.addEventListener('keydown', function(e) {
+        if (!notesEditor || notesEditor.contentEditable === 'false') return;
+        
         if (e.ctrlKey || e.metaKey) {
             if (e.key === 'b') {
                 e.preventDefault();
@@ -4694,6 +4811,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 saveOverviewNotes();
             }
+        }
+        
+        // ESC zum Beenden des Edit-Modes
+        if (e.key === 'Escape') {
+            exitEditMode();
         }
     });
 });

@@ -3964,13 +3964,25 @@ body {
 
 /* Notes Section - Rich Text Editor */
 .notes-card {
-    min-height: 400px;
+    min-height: 300px;
 }
 
 .notes-section {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.notes-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.edit-toggle {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
 }
 
 .notes-toolbar {
@@ -3983,6 +3995,11 @@ body {
     border-bottom: none;
     border-radius: 8px 8px 0 0;
     align-items: center;
+    transition: all 0.3s ease;
+}
+
+.notes-toolbar.hidden {
+    display: none;
 }
 
 .toolbar-group {
@@ -4057,21 +4074,36 @@ body {
 }
 
 .rich-text-editor {
-    min-height: 200px;
+    min-height: 150px;
     max-height: 400px;
     padding: 16px;
     border: 2px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
+    border-radius: 8px;
     background: var(--dark-card);
     color: var(--text-primary);
     font-family: inherit;
     font-size: 14px;
     line-height: 1.6;
     overflow-y: auto;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
     word-wrap: break-word;
     white-space: pre-wrap;
+}
+
+.rich-text-editor.edit-mode {
+    border-radius: 0 0 8px 8px;
+    border-top: none;
+}
+
+.rich-text-editor.view-mode {
+    border-radius: 8px;
+    cursor: text;
+    background: var(--dark-bg);
+    border-color: var(--dark-hover);
+}
+
+.rich-text-editor.view-mode:hover {
+    border-color: var(--border);
 }
 
 .rich-text-editor:focus {
@@ -4094,6 +4126,11 @@ body {
     align-items: center;
     gap: 12px;
     margin-top: 8px;
+    transition: all 0.3s ease;
+}
+
+.notes-actions.hidden {
+    display: none;
 }
 
 .notes-status {
