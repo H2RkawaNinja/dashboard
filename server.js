@@ -2682,7 +2682,6 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
         });
     });
 });
-});
 
 // Treasury Statistiken
 app.get('/api/treasury/stats', requireLogin, (req, res) => {
