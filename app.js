@@ -166,6 +166,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             'fence': 'Hehler-Geschäft',
             'warehouse': 'Sortier Bereich',
             'storage': 'Lager',
+            'treasury': 'Gangkasse',
             'recipes': 'Rezepte',
             'intelligence': 'Intel-Sammlung',
             'activity': 'Aktivitäten',
@@ -191,6 +192,9 @@ function loadPageData(page) {
             break;
         case 'storage':
             loadStorageOverview();
+            break;
+        case 'treasury':
+            loadTreasuryPage();
             break;
         case 'recipes':
             loadRecipes();
@@ -4889,3 +4893,636 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// ========== TREASURY FUNCTIONS ==========
+
+let currentTreasuryTab = 'transactions';
+let treasuryTransactions = [];
+let treasuryContributions = [];
+let treasuryStats = {};
+
+// Treasury-Seite laden
+async function loadTreasuryPage() {
+    try {
+        await Promise.all([
+            loadTreasuryBalance(),
+            loadTreasuryTransactions(),
+            loadTreasuryStats()
+        ]);
+        
+        // Initial tab content laden
+        switchTreasuryTab(document.querySelector('.treasury-tabs .tab-btn.active'), 'transactions');
+        
+    } catch (error) {
+        console.error('Fehler beim Laden der Treasury-Seite:', error);
+        showToast('Fehler beim Laden der Gangkasse', 'error');
+    }
+}
+
+// Balance laden
+async function loadTreasuryBalance() {
+    try {
+        const response = await fetch(`${API_URL}/treasury/balance`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const balanceEl = document.getElementById('treasury-balance');
+            if (balanceEl) {
+                balanceEl.textContent = `€ ${formatCurrency(data.balance)}`;
+                balanceEl.className = `balance-amount ${data.balance >= 0 ? 'positive' : 'negative'}`;
+            }
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Balance:', error);
+    }
+}
+
+// Transaktionen laden
+async function loadTreasuryTransactions() {
+    try {
+        const response = await fetch(`${API_URL}/treasury/transactions`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            treasuryTransactions = await response.json();
+            renderTransactions();
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Transaktionen:', error);
+    }
+}
+
+// Treasury Statistiken laden
+async function loadTreasuryStats() {
+    try {
+        const response = await fetch(`${API_URL}/treasury/stats`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            treasuryStats = await response.json();
+            renderTreasuryStats();
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Statistiken:', error);
+    }
+}
+
+// Tab wechseln
+function switchTreasuryTab(button, tab) {
+    // Tab-Buttons aktualisieren
+    document.querySelectorAll('.treasury-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+    
+    // Tab-Inhalte verstecken/zeigen
+    document.querySelectorAll('.treasury-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(`treasury-${tab}-tab`).classList.add('active');
+    
+    currentTreasuryTab = tab;
+    
+    // Content für aktiven Tab laden
+    switch (tab) {
+        case 'transactions':
+            renderTransactions();
+            break;
+        case 'contributions':
+            loadContributions();
+            break;
+        case 'overview':
+            renderTreasuryStats();
+            break;
+    }
+}
+
+// Transaktionen rendern
+function renderTransactions() {
+    const container = document.getElementById('transactions-list');
+    if (!container) return;
+    
+    if (treasuryTransactions.length === 0) {
+        container.innerHTML = '<div class="no-data">Keine Transaktionen vorhanden</div>';
+        return;
+    }
+    
+    const transactionsHtml = treasuryTransactions.map(transaction => {
+        const typeIcon = {
+            'einzahlung': 'fa-arrow-up',
+            'auszahlung': 'fa-arrow-down',
+            'korrektur': 'fa-edit'
+        };
+        
+        const typeColor = {
+            'einzahlung': 'green',
+            'auszahlung': 'red',
+            'korrektur': 'orange'
+        };
+        
+        return `
+            <div class="transaction-item ${typeColor[transaction.type]}">
+                <div class="transaction-icon">
+                    <i class="fas ${typeIcon[transaction.type]}"></i>
+                </div>
+                <div class="transaction-details">
+                    <div class="transaction-header">
+                        <span class="transaction-type">${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</span>
+                        <span class="transaction-amount ${transaction.type === 'auszahlung' ? 'negative' : 'positive'}">
+                            ${transaction.type === 'auszahlung' ? '-' : '+'}€ ${formatCurrency(transaction.amount)}
+                        </span>
+                    </div>
+                    <div class="transaction-description">${transaction.description || 'Keine Beschreibung'}</div>
+                    <div class="transaction-meta">
+                        <span class="transaction-date">${formatDate(transaction.transaction_date)}</span>
+                        ${transaction.member_name ? `<span class="transaction-member">von ${transaction.member_name}</span>` : ''}
+                        ${transaction.recorded_by_name ? `<span class="transaction-recorder">erfasst von ${transaction.recorded_by_name}</span>` : ''}
+                    </div>
+                    ${transaction.reference_number ? `<div class="transaction-reference">Ref: ${transaction.reference_number}</div>` : ''}
+                    ${transaction.notes ? `<div class="transaction-notes">${transaction.notes}</div>` : ''}
+                </div>
+                <div class="transaction-status">
+                    <span class="status ${transaction.status}">${getStatusText(transaction.status)}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = transactionsHtml;
+}
+
+// Beiträge laden
+async function loadContributions() {
+    const periodSelect = document.getElementById('contribution-period-select');
+    if (!periodSelect) return;
+    
+    // Period-Select befüllen falls leer
+    if (periodSelect.children.length <= 1) {
+        populateContributionPeriods();
+    }
+    
+    const [month, year] = periodSelect.value ? periodSelect.value.split('-') : 
+        [new Date().getMonth() + 1, new Date().getFullYear()];
+    
+    try {
+        const response = await fetch(`${API_URL}/treasury/contributions?month=${month}&year=${year}`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            treasuryContributions = await response.json();
+            renderContributions();
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Beiträge:', error);
+    }
+}
+
+// Contribution periods befüllen
+function populateContributionPeriods() {
+    const select = document.getElementById('contribution-period-select');
+    if (!select) return;
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    // Letzten 12 Monate und nächsten 3 Monate
+    for (let i = -12; i <= 3; i++) {
+        const date = new Date(currentYear, currentMonth - 1 + i, 1);
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        
+        const monthNames = [
+            'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+            'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+        ];
+        
+        const option = document.createElement('option');
+        option.value = `${month}-${year}`;
+        option.textContent = `${monthNames[month - 1]} ${year}`;
+        
+        if (month === currentMonth && year === currentYear) {
+            option.selected = true;
+        }
+        
+        select.appendChild(option);
+    }
+}
+
+// Beiträge rendern
+function renderContributions() {
+    const container = document.getElementById('contributions-list');
+    if (!container) return;
+    
+    if (treasuryContributions.length === 0) {
+        container.innerHTML = '<div class="no-data">Keine Beiträge für diesen Zeitraum</div>';
+        return;
+    }
+    
+    const contributionsHtml = treasuryContributions.map(contribution => {
+        const statusIcon = {
+            'nicht_bezahlt': 'fa-times-circle',
+            'teilweise_bezahlt': 'fa-clock',
+            'vollständig_bezahlt': 'fa-check-circle'
+        };
+        
+        const statusColor = {
+            'nicht_bezahlt': 'red',
+            'teilweise_bezahlt': 'orange',
+            'vollständig_bezahlt': 'green'
+        };
+        
+        const percentage = contribution.required_amount > 0 ? 
+            (contribution.paid_amount / contribution.required_amount * 100) : 0;
+        
+        return `
+            <div class="contribution-item ${statusColor[contribution.status]}">
+                <div class="contribution-member">
+                    <div class="member-info">
+                        <span class="member-name">${contribution.member_name}</span>
+                        <span class="member-rank">${contribution.rank}</span>
+                    </div>
+                    <div class="contribution-status">
+                        <i class="fas ${statusIcon[contribution.status]}"></i>
+                        <span>${getStatusText(contribution.status)}</span>
+                    </div>
+                </div>
+                <div class="contribution-amounts">
+                    <div class="amount-row">
+                        <span class="label">Erforderlich:</span>
+                        <span class="amount">€ ${formatCurrency(contribution.required_amount)}</span>
+                    </div>
+                    <div class="amount-row">
+                        <span class="label">Bezahlt:</span>
+                        <span class="amount paid">€ ${formatCurrency(contribution.paid_amount)}</span>
+                    </div>
+                    <div class="amount-row outstanding">
+                        <span class="label">Ausstehend:</span>
+                        <span class="amount">€ ${formatCurrency(contribution.required_amount - contribution.paid_amount)}</span>
+                    </div>
+                </div>
+                <div class="contribution-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <span class="progress-text">${Math.round(percentage)}%</span>
+                </div>
+                ${contribution.payment_date ? 
+                    `<div class="payment-date">Bezahlt: ${formatDate(contribution.payment_date)}</div>` : ''
+                }
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = contributionsHtml;
+}
+
+// Treasury Statistiken rendern
+function renderTreasuryStats() {
+    if (!treasuryStats) return;
+    
+    const elements = {
+        'total-deposits': treasuryStats.monthly_deposits,
+        'total-withdrawals': treasuryStats.monthly_withdrawals,
+        'paid-members': treasuryStats.paid_members,
+        'outstanding-contributions': treasuryStats.outstanding_contributions
+    };
+    
+    Object.keys(elements).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (id.includes('deposits') || id.includes('withdrawals') || id.includes('outstanding')) {
+                el.textContent = `€ ${formatCurrency(elements[id])}`;
+            } else {
+                el.textContent = elements[id];
+            }
+        }
+    });
+}
+
+// Modal-Funktionen
+function showAddTransactionModal() {
+    document.getElementById('add-transaction-modal').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'block';
+    
+    // Mitglieder für Select laden
+    loadMembersForTreasuryModal();
+}
+
+function showSetContributionModal() {
+    document.getElementById('set-contribution-modal').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'block';
+    
+    // Aktuelle Werte setzen
+    const now = new Date();
+    document.getElementById('contribution-period-month').value = now.getMonth() + 1;
+    document.getElementById('contribution-period-year').value = now.getFullYear();
+}
+
+function showMarkContributionModal() {
+    document.getElementById('mark-contribution-modal').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'block';
+    
+    // Mitglieder laden
+    loadMembersForTreasuryModal();
+    
+    // Aktuelles Datum setzen
+    const now = new Date();
+    const dateString = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+    document.getElementById('mark-contribution-payment-date').value = dateString;
+}
+
+// Mitglieder für Treasury-Modals laden
+async function loadMembersForTreasuryModal() {
+    try {
+        const response = await fetch(`${API_URL}/members`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const members = await response.json();
+            
+            // Transaction-Modal-Select befüllen
+            const transactionSelect = document.getElementById('transaction-member');
+            if (transactionSelect) {
+                transactionSelect.innerHTML = '<option value="">Mitglied auswählen</option>';
+                members.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = `${member.full_name} (${member.rank})`;
+                    transactionSelect.appendChild(option);
+                });
+            }
+            
+            // Contribution-Modal-Select befüllen
+            const contributionSelect = document.getElementById('mark-contribution-member');
+            if (contributionSelect) {
+                contributionSelect.innerHTML = '<option value="">Mitglied auswählen</option>';
+                members.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = `${member.full_name} (${member.rank})`;
+                    contributionSelect.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Mitglieder:', error);
+    }
+}
+
+// Toggle Member Selection in Transaction Modal
+function toggleMemberSelection() {
+    const typeSelect = document.getElementById('transaction-type');
+    const memberGroup = document.getElementById('transaction-member-group');
+    
+    if (typeSelect.value === 'einzahlung') {
+        memberGroup.style.display = 'block';
+        document.getElementById('transaction-member').required = false;
+    } else {
+        memberGroup.style.display = 'none';
+        document.getElementById('transaction-member').required = false;
+    }
+}
+
+// Form Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Add Transaction Form
+    const addTransactionForm = document.getElementById('add-transaction-form');
+    if (addTransactionForm) {
+        addTransactionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                member_id: document.getElementById('transaction-member').value || null,
+                type: document.getElementById('transaction-type').value,
+                amount: parseFloat(document.getElementById('transaction-amount').value),
+                description: document.getElementById('transaction-description').value,
+                reference_number: document.getElementById('transaction-reference').value || null,
+                notes: document.getElementById('transaction-notes').value || null
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/treasury/transactions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Transaktion erfolgreich hinzugefügt', 'success');
+                    closeModals();
+                    addTransactionForm.reset();
+                    await Promise.all([
+                        loadTreasuryBalance(),
+                        loadTreasuryTransactions(),
+                        loadTreasuryStats()
+                    ]);
+                } else {
+                    showToast(result.error || 'Fehler beim Hinzufügen der Transaktion', 'error');
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                showToast('Verbindungsfehler', 'error');
+            }
+        });
+    }
+    
+    // Set Contribution Form
+    const setContributionForm = document.getElementById('set-contribution-form');
+    if (setContributionForm) {
+        setContributionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                period_month: parseInt(document.getElementById('contribution-period-month').value),
+                period_year: parseInt(document.getElementById('contribution-period-year').value),
+                required_amount: parseFloat(document.getElementById('contribution-amount').value),
+                due_date: document.getElementById('contribution-due-date').value,
+                notes: document.getElementById('contribution-notes').value || null
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/treasury/contributions/set`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeModals();
+                    setContributionForm.reset();
+                    loadContributions();
+                } else {
+                    showToast(result.error || 'Fehler beim Festlegen der Beiträge', 'error');
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                showToast('Verbindungsfehler', 'error');
+            }
+        });
+    }
+    
+    // Mark Contribution Form
+    const markContributionForm = document.getElementById('mark-contribution-form');
+    if (markContributionForm) {
+        markContributionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const memberSelect = document.getElementById('mark-contribution-member');
+            const periodSelect = document.getElementById('mark-contribution-period');
+            const [month, year] = periodSelect.value.split('-');
+            
+            const formData = {
+                member_id: parseInt(memberSelect.value),
+                period_month: parseInt(month),
+                period_year: parseInt(year),
+                paid_amount: parseFloat(document.getElementById('mark-contribution-paid-amount').value),
+                payment_date: document.getElementById('mark-contribution-payment-date').value,
+                notes: document.getElementById('mark-contribution-notes').value || null
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/treasury/contributions/mark-paid`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Beitrag erfolgreich verbucht', 'success');
+                    closeModals();
+                    markContributionForm.reset();
+                    await Promise.all([
+                        loadTreasuryBalance(),
+                        loadContributions(),
+                        loadTreasuryStats()
+                    ]);
+                } else {
+                    showToast(result.error || 'Fehler beim Verbuchen des Beitrags', 'error');
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                showToast('Verbindungsfehler', 'error');
+            }
+        });
+    }
+});
+
+// Load Member Contributions for Mark Modal
+async function loadMemberContributions() {
+    const memberSelect = document.getElementById('mark-contribution-member');
+    const periodSelect = document.getElementById('mark-contribution-period');
+    
+    if (!memberSelect.value) {
+        periodSelect.innerHTML = '<option value="">Zeitraum auswählen</option>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/treasury/contributions?member_id=${memberSelect.value}`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const contributions = await response.json();
+            
+            periodSelect.innerHTML = '<option value="">Zeitraum auswählen</option>';
+            contributions.forEach(contribution => {
+                if (contribution.status !== 'vollständig_bezahlt') {
+                    const option = document.createElement('option');
+                    option.value = `${contribution.period_month}-${contribution.period_year}`;
+                    option.textContent = `${getMonthName(contribution.period_month)} ${contribution.period_year} (€${formatCurrency(contribution.required_amount - contribution.paid_amount)} ausstehend)`;
+                    periodSelect.appendChild(option);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Mitgliederbeiträge:', error);
+    }
+}
+
+// Filter Funktionen
+function filterTransactions() {
+    const searchTerm = document.getElementById('transaction-search')?.value.toLowerCase() || '';
+    const typeFilter = document.getElementById('transaction-type-filter')?.value || '';
+    
+    let filtered = treasuryTransactions;
+    
+    if (searchTerm) {
+        filtered = filtered.filter(transaction => 
+            transaction.description?.toLowerCase().includes(searchTerm) ||
+            transaction.member_name?.toLowerCase().includes(searchTerm) ||
+            transaction.reference_number?.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    if (typeFilter) {
+        filtered = filtered.filter(transaction => transaction.type === typeFilter);
+    }
+    
+    renderFilteredTransactions(filtered);
+}
+
+function renderFilteredTransactions(transactions) {
+    const originalTransactions = treasuryTransactions;
+    treasuryTransactions = transactions;
+    renderTransactions();
+    treasuryTransactions = originalTransactions;
+}
+
+// ========== HELPER FUNCTIONS ==========
+
+function formatCurrency(amount) {
+    return parseFloat(amount || 0).toLocaleString('de-DE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function getStatusText(status) {
+    const statusTexts = {
+        'pending': 'Ausstehend',
+        'confirmed': 'Bestätigt',
+        'cancelled': 'Storniert',
+        'nicht_bezahlt': 'Nicht bezahlt',
+        'teilweise_bezahlt': 'Teilweise bezahlt',
+        'vollständig_bezahlt': 'Vollständig bezahlt'
+    };
+    return statusTexts[status] || status;
+}
+
+function getMonthName(monthNumber) {
+    const months = [
+        'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+        'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+    ];
+    return months[monthNumber - 1];
+}
+

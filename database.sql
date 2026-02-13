@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
 -- STANDARD-DATEN EINFÜGEN
 -- ========================================
 
--- Tabelle: System Wartungseinstellungen (nur für Techniker)
+-- System Wartungseinstellungen (nur für Techniker)
 CREATE TABLE IF NOT EXISTS maintenance_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     module_name VARCHAR(50) NOT NULL UNIQUE,
@@ -186,15 +186,66 @@ CREATE TABLE IF NOT EXISTS maintenance_settings (
     FOREIGN KEY (disabled_by) REFERENCES members(id) ON DELETE SET NULL
 );
 
+-- Tabelle: Gangkasse Kontostand
+CREATE TABLE IF NOT EXISTS gang_treasury (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    current_balance DECIMAL(15, 2) DEFAULT 0,
+    updated_by INT,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    notes TEXT,
+    FOREIGN KEY (updated_by) REFERENCES members(id) ON DELETE SET NULL
+);
+
+-- Tabelle: Gangkasse Transaktionen
+CREATE TABLE IF NOT EXISTS gang_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    member_id INT,
+    type ENUM('einzahlung', 'auszahlung', 'korrektur') NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    description VARCHAR(500),
+    reference_number VARCHAR(50),
+    recorded_by INT,
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'confirmed',
+    notes TEXT,
+    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL,
+    FOREIGN KEY (recorded_by) REFERENCES members(id) ON DELETE SET NULL
+);
+
+-- Tabelle: Mitglieder Beitragsstatus
+CREATE TABLE IF NOT EXISTS member_contributions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    member_id INT NOT NULL,
+    period_month INT NOT NULL,
+    period_year INT NOT NULL,
+    required_amount DECIMAL(10, 2) DEFAULT 0,
+    paid_amount DECIMAL(10, 2) DEFAULT 0,
+    status ENUM('nicht_bezahlt', 'teilweise_bezahlt', 'vollständig_bezahlt') DEFAULT 'nicht_bezahlt',
+    due_date DATE,
+    payment_date TIMESTAMP NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_member_period (member_id, period_month, period_year)
+);
+
 -- Initial Wartungseinstellungen
 INSERT INTO maintenance_settings (module_name, is_disabled) VALUES
 ('members', FALSE),
 ('fence', FALSE),
-('storage', FALSE);
+('storage', FALSE),
+('treasury', FALSE);
+
+-- Initial Gangkasse Setup
+INSERT INTO gang_treasury (current_balance, notes) VALUES 
+(0.00, 'Startsaldo der Gangkasse');
 
 -- Gang Stats
 INSERT INTO gang_stats (stat_key, stat_value) VALUES
 ('gang_name', 'Black Street Empire'),
 ('total_members', '0'),
 ('total_revenue_today', '0'),
-('overview_notes', '');
+('overview_notes', ''),
+('treasury_balance', '0.00'),
+('monthly_contribution', '1000.00');

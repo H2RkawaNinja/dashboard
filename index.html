@@ -64,6 +64,9 @@
                 <a href="#" class="nav-item" data-page="storage">
                     <i class="fas fa-warehouse"></i><span>Lager</span>
                 </a>
+                <a href="#" class="nav-item" data-page="treasury">
+                    <i class="fas fa-piggy-bank"></i><span>Gangkasse</span>
+                </a>
                 <a href="#" class="nav-item" data-page="recipes">
                     <i class="fas fa-book"></i><span>Rezepte</span>
                 </a>
@@ -600,6 +603,129 @@
                         <button class="btn-success" onclick="enableAllSystems()">
                             <i class="fas fa-check"></i> Alle Systeme aktivieren
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Treasury Page -->
+            <div id="treasury-page" class="page">
+                <div class="treasury-page-header">
+                    <div class="treasury-title-section">
+                        <h2><i class="fas fa-piggy-bank"></i> Gangkasse</h2>
+                        <p class="treasury-subtitle">Verwaltung der Gangkasse und Beiträge</p>
+                    </div>
+                    <div class="treasury-balance">
+                        <span class="balance-label">Aktueller Kontostand:</span>
+                        <span class="balance-amount" id="treasury-balance">€ 0,00</span>
+                        <button class="btn-primary btn-add-transaction" onclick="showAddTransactionModal()">
+                            <i class="fas fa-plus"></i> Neue Transaktion
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Treasury Tabs -->
+                <div class="treasury-tabs">
+                    <button class="tab-btn active" onclick="switchTreasuryTab(this, 'transactions')">
+                        <i class="fas fa-exchange-alt"></i> Transaktionen
+                    </button>
+                    <button class="tab-btn" onclick="switchTreasuryTab(this, 'contributions')">
+                        <i class="fas fa-users"></i> Mitgliederbeiträge
+                    </button>
+                    <button class="tab-btn" onclick="switchTreasuryTab(this, 'overview')">
+                        <i class="fas fa-chart-bar"></i> Übersicht
+                    </button>
+                </div>
+
+                <!-- Transactions Tab -->
+                <div id="treasury-transactions-tab" class="treasury-tab-content active">
+                    <div class="transactions-header">
+                        <div class="transactions-search-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="transaction-search" placeholder="Transaktion suchen..." oninput="filterTransactions()">
+                        </div>
+                        <div class="transaction-type-filter">
+                            <select id="transaction-type-filter" onchange="filterTransactions()">
+                                <option value="">Alle Transaktionen</option>
+                                <option value="einzahlung">Einzahlungen</option>
+                                <option value="auszahlung">Auszahlungen</option>
+                                <option value="korrektur">Korrekturen</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="transactions-list" id="transactions-list">
+                        <!-- Transaktionen werden hier dynamisch geladen -->
+                    </div>
+                </div>
+
+                <!-- Contributions Tab -->
+                <div id="treasury-contributions-tab" class="treasury-tab-content">
+                    <div class="contributions-header">
+                        <div class="contribution-period">
+                            <label for="contribution-period-select">Zeitraum:</label>
+                            <select id="contribution-period-select" onchange="loadContributions()">
+                                <!-- Dynamisch geladen -->
+                            </select>
+                        </div>
+                        <div class="contribution-actions">
+                            <button class="btn-secondary" onclick="showSetContributionModal()">
+                                <i class="fas fa-cog"></i> Beitrag festlegen
+                            </button>
+                            <button class="btn-primary" onclick="showMarkContributionModal()">
+                                <i class="fas fa-check"></i> Beitrag verbuchen
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="contributions-list" id="contributions-list">
+                        <!-- Beiträge werden hier dynamisch geladen -->
+                    </div>
+                </div>
+
+                <!-- Overview Tab -->
+                <div id="treasury-overview-tab" class="treasury-tab-content">
+                    <div class="treasury-overview-grid">
+                        <div class="treasury-stat-card green">
+                            <i class="fas fa-arrow-up"></i>
+                            <div>
+                                <h3 id="total-deposits">€ 0,00</h3>
+                                <p>Einzahlungen (Monat)</p>
+                            </div>
+                        </div>
+                        <div class="treasury-stat-card red">
+                            <i class="fas fa-arrow-down"></i>
+                            <div>
+                                <h3 id="total-withdrawals">€ 0,00</h3>
+                                <p>Auszahlungen (Monat)</p>
+                            </div>
+                        </div>
+                        <div class="treasury-stat-card blue">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h3 id="paid-members">0/0</h3>
+                                <p>Beiträge bezahlt</p>
+                            </div>
+                        </div>
+                        <div class="treasury-stat-card orange">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <h3 id="outstanding-contributions">€ 0,00</h3>
+                                <p>Ausstehende Beiträge</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="treasury-charts">
+                        <div class="chart-container">
+                            <h4>Monatlicher Verlauf</h4>
+                            <div id="treasury-chart" class="chart-placeholder">Diagramm kommt hier hin</div>
+                        </div>
+                        <div class="recent-transactions">
+                            <h4>Letzte Transaktionen</h4>
+                            <div id="recent-transactions-list">
+                                <!-- Letzte Transaktionen -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1691,6 +1817,138 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- Treasury Modals -->
+    <!-- Add Transaction Modal -->
+    <div id="add-transaction-modal" class="modal" style="display: none; max-width: 550px;">
+        <div class="modal-header">
+            <h2>Neue Transaktion</h2>
+            <button class="close-modal" onclick="closeModals()">&times;</button>
+        </div>
+        <form id="add-transaction-form">
+            <div class="form-group">
+                <label for="transaction-type">Typ</label>
+                <select id="transaction-type" required onchange="toggleMemberSelection()">
+                    <option value="">Typ auswählen</option>
+                    <option value="einzahlung">Einzahlung</option>
+                    <option value="auszahlung">Auszahlung</option>
+                    <option value="korrektur">Korrektur</option>
+                </select>
+            </div>
+            <div class="form-group" id="transaction-member-group" style="display: none;">
+                <label for="transaction-member">Mitglied</label>
+                <select id="transaction-member">
+                    <option value="">Mitglied auswählen</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="transaction-amount">Betrag (€)</label>
+                <input type="number" id="transaction-amount" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="transaction-description">Beschreibung</label>
+                <input type="text" id="transaction-description" maxlength="500">
+            </div>
+            <div class="form-group">
+                <label for="transaction-reference">Referenznummer (optional)</label>
+                <input type="text" id="transaction-reference" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label for="transaction-notes">Notizen (optional)</label>
+                <textarea id="transaction-notes" rows="3" maxlength="1000"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
+                <button type="submit" class="btn-primary">Transaktion hinzufügen</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Set Contribution Modal -->
+    <div id="set-contribution-modal" class="modal" style="display: none; max-width: 550px;">
+        <div class="modal-header">
+            <h2>Beitrag festlegen</h2>
+            <button class="close-modal" onclick="closeModals()">&times;</button>
+        </div>
+        <form id="set-contribution-form">
+            <div class="form-group">
+                <label for="contribution-period-month">Monat</label>
+                <select id="contribution-period-month" required>
+                    <option value="">Monat auswählen</option>
+                    <option value="1">Januar</option>
+                    <option value="2">Februar</option>
+                    <option value="3">März</option>
+                    <option value="4">April</option>
+                    <option value="5">Mai</option>
+                    <option value="6">Juni</option>
+                    <option value="7">Juli</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Dezember</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="contribution-period-year">Jahr</label>
+                <input type="number" id="contribution-period-year" min="2024" max="2030" required>
+            </div>
+            <div class="form-group">
+                <label for="contribution-amount">Beitragshöhe (€)</label>
+                <input type="number" id="contribution-amount" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="contribution-due-date">Fälligkeitsdatum</label>
+                <input type="date" id="contribution-due-date" required>
+            </div>
+            <div class="form-group">
+                <label for="contribution-notes">Notizen (optional)</label>
+                <textarea id="contribution-notes" rows="3" maxlength="1000"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
+                <button type="submit" class="btn-primary">Beitrag festlegen</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Mark Contribution Modal -->
+    <div id="mark-contribution-modal" class="modal" style="display: none; max-width: 550px;">
+        <div class="modal-header">
+            <h2>Beitrag verbuchen</h2>
+            <button class="close-modal" onclick="closeModals()">&times;</button>
+        </div>
+        <form id="mark-contribution-form">
+            <div class="form-group">
+                <label for="mark-contribution-member">Mitglied</label>
+                <select id="mark-contribution-member" required onchange="loadMemberContributions()">
+                    <option value="">Mitglied auswählen</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="mark-contribution-period">Zeitraum</label>
+                <select id="mark-contribution-period" required>
+                    <option value="">Zeitraum auswählen</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="mark-contribution-paid-amount">Bezahlter Betrag (€)</label>
+                <input type="number" id="mark-contribution-paid-amount" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="mark-contribution-payment-date">Zahlungsdatum</label>
+                <input type="datetime-local" id="mark-contribution-payment-date" required>
+            </div>
+            <div class="form-group">
+                <label for="mark-contribution-notes">Notizen (optional)</label>
+                <textarea id="mark-contribution-notes" rows="3" maxlength="1000"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
+                <button type="submit" class="btn-primary">Beitrag verbuchen</button>
+            </div>
+        </form>
     </div>
 
     <!-- Toast Notifications -->

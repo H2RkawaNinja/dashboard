@@ -2305,6 +2305,361 @@ app.get('/api/maintenance/status/:module', requireLogin, (req, res) => {
     });
 });
 
+// ========================================
+// TREASURY ENDPUNKTE
+// ========================================
+
+// Treasury Balance abrufen
+app.get('/api/treasury/balance', requireLogin, (req, res) => {
+    db.query('SELECT current_balance, last_updated, notes FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (results.length === 0) {
+            return res.json({ balance: 0, last_updated: null, notes: null });
+        }
+        
+        res.json({
+            balance: results[0].current_balance,
+            last_updated: results[0].last_updated,
+            notes: results[0].notes
+        });
+    });
+});
+
+// Alle Transaktionen abrufen
+app.get('/api/treasury/transactions', requireLogin, (req, res) => {
+    const query = `
+        SELECT 
+            gt.id, gt.type, gt.amount, gt.description, gt.reference_number,
+            gt.transaction_date, gt.status, gt.notes,
+            m.full_name as member_name,
+            rb.full_name as recorded_by_name
+        FROM gang_transactions gt 
+        LEFT JOIN members m ON gt.member_id = m.id
+        LEFT JOIN members rb ON gt.recorded_by = rb.id
+        ORDER BY gt.transaction_date DESC
+    `;
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
+
+// Neue Transaktion hinzufügen
+app.post('/api/treasury/transactions', requireLogin, (req, res) => {
+    const { member_id, type, amount, description, reference_number, notes } = req.body;
+    
+    if (!type || !amount) {
+        return res.status(400).json({ error: 'Typ und Betrag sind erforderlich' });
+    }
+    
+    // Berechne neuen Saldo
+    db.query('SELECT current_balance FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, balanceResults) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        let currentBalance = balanceResults.length > 0 ? balanceResults[0].current_balance : 0;
+        let newBalance;
+        
+        if (type === 'einzahlung' || type === 'korrektur') {
+            newBalance = currentBalance + parseFloat(amount);
+        } else if (type === 'auszahlung') {
+            newBalance = currentBalance - parseFloat(amount);
+        }
+        
+        // Transaction und Balance Update in einer Transaktion
+        db.getConnection((err, connection) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            connection.beginTransaction(err => {
+                if (err) {
+                    connection.release();
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                // Transaktion hinzufügen
+                const insertQuery = `
+                    INSERT INTO gang_transactions 
+                    (member_id, type, amount, description, reference_number, notes, recorded_by) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                `;
+                
+                connection.query(insertQuery, [
+                    member_id || null, type, amount, description, reference_number, notes, req.session.userId
+                ], (err, insertResult) => {
+                    if (err) {
+                        return connection.rollback(() => {
+                            connection.release();
+                            res.status(500).json({ error: err.message });
+                        });
+                    }
+                    
+                    // Balance update
+                    const updateBalanceQuery = `
+                        INSERT INTO gang_treasury (current_balance, updated_by, notes) 
+                        VALUES (?, ?, ?)
+                    `;
+                    
+                    connection.query(updateBalanceQuery, [
+                        newBalance, req.session.userId, `${type}: ${description || ''}`
+                    ], (err) => {
+                        if (err) {
+                            return connection.rollback(() => {
+                                connection.release();
+                                res.status(500).json({ error: err.message });
+                            });
+                        }
+                        
+                        connection.commit(err => {
+                            if (err) {
+                                return connection.rollback(() => {
+                                    connection.release();
+                                    res.status(500).json({ error: err.message });
+                                });
+                            }
+                            
+                            connection.release();
+                            
+                            // Log activity
+                            const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
+                            db.query(logQuery, [
+                                req.session.userId, 
+                                'treasury_transaction', 
+                                `${type.charAt(0).toUpperCase() + type.slice(1)} von €${amount} ${member_id ? `für ${member_id}` : ''}`
+                            ]);
+                            
+                            res.json({ 
+                                success: true, 
+                                transaction_id: insertResult.insertId,
+                                new_balance: newBalance
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Beiträge für einen Zeitraum abrufen
+app.get('/api/treasury/contributions', requireLogin, (req, res) => {
+    const { month, year } = req.query;
+    
+    let query = `
+        SELECT 
+            mc.id, mc.member_id, mc.period_month, mc.period_year,
+            mc.required_amount, mc.paid_amount, mc.status, mc.due_date,
+            mc.payment_date, mc.notes,
+            m.full_name as member_name, m.rank
+        FROM member_contributions mc
+        JOIN members m ON mc.member_id = m.id
+    `;
+    let params = [];
+    
+    if (month && year) {
+        query += ' WHERE mc.period_month = ? AND mc.period_year = ?';
+        params = [month, year];
+    }
+    
+    query += ' ORDER BY m.full_name, mc.period_year DESC, mc.period_month DESC';
+    
+    db.query(query, params, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
+
+// Beitrag für alle Mitglieder festlegen
+app.post('/api/treasury/contributions/set', requireLogin, (req, res) => {
+    const { period_month, period_year, required_amount, due_date, notes } = req.body;
+    
+    if (!period_month || !period_year || !required_amount) {
+        return res.status(400).json({ error: 'Monat, Jahr und Betrag sind erforderlich' });
+    }
+    
+    // Alle aktiven Mitglieder abrufen
+    db.query('SELECT id FROM members WHERE is_active = TRUE', (err, memberResults) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (memberResults.length === 0) {
+            return res.status(400).json({ error: 'Keine aktiven Mitglieder gefunden' });
+        }
+        
+        // Beiträge für alle Mitglieder erstellen
+        const insertPromises = memberResults.map(member => {
+            return new Promise((resolve, reject) => {
+                const insertQuery = `
+                    INSERT INTO member_contributions 
+                    (member_id, period_month, period_year, required_amount, due_date, notes)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    required_amount = VALUES(required_amount),
+                    due_date = VALUES(due_date),
+                    notes = VALUES(notes),
+                    updated_at = CURRENT_TIMESTAMP
+                `;
+                
+                db.query(insertQuery, [
+                    member.id, period_month, period_year, required_amount, due_date, notes
+                ], (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+        });
+        
+        Promise.all(insertPromises)
+            .then(() => {
+                // Log activity
+                const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
+                db.query(logQuery, [
+                    req.session.userId, 
+                    'treasury_contribution_set', 
+                    `Beiträge für ${period_month}/${period_year} festgelegt: €${required_amount}`
+                ]);
+                
+                res.json({ 
+                    success: true, 
+                    message: `Beiträge für ${memberResults.length} Mitglieder festgelegt` 
+                });
+            })
+            .catch(err => {
+                res.status(500).json({ error: err.message });
+            });
+    });
+});
+
+// Beitrag als bezahlt markieren
+app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
+    const { member_id, period_month, period_year, paid_amount, payment_date, notes } = req.body;
+    
+    if (!member_id || !period_month || !period_year || !paid_amount) {
+        return res.status(400).json({ error: 'Alle Felder sind erforderlich' });
+    }
+    
+    // Prüfe ob Beitrag existiert
+    db.query(
+        'SELECT * FROM member_contributions WHERE member_id = ? AND period_month = ? AND period_year = ?',
+        [member_id, period_month, period_year],
+        (err, existingResults) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            if (existingResults.length === 0) {
+                return res.status(404).json({ error: 'Beitrag nicht gefunden' });
+            }
+            
+            const contribution = existingResults[0];
+            const newPaidAmount = contribution.paid_amount + parseFloat(paid_amount);
+            let newStatus = 'teilweise_bezahlt';
+            
+            if (newPaidAmount >= contribution.required_amount) {
+                newStatus = 'vollständig_bezahlt';
+            }
+            
+            // Update Beitrag
+            const updateQuery = `
+                UPDATE member_contributions 
+                SET paid_amount = ?, status = ?, payment_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE member_id = ? AND period_month = ? AND period_year = ?
+            `;
+            
+            db.query(updateQuery, [
+                newPaidAmount, newStatus, payment_date, notes, member_id, period_month, period_year
+            ], (err) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                // Log activity
+                const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
+                db.query(logQuery, [
+                    req.session.userId, 
+                    'treasury_contribution_paid', 
+                    `Beitrag von €${paid_amount} für Mitglied ${member_id} verbucht`
+                ]);
+                
+                res.json({ 
+                    success: true,
+                    new_paid_amount: newPaidAmount,
+                    new_status: newStatus
+                });
+            });
+        });
+});
+
+// Treasury Statistiken
+app.get('/api/treasury/stats', requireLogin, (req, res) => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    
+    // Balance
+    const balanceQuery = 'SELECT current_balance FROM gang_treasury ORDER BY last_updated DESC LIMIT 1';
+    
+    // Monatliche Ein-/Auszahlungen
+    const monthlyQuery = `
+        SELECT 
+            SUM(CASE WHEN type = 'einzahlung' THEN amount ELSE 0 END) as deposits,
+            SUM(CASE WHEN type = 'auszahlung' THEN amount ELSE 0 END) as withdrawals
+        FROM gang_transactions 
+        WHERE MONTH(transaction_date) = ? AND YEAR(transaction_date) = ?
+    `;
+    
+    // Beitragsstatus
+    const contributionsQuery = `
+        SELECT 
+            COUNT(CASE WHEN status = 'vollständig_bezahlt' THEN 1 END) as paid_count,
+            COUNT(*) as total_count,
+            SUM(CASE WHEN status != 'vollständig_bezahlt' THEN (required_amount - paid_amount) ELSE 0 END) as outstanding_amount
+        FROM member_contributions 
+        WHERE period_month = ? AND period_year = ?
+    `;
+    
+    Promise.all([
+        new Promise((resolve, reject) => {
+            db.query(balanceQuery, (err, results) => {
+                if (err) reject(err);
+                else resolve(results.length > 0 ? results[0].current_balance : 0);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.query(monthlyQuery, [currentMonth, currentYear], (err, results) => {
+                if (err) reject(err);
+                else resolve(results[0]);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.query(contributionsQuery, [currentMonth, currentYear], (err, results) => {
+                if (err) reject(err);
+                else resolve(results[0]);
+            });
+        })
+    ]).then(([balance, monthly, contributions]) => {
+        res.json({
+            balance: balance || 0,
+            monthly_deposits: monthly.deposits || 0,
+            monthly_withdrawals: monthly.withdrawals || 0,
+            paid_members: `${contributions.paid_count || 0}/${contributions.total_count || 0}`,
+            outstanding_contributions: contributions.outstanding_amount || 0
+        });
+    }).catch(err => {
+        res.status(500).json({ error: err.message });
+    });
+});
+
 // Server starten
 app.listen(PORT, () => {
     console.log(`Server läuft auf Port ${PORT}`);
