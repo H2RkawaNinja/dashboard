@@ -5173,12 +5173,17 @@ function renderContributions() {
     const container = document.getElementById('contributions-list');
     if (!container) return;
     
-    if (treasuryContributions.length === 0) {
-        container.innerHTML = '<div class="no-data">Keine Beiträge für diesen Zeitraum</div>';
+    // Nur offene Beiträge anzeigen (nicht vollständig bezahlte)
+    const openContributions = treasuryContributions.filter(contribution => 
+        contribution.status !== 'vollständig_bezahlt'
+    );
+    
+    if (openContributions.length === 0) {
+        container.innerHTML = '<div class="no-data">Alle Beiträge für diesen Zeitraum sind bezahlt</div>';
         return;
     }
     
-    const contributionsHtml = treasuryContributions.map(contribution => {
+    const contributionsHtml = openContributions.map(contribution => {
         const statusIcon = {
             'nicht_bezahlt': 'fa-times-circle',
             'teilweise_bezahlt': 'fa-clock',
