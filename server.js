@@ -329,10 +329,24 @@ app.post('/api/stats/overview-notes', requireLogin, (req, res) => {
 // ========== MITGLIEDER ==========
 
 app.get('/api/members', requireLogin, (req, res) => {
-    db.query('SELECT id, username, full_name, rank, phone, joined_date, last_login, is_active, is_password_set, can_add_members, can_manage_hero, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system FROM members ORDER BY rank, full_name', 
-        (err, results) => {
+    const query = `
+        SELECT 
+            id, username, full_name, rank, phone, joined_date, last_login, is_active, is_password_set,
+            COALESCE(can_add_members, FALSE) as can_add_members,
+            COALESCE(can_manage_fence, FALSE) as can_manage_fence,
+            COALESCE(can_manage_recipes, FALSE) as can_manage_recipes,
+            COALESCE(can_manage_storage, FALSE) as can_manage_storage,
+            COALESCE(can_view_activity, FALSE) as can_view_activity,
+            COALESCE(can_view_stats, FALSE) as can_view_stats,
+            COALESCE(can_manage_system, FALSE) as can_manage_system
+        FROM members 
+        ORDER BY rank, full_name
+    `;
+    
+    db.query(query, (err, results) => {
         if (err) {
-            return res.status(500).json({ error: err.message });
+            console.error('Database error:', err);
+            return res.status(500).json({ error: 'Database error: ' + err.message });
         }
         res.json(results);
     });
@@ -558,10 +572,10 @@ app.get('/api/members/validate-token/:token', (req, res) => {
     });
 });
 
-// Passwort anzeigen (nur für Boss/Admin)
+// Passwort anzeigen (nur für Techniker)
 app.get('/api/members/:id/password', requireLogin, (req, res) => {
-    // Nur Boss darf Passwörter sehen
-    if (req.session.rank !== 'Boss') {
+    // Nur Techniker darf Passwörter sehen
+    if (req.session.rank !== 'Techniker') {
         return res.status(403).json({ error: 'Keine Berechtigung' });
     }
     

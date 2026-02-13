@@ -91,14 +91,14 @@ function showDashboard() {
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
     if (addMemberBtn) {
-        addMemberBtn.style.display = (currentUser.can_add_members || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'inline-flex' : 'none';
+        addMemberBtn.style.display = (currentUser.can_add_members || currentUser.rank === 'Techniker') ? 'inline-flex' : 'none';
     }
     
     // Hehler-Ankauf-Button zeigen/verstecken
     const fenceBuyButton = document.querySelector('#fence-page .page-header .btn-primary');
     const fenceNoPermBanner = document.getElementById('fence-no-permission');
     if (fenceBuyButton && fenceNoPermBanner) {
-        const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker';
+        const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
         fenceBuyButton.style.display = canManageFence ? 'inline-flex' : 'none';
         fenceNoPermBanner.style.display = canManageFence ? 'none' : 'block';
     }
@@ -224,25 +224,25 @@ function updateNavigationAccess() {
     // Hehler Navigation
     const fenceNav = document.querySelector('[data-page="fence"]');
     if (fenceNav) {
-        fenceNav.style.display = (currentUser.can_manage_fence || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        fenceNav.style.display = (currentUser.can_manage_fence || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
     // Rezepte Navigation
     const recipesNav = document.querySelector('[data-page="recipes"]');
     if (recipesNav) {
-        recipesNav.style.display = (currentUser.can_manage_recipes || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        recipesNav.style.display = (currentUser.can_manage_recipes || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
     // Lager Navigation
     const storageNav = document.querySelector('[data-page="storage-overview"]');
     if (storageNav) {
-        storageNav.style.display = (currentUser.can_manage_storage || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        storageNav.style.display = (currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
     // Aktivitäten Navigation
     const activityNav = document.querySelector('[data-page="activity"]');
     if (activityNav) {
-        activityNav.style.display = (currentUser.can_view_activity || currentUser.rank === 'Boss' || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        activityNav.style.display = (currentUser.can_view_activity || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
     // System/Wartung Navigation
@@ -456,11 +456,30 @@ async function loadMembers() {
         const response = await fetch(`${API_URL}/members`, {
             credentials: 'include'
         });
-        const members = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Defensiv: Prüfe ob data ein Array ist
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        const members = Array.isArray(data) ? data : [];
         
         const tbody = document.getElementById('members-table');
-        const canEdit = currentUser && currentUser.can_add_members;
-        const isBoss = currentUser && currentUser.rank === 'Boss';
+        if (!tbody) return;
+        
+        const canEdit = currentUser && (currentUser.can_add_members || currentUser.rank === 'Techniker');
+        const canViewPasswords = currentUser && currentUser.rank === 'Techniker';
+        
+        if (members.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-secondary);">Keine Mitglieder gefunden</td></tr>';
+            return;
+        }
         
         tbody.innerHTML = members.map(m => `
             <tr>
@@ -471,7 +490,7 @@ async function loadMembers() {
                     ${m.is_password_set 
                         ? '<span class="status-badge active"><i class="fas fa-check"></i> Eingerichtet</span>' 
                         : '<span class="status-badge inactive"><i class="fas fa-clock"></i> Ausstehend</span>'}
-                    ${isBoss && m.is_password_set ? `<button class="btn-icon-small" onclick="showPassword(${m.id})" title="Passwort anzeigen"><i class="fas fa-eye"></i></button>` : ''}
+                    ${canViewPasswords && m.is_password_set ? `<button class="btn-icon-small" onclick="showPassword(${m.id})" title="Passwort anzeigen"><i class="fas fa-eye"></i></button>` : ''}
                 </td>
                 <td>${m.phone || '-'}</td>
                 <td>${m.last_login ? formatDateTime(m.last_login) : 'Nie'}</td>
@@ -2560,7 +2579,7 @@ function copyInviteLink() {
     showToast('Link wurde in die Zwischenablage kopiert', 'success', 'Kopiert', 2000);
 }
 
-// Passwort anzeigen (nur für Boss)
+// Passwort anzeigen (nur für Techniker)
 async function showPassword(memberId) {
     if (!confirm('Möchtest du das Passwort dieses Mitglieds anzeigen?')) {
         return;
