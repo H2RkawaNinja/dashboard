@@ -2597,9 +2597,12 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
             // Update Query definieren
             const updateQuery = `
                 UPDATE member_contributions 
-                SET paid_amount_usd = ?, status = ?, payment_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                SET paid_amount_usd = ?, status = ?, payment_date = NOW(), notes = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `;
+            
+            console.log(`DEBUG - Update Query:`, updateQuery);
+            console.log(`DEBUG - Update Parameters:`, [newPaidAmount, newStatus, notes, contribution_id]);
             
             // Update Beitrag und erstelle Treasury-Transaktion in einer Transaktion
             db.getConnection((err, connection) => {
@@ -2614,9 +2617,9 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                     }
                     
                     // Update Contribution Status
-                    console.log(`DEBUG - Executing UPDATE query with values:`, [newPaidAmount, newStatus, payment_date, notes, contribution_id]);
+                    console.log(`DEBUG - Executing UPDATE query with values:`, [newPaidAmount, newStatus, notes, contribution_id]);
                     connection.query(updateQuery, [
-                        newPaidAmount, newStatus, payment_date, notes, contribution_id
+                        newPaidAmount, newStatus, notes, contribution_id
                     ], (err, updateResult) => {
                         if (err) {
                             console.log(`DEBUG - UPDATE Fehler:`, err);
@@ -2628,18 +2631,26 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                         
                         console.log(`DEBUG - UPDATE erfolgreich, affected rows:`, updateResult.affectedRows);
                         
-                        // Treasury-Transaktion erstellen
-                        const insertTransactionQuery = `
-                            INSERT INTO gang_transactions 
-                            (member_id, type, amount_usd, currency, description, recorded_by) 
-                            VALUES (?, 'einzahlung', ?, 'USD', ?, ?)
-                        `;
-                        
-                        const description = `Beitragszahlung: ${contribution.period_description || 'Beitrag'}`;
-                        
-                        connection.query(insertTransactionQuery, [
-                            contribution.member_id, paid_amount, description, req.session.userId
-                        ], (err, transactionResult) => {
+                        // Verifikation: Prüfen ob die Daten tatsächlich aktualisiert wurden
+                        connection.query('SELECT paid_amount_usd, status FROM member_contributions WHERE id = ?', [contribution_id], (err, verifyResult) => {
+                            if (err) {
+                                console.log(`DEBUG - Verifikations-Fehler:`, err);
+                            } else {
+                                console.log(`DEBUG - Nach Update - Verifikation:`, verifyResult[0]);
+                            }
+                            
+                            // Treasury-Transaktion erstellen
+                            const insertTransactionQuery = `
+                                INSERT INTO gang_transactions 
+                                (member_id, type, amount_usd, currency, description, recorded_by) 
+                                VALUES (?, 'einzahlung', ?, 'USD', ?, ?)
+                            `;
+                            
+                            const description = `Beitragszahlung: ${contribution.period_description || 'Beitrag'}`;
+                            
+                            connection.query(insertTransactionQuery, [
+                                contribution.member_id, paid_amount, description, req.session.userId
+                            ], (err, transactionResult) => {
                             if (err) {
                                 return connection.rollback(() => {
                                     connection.release();
@@ -2730,10 +2741,11 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
         WHERE MONTH(transaction_date) = ? AND YEAR(transaction_date) = ?
     `;
     
-    // Aktuelle Beitragsstatus (flexibel für verschiedene Zeiträume)
+    // Aktuelle Beitragsstatus (nur aktuelle Woche/aktueller Zeitraum)
     const contributionsQuery = `
         SELECT 
             COUNT(CASE WHEN status = 'vollständig_bezahlt' THEN 1 END) as paid_count,
+            COUNT(CASE WHEN status != 'vollständig_bezahlt' THEN 1 END) as unpaid_count,
             COUNT(*) as total_count,
             SUM(CASE WHEN status != 'vollständig_bezahlt' THEN (required_amount_usd - paid_amount_usd) ELSE 0 END) as outstanding_amount
         FROM member_contributions 
@@ -2760,6 +2772,13 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
             });
         })
     ]).then(([balance, monthly, contributions]) => {
+        console.log(`DEBUG - Treasury Stats:`, {
+            paid_count: contributions.paid_count,
+            unpaid_count: contributions.unpaid_count, 
+            total_count: contributions.total_count,
+            outstanding_amount: contributions.outstanding_amount
+        });
+        
         res.json({
             balance_usd: balance.current_balance_usd || 0,
             currency: balance.currency || 'USD',
@@ -2769,8 +2788,70 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
             outstanding_contributions: contributions.outstanding_amount || 0
         });
     }).catch(err => {
+        console.log(`DEBUG - Treasury Stats Fehler:`, err);
         res.status(500).json({ error: err.message });
     });
+});
+
+// Beitrag löschen
+app.delete('/api/treasury/contributions/:id', requireLogin, (req, res) => {
+    const contributionId = req.params.id;
+    
+    if (!contributionId) {
+        return res.status(400).json({ error: 'Beitrags-ID ist erforderlich' });
+    }
+    
+    // Prüfe ob Beitrag existiert und ob er gelöscht werden kann
+    db.query(
+        'SELECT * FROM member_contributions WHERE id = ?',
+        [contributionId],
+        (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            if (results.length === 0) {
+                return res.status(404).json({ error: 'Beitrag nicht gefunden' });
+            }
+            
+            const contribution = results[0];
+            
+            // Prüfe ob bereits Zahlungen existieren
+            if (contribution.paid_amount_usd > 0) {
+                return res.status(400).json({ 
+                    error: 'Beitrag kann nicht gelöscht werden - bereits Zahlungen vorhanden' 
+                });
+            }
+            
+            // Lösche den Beitrag
+            db.query(
+                'DELETE FROM member_contributions WHERE id = ?',
+                [contributionId],
+                (err, deleteResult) => {
+                    if (err) {
+                        return res.status(500).json({ error: err.message });
+                    }
+                    
+                    if (deleteResult.affectedRows === 0) {
+                        return res.status(404).json({ error: 'Beitrag konnte nicht gelöscht werden' });
+                    }
+                    
+                    // Log activity
+                    const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
+                    db.query(logQuery, [
+                        req.session.userId, 
+                        'treasury_contribution_deleted', 
+                        `Beitrag gelöscht: ${contribution.period_description} für Mitglied ${contribution.member_id}`
+                    ]);
+                    
+                    res.json({ 
+                        success: true,
+                        message: 'Beitrag erfolgreich gelöscht'
+                    });
+                }
+            );
+        }
+    );
 });
 
 // Server starten

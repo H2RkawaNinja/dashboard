@@ -5210,6 +5210,14 @@ function renderContributions() {
                         <i class="fas ${statusIcon[contribution.status]}"></i>
                         <span>${getStatusText(contribution.status)}</span>
                     </div>
+                    <div class="contribution-actions">
+                        ${contribution.paid_amount_usd === 0 ? 
+                            `<button class="btn-delete btn-small" onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}')"
+                                title="Beitrag löschen">
+                                <i class="fas fa-trash"></i>
+                            </button>` : ''
+                        }
+                    </div>
                 </div>
                 <div class="contribution-amounts">
                     <div class="amount-row">
@@ -5566,6 +5574,41 @@ function updateContributionAmount() {
     if (selectedContribution) {
         const outstanding = selectedContribution.required_amount_usd - selectedContribution.paid_amount_usd;
         amountField.value = outstanding.toFixed(2);
+    }
+}
+
+// Beitrag löschen Bestätigung
+function confirmDeleteContribution(contributionId, memberName) {
+    if (confirm(`Möchten Sie den Beitrag für ${memberName} wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`)) {
+        deleteContribution(contributionId);
+    }
+}
+
+// Beitrag löschen
+async function deleteContribution(contributionId) {
+    try {
+        const response = await fetch(`${API_URL}/treasury/contributions/${contributionId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Beitrag erfolgreich gelöscht', 'success');
+            
+            // Listen aktualisieren
+            await Promise.all([
+                loadContributions(),
+                loadTreasuryStats(),
+                loadDashboardTreasuryStats()
+            ]);
+        } else {
+            showToast(result.error || 'Fehler beim Löschen des Beitrags', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler beim Löschen:', error);
+        showToast('Verbindungsfehler', 'error');
     }
 }
 

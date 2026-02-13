@@ -4538,6 +4538,41 @@ body {
     gap: 0.5rem;
 }
 
+.contribution-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.btn-delete {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+.btn-small {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.contribution-member {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 1rem;
+}
+
 .contribution-amounts {
     margin-bottom: 0.75rem;
 }
