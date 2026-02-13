@@ -2250,11 +2250,14 @@ app.post('/api/maintenance/settings', requireLogin, (req, res) => {
     }
     
     const { settings } = req.body;
+    console.log('DEBUG - Empfangene Wartungseinstellungen:', settings);
     let updateCount = 0;
     let totalSettings = Object.keys(settings).length;
     
     Object.keys(settings).forEach(module_name => {
         const is_disabled = settings[module_name];
+        console.log(`DEBUG - Aktualisiere ${module_name}: is_disabled = ${is_disabled}`);
+        
         const query = 'UPDATE maintenance_settings SET is_disabled = ?, disabled_by = ?, disabled_at = ?, reason = ? WHERE module_name = ?';
         const params = [
             is_disabled,
@@ -2264,12 +2267,13 @@ app.post('/api/maintenance/settings', requireLogin, (req, res) => {
             module_name
         ];
         
-        db.query(query, params, (err) => {
+        db.query(query, params, (err, result) => {
             if (err) {
                 console.error('Maintenance update error:', err);
                 return res.status(500).json({ error: err.message });
             }
             
+            console.log(`DEBUG - UPDATE Ergebnis für ${module_name}:`, result);
             updateCount++;
             
             if (updateCount === totalSettings) {
@@ -2286,17 +2290,23 @@ app.post('/api/maintenance/settings', requireLogin, (req, res) => {
 // Wartungsstatus für spezifisches Modul prüfen
 app.get('/api/maintenance/status/:module', requireLogin, (req, res) => {
     const { module } = req.params;
+    console.log(`DEBUG - Prüfe Wartungsstatus für Modul: ${module}`);
     
     db.query('SELECT is_disabled, reason FROM maintenance_settings WHERE module_name = ?', [module], (err, results) => {
         if (err) {
+            console.error(`DEBUG - Fehler bei Wartungsstatus-Abfrage für ${module}:`, err);
             return res.status(500).json({ error: err.message });
         }
         
+        console.log(`DEBUG - Wartungsabfrage-Ergebnisse für ${module}:`, results);
+        
         if (results.length === 0) {
+            console.log(`DEBUG - Kein Eintrag gefunden für ${module}, gebe false zurück`);
             return res.json({ success: true, is_disabled: false });
         }
         
         const setting = results[0];
+        console.log(`DEBUG - Gefundene Einstellung für ${module}:`, setting);
         res.json({ 
             success: true, 
             is_disabled: setting.is_disabled,
