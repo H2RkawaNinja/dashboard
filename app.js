@@ -5122,19 +5122,8 @@ function renderTransactions() {
 
 // Beiträge laden
 async function loadContributions() {
-    const periodSelect = document.getElementById('contribution-period-select');
-    if (!periodSelect) return;
-    
-    // Period-Select befüllen falls leer
-    if (periodSelect.children.length <= 1) {
-        populateContributionPeriods();
-    }
-    
-    const [month, year] = periodSelect.value ? periodSelect.value.split('-') : 
-        [new Date().getMonth() + 1, new Date().getFullYear()];
-    
     try {
-        const response = await fetch(`${API_URL}/treasury/contributions?month=${month}&year=${year}`, {
+        const response = await fetch(`${API_URL}/treasury/contributions`, {
             credentials: 'include'
         });
         

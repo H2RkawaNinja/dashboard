@@ -2483,6 +2483,12 @@ app.get('/api/treasury/contributions', requireLogin, (req, res) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
+        
+        // Debug: Log the first result to see what fields we're getting
+        if (results.length > 0) {
+            console.log('Sample contribution data:', results[0]);
+        }
+        
         res.json(results);
     });
 });
