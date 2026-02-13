@@ -103,6 +103,13 @@ function showDashboard() {
         fenceNoPermBanner.style.display = canManageFence ? 'none' : 'block';
     }
     
+    // Hehler-Produktverwaltung Button zeigen/verstecken
+    const newProductButton = document.querySelector('#fence-manage-tab .btn-primary');
+    if (newProductButton) {
+        const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
+        newProductButton.style.display = canManageFence ? 'inline-flex' : 'none';
+    }
+    
     // Wartungsbereich für Techniker anzeigen
     updateMaintenanceAccess();
     
@@ -2678,6 +2685,15 @@ function switchFenceTab(tabName) {
         loadSalesProductsGrid();
     } else if (tabName === 'manage') {
         loadProductsManagement();
+        
+        // Berechtigungen für Produktverwaltung prüfen
+        if (currentUser) {
+            const newProductButton = document.querySelector('#fence-manage-tab .btn-primary');
+            if (newProductButton) {
+                const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
+                newProductButton.style.display = canManageFence ? 'inline-flex' : 'none';
+            }
+        }
     }
 }
 
