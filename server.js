@@ -2632,26 +2632,18 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                         
                         console.log(`DEBUG - UPDATE erfolgreich, affected rows:`, updateResult.affectedRows);
                         
-                        // Verifikation: Prüfen ob die Daten tatsächlich aktualisiert wurden
-                        connection.query('SELECT paid_amount_usd, status FROM member_contributions WHERE id = ?', [contribution_id], (err, verifyResult) => {
-                            if (err) {
-                                console.log(`DEBUG - Verifikations-Fehler:`, err);
-                            } else {
-                                console.log(`DEBUG - Nach Update - Verifikation:`, verifyResult[0]);
-                            }
-                            
-                            // Treasury-Transaktion erstellen
-                            const insertTransactionQuery = `
-                                INSERT INTO gang_transactions 
-                                (member_id, type, amount_usd, currency, description, recorded_by) 
-                                VALUES (?, 'einzahlung', ?, 'USD', ?, ?)
-                            `;
-                            
-                            const description = `Beitragszahlung: ${contribution.period_description || 'Beitrag'}`;
-                            
-                            connection.query(insertTransactionQuery, [
-                                contribution.member_id, newPaidAmount, description, req.session.userId
-                            ], (err, transactionResult) => {
+                        // Treasury-Transaktion erstellen
+                        const insertTransactionQuery = `
+                            INSERT INTO gang_transactions 
+                            (member_id, type, amount_usd, currency, description, recorded_by) 
+                            VALUES (?, 'einzahlung', ?, 'USD', ?, ?)
+                        `;
+                        
+                        const description = `Beitragszahlung: ${contribution.period_description || 'Beitrag'}`;
+                        
+                        connection.query(insertTransactionQuery, [
+                            contribution.member_id, newPaidAmount, description, req.session.userId
+                        ], (err, transactionResult) => {
                             if (err) {
                                 return connection.rollback(() => {
                                     connection.release();
@@ -2719,6 +2711,7 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                         });
                     });
                 });
+            });
         }
     );
 });
