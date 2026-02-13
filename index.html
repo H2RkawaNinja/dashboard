@@ -119,22 +119,73 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <h2>Letzte Aktivitäten</h2>
-                    <div id="recent-activity" class="activity-list"></div>
-                </div>
-
-                <div class="card">
+                <div class="card notes-card">
                     <h2>Notizen & Informationen</h2>
                     <div class="notes-section">
-                        <textarea 
+                        <!-- Rich Text Toolbar -->
+                        <div class="notes-toolbar">
+                            <div class="toolbar-group">
+                                <button type="button" class="toolbar-btn" data-command="bold" title="Fett">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="italic" title="Kursiv">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="underline" title="Unterstreichen">
+                                    <i class="fas fa-underline"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="toolbar-group">
+                                <select class="toolbar-select" id="font-size" title="Textgröße">
+                                    <option value="12px">Klein</option>
+                                    <option value="14px" selected>Normal</option>
+                                    <option value="16px">Groß</option>
+                                    <option value="18px">Größer</option>
+                                    <option value="24px">Sehr groß</option>
+                                    <option value="32px">Riesig</option>
+                                </select>
+                            </div>
+                            
+                            <div class="toolbar-group">
+                                <button type="button" class="toolbar-btn color-btn" data-color="#ffffff" title="Weiß" style="background: #ffffff;"></button>
+                                <button type="button" class="toolbar-btn color-btn" data-color="#10b981" title="Grün" style="background: #10b981;"></button>
+                                <button type="button" class="toolbar-btn color-btn" data-color="#3b82f6" title="Blau" style="background: #3b82f6;"></button>
+                                <button type="button" class="toolbar-btn color-btn" data-color="#f59e0b" title="Gelb" style="background: #f59e0b;"></button>
+                                <button type="button" class="toolbar-btn color-btn" data-color="#ef4444" title="Rot" style="background: #ef4444;"></button>
+                                <button type="button" class="toolbar-btn color-btn" data-color="#8b5cf6" title="Lila" style="background: #8b5cf6;"></button>
+                            </div>
+                            
+                            <div class="toolbar-group">
+                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="transparent" title="Kein Hintergrund">
+                                    <i class="fas fa-fill-drip"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="#10b981" title="Grüner Hintergrund" style="background: #10b981;"></button>
+                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="#f59e0b" title="Gelber Hintergrund" style="background: #f59e0b;"></button>
+                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="#ef4444" title="Roter Hintergrund" style="background: #ef4444;"></button>
+                            </div>
+                            
+                            <div class="toolbar-group">
+                                <button type="button" class="toolbar-btn" data-command="removeFormat" title="Formatierung entfernen">
+                                    <i class="fas fa-eraser"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Rich Text Editor -->
+                        <div 
                             id="overview-notes" 
+                            class="rich-text-editor"
+                            contenteditable="true"
                             placeholder="Hier können wichtige Informationen, Notizen oder Ankündigungen für alle Mitglieder eingetragen werden..."
-                            rows="6"
-                        ></textarea>
+                        ></div>
+                        
                         <div class="notes-actions">
                             <button id="save-notes-btn" class="btn-primary">
                                 <i class="fas fa-save"></i> Notizen speichern
+                            </button>
+                            <button id="clear-notes-btn" class="btn-secondary">
+                                <i class="fas fa-trash"></i> Leeren
                             </button>
                             <span id="notes-status" class="notes-status"></span>
                         </div>

@@ -213,7 +213,6 @@ function loadPageData(page) {
 function loadDashboardData() {
     loadDashboardStats();
     loadMembers();
-    loadRecentActivity();
     loadOverviewNotes();
 }
 
@@ -234,11 +233,7 @@ async function loadDashboardStats() {
         if (statFence) statFence.textContent = `$${(stats.fence_pending || 0).toLocaleString()}`;
         if (statWarehouse) statWarehouse.textContent = `$${(stats.warehouse_value || 0).toLocaleString()}`;
         
-        // Lade auch die letzten Aktivitäten wenn wir auf der Übersicht sind
-        const currentPage = document.querySelector('.nav-item.active').dataset.page;
-        if (currentPage === 'overview') {
-            loadRecentActivity();
-        }
+        // Dashboard Stats geladen
     } catch (error) {
         console.error('Fehler beim Laden der Statistiken:', error);
     }
@@ -253,9 +248,9 @@ async function loadOverviewNotes() {
         });
         const data = await response.json();
         
-        const notesTextarea = document.getElementById('overview-notes');
-        if (notesTextarea) {
-            notesTextarea.value = data.notes || '';
+        const notesEditor = document.getElementById('overview-notes');
+        if (notesEditor) {
+            notesEditor.innerHTML = data.notes || '';
         }
     } catch (error) {
         console.error('Fehler beim Laden der Übersichts-Notizen:', error);
@@ -263,12 +258,12 @@ async function loadOverviewNotes() {
 }
 
 async function saveOverviewNotes() {
-    const notesTextarea = document.getElementById('overview-notes');
+    const notesEditor = document.getElementById('overview-notes');
     const statusSpan = document.getElementById('notes-status');
     
-    if (!notesTextarea || !statusSpan) return;
+    if (!notesEditor || !statusSpan) return;
     
-    const notes = notesTextarea.value;
+    const notes = notesEditor.innerHTML;
     
     try {
         statusSpan.textContent = 'Speichere...';
@@ -304,129 +299,67 @@ async function saveOverviewNotes() {
     }
 }
 
-// ========== LETZTE AKTIVITÄTEN ==========
-
-async function loadRecentActivity() {
-    try {
-        const response = await fetch(`${API_URL}/activity/recent?limit=5`, {
-            credentials: 'include'
-        });
-        const activities = await response.json();
-        
-        const activityDiv = document.getElementById('recent-activity');
-        
-        if (!activities || activities.length === 0) {
-            activityDiv.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
-                    <i class="fas fa-inbox" style="font-size: 24px; margin-bottom: 10px;"></i>
-                    <p>Noch keine Aktivitäten vorhanden</p>
-                </div>
-            `;
-            return;
-        }
-        
-        activityDiv.innerHTML = activities.map(a => {
-            const icon = getActivityIcon(a.action_type);
-            const iconColor = getActivityIconColor(a.action_type);
-            
-            return `
-                <div class="activity-item">
-                    <div class="activity-icon" style="color: ${iconColor};">
-                        <i class="fas fa-${icon}"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-main">
-                            <strong>${a.member_name}</strong>
-                            <span>${formatActivityAction(a.action_type, a.details)}</span>
-                        </div>
-                        <div class="activity-time">
-                            ${formatTimeAgo(a.created_at)}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    } catch (error) {
-        console.error('Fehler beim Laden der letzten Aktivitäten:', error);
-        const activityDiv = document.getElementById('recent-activity');
-        if (activityDiv) {
-            activityDiv.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: var(--danger);">
-                    <i class="fas fa-exclamation-circle" style="font-size: 24px; margin-bottom: 10px;"></i>
-                    <p>Fehler beim Laden der Aktivitäten</p>
-                </div>
-            `;
-        }
+function clearOverviewNotes() {
+    const notesEditor = document.getElementById('overview-notes');
+    if (notesEditor) {
+        notesEditor.innerHTML = '';
+        saveOverviewNotes();
     }
 }
 
-function getActivityIcon(actionType) {
-    const icons = {
-        'hero_purchase': 'shopping-cart',
-        'hero_sale': 'dollar-sign',
-        'hero_payment': 'money-bill-wave',
-        'fence_sale': 'handshake',
-        'storage_purchase': 'warehouse',
-        'member_added': 'user-plus',
-        'member_edited': 'user-edit',
-        'member_deleted': 'user-minus',
-        'login': 'sign-in-alt',
-        'logout': 'sign-out-alt'
-    };
-    return icons[actionType] || 'info-circle';
+// Rich Text Editor Funktionen
+function execCommand(command, value = null) {
+    document.execCommand(command, false, value);
+    updateToolbarState();
 }
 
-function getActivityIconColor(actionType) {
-    const colors = {
-        'hero_purchase': 'var(--warning)',
-        'hero_sale': 'var(--success)',
-        'hero_payment': 'var(--info)',
-        'fence_sale': 'var(--secondary)',
-        'storage_purchase': 'var(--primary)',
-        'member_added': 'var(--success)',
-        'member_edited': 'var(--info)',
-        'member_deleted': 'var(--danger)',
-        'login': 'var(--success)',
-        'logout': 'var(--text-secondary)'
-    };
-    return colors[actionType] || 'var(--text-secondary)';
-}
-
-function formatActivityAction(actionType, details) {
-    const actions = {
-        'hero_purchase': `hat ${details.quantity || 0} Hero gekauft`,
-        'hero_sale': `hat Hero verkauft`,
-        'hero_payment': `wurde bezahlt`,
-        'fence_sale': `hat Waren an Hehler verkauft`,
-        'storage_purchase': `hat Lager aufgestockt`,
-        'member_added': `wurde hinzugefügt`,
-        'member_edited': `wurde bearbeitet`,
-        'member_deleted': `wurde entfernt`,
-        'login': `hat sich eingeloggt`,
-        'logout': `hat sich ausgeloggt`
-    };
-    return actions[actionType] || 'hat eine Aktion durchgeführt';
-}
-
-function formatTimeAgo(dateString) {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 1) return 'gerade eben';
-    if (diffMins < 60) return `vor ${diffMins} Min.`;
-    if (diffHours < 24) return `vor ${diffHours} Std.`;
-    if (diffDays < 7) return `vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`;
-    
-    return date.toLocaleDateString('de-DE', { 
-        day: '2-digit', 
-        month: '2-digit',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+function updateToolbarState() {
+    const commands = ['bold', 'italic', 'underline'];
+    commands.forEach(cmd => {
+        const btn = document.querySelector(`[data-command="${cmd}"]`);
+        if (btn) {
+            btn.classList.toggle('active', document.queryCommandState(cmd));
+        }
     });
 }
+
+function applyColor(color) {
+    execCommand('foreColor', color);
+}
+
+function applyBackgroundColor(color) {
+    if (color === 'transparent') {
+        execCommand('backColor', 'transparent');
+        execCommand('hiliteColor', 'transparent');
+    } else {
+        execCommand('backColor', color);
+    }
+}
+
+function applyFontSize(size) {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const span = document.createElement('span');
+        span.style.fontSize = size;
+        
+        try {
+            range.surroundContents(span);
+        } catch (e) {
+            // Fallback: span um den Inhalt wickeln
+            span.appendChild(range.extractContents());
+            range.insertNode(span);
+        }
+        
+        selection.removeAllRanges();
+        const newRange = document.createRange();
+        newRange.selectNodeContents(span);
+        selection.addRange(newRange);
+    }
+}
+
+// ========== RICH TEXT HELPER ==========
+// (Notizen Rich-Text-Editor Funktionen sind oben definiert)
 
 // ========== MITGLIEDER ==========
 
@@ -4682,20 +4615,85 @@ function hideMaintenanceBanner(module) {
 // EVENT LISTENERS
 // ========================================
 
-// Event Listener für Notizen speichern Button
+// Event Listener für Rich Text Editor
 document.addEventListener('DOMContentLoaded', function() {
+    // Notizen Buttons
     const saveNotesBtn = document.getElementById('save-notes-btn');
+    const clearNotesBtn = document.getElementById('clear-notes-btn');
+    
     if (saveNotesBtn) {
         saveNotesBtn.addEventListener('click', saveOverviewNotes);
     }
     
-    // Auto-Save für Notizen (nach 2 Sekunden ohne Eingabe)
-    const notesTextarea = document.getElementById('overview-notes');
-    if (notesTextarea) {
+    if (clearNotesBtn) {
+        clearNotesBtn.addEventListener('click', clearOverviewNotes);
+    }
+    
+    // Auto-Save für Notizen (nach 3 Sekunden ohne Eingabe)
+    const notesEditor = document.getElementById('overview-notes');
+    if (notesEditor) {
         let saveTimeout;
-        notesTextarea.addEventListener('input', function() {
+        notesEditor.addEventListener('input', function() {
             clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(saveOverviewNotes, 2000);
+            saveTimeout = setTimeout(saveOverviewNotes, 3000);
+            updateToolbarState();
+        });
+        
+        // Cursor Position ändern - Toolbar Status aktualisieren
+        notesEditor.addEventListener('keyup', updateToolbarState);
+        notesEditor.addEventListener('mouseup', updateToolbarState);
+    }
+    
+    // Toolbar Event Listeners
+    document.addEventListener('click', function(e) {
+        // Format Buttons
+        if (e.target.closest('[data-command]')) {
+            e.preventDefault();
+            const btn = e.target.closest('[data-command]');
+            const command = btn.dataset.command;
+            execCommand(command);
+        }
+        
+        // Color Buttons
+        if (e.target.closest('.color-btn')) {
+            e.preventDefault();
+            const color = e.target.closest('.color-btn').dataset.color;
+            applyColor(color);
+        }
+        
+        // Background Color Buttons
+        if (e.target.closest('.bg-color-btn')) {
+            e.preventDefault();
+            const bgColor = e.target.closest('.bg-color-btn').dataset.bgColor;
+            applyBackgroundColor(bgColor);
+        }
+    });
+    
+    // Font Size Selector
+    const fontSizeSelect = document.getElementById('font-size');
+    if (fontSizeSelect) {
+        fontSizeSelect.addEventListener('change', function() {
+            const size = this.value;
+            applyFontSize(size);
         });
     }
+    
+    // Shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'b') {
+                e.preventDefault();
+                execCommand('bold');
+            } else if (e.key === 'i') {
+                e.preventDefault();
+                execCommand('italic');
+            } else if (e.key === 'u') {
+                e.preventDefault();
+                execCommand('underline');
+            } else if (e.key === 's') {
+                e.preventDefault();
+                saveOverviewNotes();
+            }
+        }
+    });
 });
