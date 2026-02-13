@@ -2580,8 +2580,18 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
             const newPaidAmount = contribution.paid_amount_usd + parseFloat(paid_amount);
             let newStatus = 'teilweise_bezahlt';
             
+            console.log(`DEBUG - Beitrag aktualisieren:`);
+            console.log(`  - Contribution ID: ${contribution_id}`);
+            console.log(`  - Alter Betrag: ${contribution.paid_amount_usd}`);
+            console.log(`  - Neuer Zahlbetrag: ${paid_amount}`);
+            console.log(`  - Neuer Gesamtbetrag: ${newPaidAmount}`);
+            console.log(`  - Erforderlicher Betrag: ${contribution.required_amount_usd}`);
+            
             if (newPaidAmount >= contribution.required_amount_usd) {
                 newStatus = 'vollständig_bezahlt';
+                console.log(`  - Status: vollständig_bezahlt`);
+            } else {
+                console.log(`  - Status: teilweise_bezahlt`);
             }
             
             // Update Query definieren
@@ -2604,15 +2614,19 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                     }
                     
                     // Update Contribution Status
+                    console.log(`DEBUG - Executing UPDATE query with values:`, [newPaidAmount, newStatus, payment_date, notes, contribution_id]);
                     connection.query(updateQuery, [
                         newPaidAmount, newStatus, payment_date, notes, contribution_id
-                    ], (err) => {
+                    ], (err, updateResult) => {
                         if (err) {
+                            console.log(`DEBUG - UPDATE Fehler:`, err);
                             return connection.rollback(() => {
                                 connection.release();
                                 res.status(500).json({ error: err.message });
                             });
                         }
+                        
+                        console.log(`DEBUG - UPDATE erfolgreich, affected rows:`, updateResult.affectedRows);
                         
                         // Treasury-Transaktion erstellen
                         const insertTransactionQuery = `
@@ -2662,12 +2676,14 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                                     
                                     connection.commit(err => {
                                         if (err) {
+                                            console.log(`DEBUG - COMMIT Fehler:`, err);
                                             return connection.rollback(() => {
                                                 connection.release();
                                                 res.status(500).json({ error: err.message });
                                             });
                                         }
                                         
+                                        console.log(`DEBUG - COMMIT erfolgreich. Final paid amount: ${newPaidAmount}, Status: ${newStatus}`);
                                         connection.release();
                                         
                                         // Log activity
