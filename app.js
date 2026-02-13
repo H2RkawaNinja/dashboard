@@ -5498,13 +5498,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Globale Variable für Contribution-Daten
+let currentMemberContributions = [];
+
 // Load Member Contributions for Mark Modal
 async function loadMemberContributions() {
     const memberSelect = document.getElementById('mark-contribution-member');
     const periodSelect = document.getElementById('mark-contribution-period');
+    const amountField = document.getElementById('mark-contribution-amount');
     
     if (!memberSelect.value) {
         periodSelect.innerHTML = '<option value="">Beitrag auswählen</option>';
+        amountField.value = '';
+        currentMemberContributions = [];
         return;
     }
     
@@ -5520,6 +5526,9 @@ async function loadMemberContributions() {
                 c.status !== 'vollständig_bezahlt'
             );
             
+            // Daten für spätere Verwendung speichern
+            currentMemberContributions = memberContributions;
+            
             periodSelect.innerHTML = '<option value="">Beitrag auswählen</option>';
             memberContributions.forEach(contribution => {
                 const option = document.createElement('option');
@@ -5528,9 +5537,29 @@ async function loadMemberContributions() {
                 option.textContent = `${contribution.period_description} ($${formatCurrency(outstanding)} ausstehend)`;
                 periodSelect.appendChild(option);
             });
+            
+            // Betrag-Feld leeren
+            amountField.value = '';
         }
     } catch (error) {
         console.error('Fehler beim Laden der Mitgliederbeiträge:', error);
+    }
+}
+
+// Automatisches Einfügen des ausstehenden Betrags
+function updateContributionAmount() {
+    const periodSelect = document.getElementById('mark-contribution-period');
+    const amountField = document.getElementById('mark-contribution-amount');
+    
+    if (!periodSelect.value) {
+        amountField.value = '';
+        return;
+    }
+    
+    const selectedContribution = currentMemberContributions.find(c => c.id == periodSelect.value);
+    if (selectedContribution) {
+        const outstanding = selectedContribution.required_amount_usd - selectedContribution.paid_amount_usd;
+        amountField.value = outstanding.toFixed(2);
     }
 }
 
