@@ -2578,6 +2578,13 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                 newStatus = 'vollständig_bezahlt';
             }
             
+            // Update Query definieren
+            const updateQuery = `
+                UPDATE member_contributions 
+                SET paid_amount_usd = ?, status = ?, payment_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `;
+            
             // Update Beitrag und erstelle Treasury-Transaktion in einer Transaktion
             db.getConnection((err, connection) => {
                 if (err) {
@@ -2680,7 +2687,6 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                 });
             });
         });
-    });
 });
 
 // Treasury Statistiken
