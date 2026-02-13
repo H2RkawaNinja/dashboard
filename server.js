@@ -2578,26 +2578,107 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                 newStatus = 'vollständig_bezahlt';
             }
             
-            // Update Beitrag
-            const updateQuery = `
-                UPDATE member_contributions 
-                SET paid_amount_usd = ?, status = ?, payment_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            `;
-            
-            db.query(updateQuery, [
-                newPaidAmount, newStatus, payment_date, notes, contribution_id
-            ], (err) => {
+            // Update Beitrag und erstelle Treasury-Transaktion in einer Transaktion
+            db.getConnection((err, connection) => {
                 if (err) {
                     return res.status(500).json({ error: err.message });
                 }
                 
-                // Log activity
-                const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
-                db.query(logQuery, [
-                    req.session.userId, 
-                    'treasury_contribution_paid', 
-                    `Beitrag von $${paid_amount} für Mitglied ${contribution.member_id} verbucht`
+                connection.beginTransaction(err => {
+                    if (err) {
+                        connection.release();
+                        return res.status(500).json({ error: err.message });
+                    }
+                    
+                    // Update Contribution Status
+                    connection.query(updateQuery, [
+                        newPaidAmount, newStatus, payment_date, notes, contribution_id
+                    ], (err) => {
+                        if (err) {
+                            return connection.rollback(() => {
+                                connection.release();
+                                res.status(500).json({ error: err.message });
+                            });
+                        }
+                        
+                        // Treasury-Transaktion erstellen
+                        const insertTransactionQuery = `
+                            INSERT INTO gang_transactions 
+                            (member_id, type, amount_usd, currency, description, recorded_by) 
+                            VALUES (?, 'einzahlung', ?, 'USD', ?, ?)
+                        `;
+                        
+                        const description = `Beitragszahlung: ${contribution.period_description || 'Beitrag'}`;
+                        
+                        connection.query(insertTransactionQuery, [
+                            contribution.member_id, paid_amount, description, req.session.userId
+                        ], (err, transactionResult) => {
+                            if (err) {
+                                return connection.rollback(() => {
+                                    connection.release();
+                                    res.status(500).json({ error: err.message });
+                                });
+                            }
+                            
+                            // Treasury Balance aktualisieren
+                            db.query('SELECT current_balance_usd FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, balanceResults) => {
+                                if (err) {
+                                    return connection.rollback(() => {
+                                        connection.release();
+                                        res.status(500).json({ error: err.message });
+                                    });
+                                }
+                                
+                                const currentBalance = balanceResults.length > 0 ? balanceResults[0].current_balance_usd : 0;
+                                const newBalance = currentBalance + parseFloat(paid_amount);
+                                
+                                const updateBalanceQuery = `
+                                    INSERT INTO gang_treasury (current_balance_usd, currency, updated_by, notes) 
+                                    VALUES (?, 'USD', ?, ?)
+                                `;
+                                
+                                connection.query(updateBalanceQuery, [
+                                    newBalance, req.session.userId, `Beitragszahlung: ${description}`
+                                ], (err) => {
+                                    if (err) {
+                                        return connection.rollback(() => {
+                                            connection.release();
+                                            res.status(500).json({ error: err.message });
+                                        });
+                                    }
+                                    
+                                    connection.commit(err => {
+                                        if (err) {
+                                            return connection.rollback(() => {
+                                                connection.release();
+                                                res.status(500).json({ error: err.message });
+                                            });
+                                        }
+                                        
+                                        connection.release();
+                                        
+                                        // Log activity
+                                        const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
+                                        db.query(logQuery, [
+                                            req.session.userId, 
+                                            'treasury_contribution_paid', 
+                                            `Beitrag von $${paid_amount} für Mitglied ${contribution.member_id} verbucht`
+                                        ]);
+                                        
+                                        res.json({ 
+                                            success: true,
+                                            new_paid_amount: newPaidAmount,
+                                            new_status: newStatus,
+                                            new_balance: newBalance,
+                                            transaction_id: transactionResult.insertId
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            });
                 ]);
                 
                 res.json({ 

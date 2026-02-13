@@ -5479,14 +5479,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (result.success) {
                     showToast('Beitrag erfolgreich verbucht', 'success');
-                    closeModals();
-                    markContributionForm.reset();
+                    
+                    // Listen aktualisieren
                     await Promise.all([
                         loadTreasuryBalance(),
+                        loadTreasuryTransactions(), // Auch Transaktionen neu laden
                         loadContributions(),
                         loadTreasuryStats(),
-                        loadDashboardTreasuryStats() // Dashboard Stats auch aktualisieren
+                        loadDashboardTreasuryStats()
                     ]);
+                    
+                    // Modal-Daten zurücksetzen und neu laden
+                    markContributionForm.reset();
+                    currentMemberContributions = [];
+                    
+                    // Dropdown zurücksetzen
+                    document.getElementById('mark-contribution-member').value = '';
+                    document.getElementById('mark-contribution-period').innerHTML = '<option value="">Beitrag auswählen</option>';
+                    document.getElementById('mark-contribution-amount').value = '';
+                    
+                    closeModals();
                 } else {
                     showToast(result.error || 'Fehler beim Verbuchen des Beitrags', 'error');
                 }
