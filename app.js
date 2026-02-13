@@ -5273,7 +5273,7 @@ function renderTreasuryStats() {
 // Modal-Funktionen
 function showAddTransactionModal() {
     document.getElementById('add-transaction-modal').style.display = 'block';
-    document.getElementById('modal-overlay').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'flex';
     
     // Mitglieder für Select laden
     loadMembersForTreasuryModal();
@@ -5281,7 +5281,7 @@ function showAddTransactionModal() {
 
 function showSetContributionModal() {
     document.getElementById('set-contribution-modal').style.display = 'block';
-    document.getElementById('modal-overlay').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'flex';
     
     // Aktuelle Werte setzen
     const now = new Date();
@@ -5291,7 +5291,7 @@ function showSetContributionModal() {
 
 function showMarkContributionModal() {
     document.getElementById('mark-contribution-modal').style.display = 'block';
-    document.getElementById('modal-overlay').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'flex';
     
     // Mitglieder laden
     loadMembersForTreasuryModal();
