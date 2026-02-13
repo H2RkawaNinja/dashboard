@@ -707,6 +707,28 @@ async function loadHeroDistributions() {
 function closeModals() {
     document.getElementById('modal-overlay').style.display = 'none';
     document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+    
+    // Reset alle wichtigen Formulare
+    const forms = ['quick-purchase-form', 'cart-checkout-form', 'fence-purchase-form'];
+    forms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.reset();
+        }
+    });
+    
+    // Reset spezifische Felder
+    const fieldsToReset = ['checkout-seller-info', 'quick-quantity', 'quick-unit-price'];
+    fieldsToReset.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            if (fieldId === 'quick-quantity') {
+                field.value = '1';
+            } else {
+                field.value = '';
+            }
+        }
+    });
 }
 
 function showRestockModal() {
@@ -2704,6 +2726,8 @@ function addToCart() {
     const quantity = parseInt(document.getElementById('quick-quantity').value) || 0;
     const unitPrice = parseFloat(document.getElementById('quick-unit-price').value) || 0;
     
+    console.log('Versuche Artikel zum Warenkorb hinzuzufügen:', { productName, quantity, unitPrice }); // Debug log
+    
     if (!productName || quantity < 1 || unitPrice < 0) {
         showToast('Bitte alle Felder korrekt ausfüllen', 'error');
         return;
@@ -2711,17 +2735,19 @@ function addToCart() {
     
     const cartItem = {
         id: Date.now(),
-        productId,
-        productName,
-        productIcon,
-        productCategory,
-        quantity,
-        unitPrice,
+        productId: productId || '',
+        productName: productName,
+        productIcon: productIcon || 'fa-box',
+        productCategory: productCategory || '',
+        quantity: quantity,
+        unitPrice: unitPrice,
         total: quantity * unitPrice
     };
     
     shoppingCart.push(cartItem);
     updateCartDisplay();
+    
+    console.log('Artikel hinzugefügt. Warenkorb hat jetzt', shoppingCart.length, 'Artikel'); // Debug log
     
     // Reset form
     document.getElementById('quick-quantity').value = 1;
@@ -2872,14 +2898,15 @@ function changeQuickQty(delta) {
 
 // Quick Purchase Modal öffnen
 function showQuickPurchaseModal(productId, productName, productIcon, productCategory, suggestedPrice) {
-    document.getElementById('quick-product-id').value = productId;
-    document.getElementById('quick-product-name').value = productName;
-    document.getElementById('quick-product-icon').value = productIcon;
-    document.getElementById('quick-product-category').value = productCategory;
+    // Stelle sicher, dass alle Felder richtig zurückgesetzt sind
+    document.getElementById('quick-product-id').value = productId || '';
+    document.getElementById('quick-product-name').value = productName || '';
+    document.getElementById('quick-product-icon').value = productIcon || 'fa-box';
+    document.getElementById('quick-product-category').value = productCategory || '';
     
-    document.getElementById('quick-product-display-name').textContent = productName;
-    document.getElementById('quick-product-display-category').textContent = productCategory;
-    document.getElementById('quick-product-display-icon').innerHTML = `<i class="fas ${productIcon}"></i>`;
+    document.getElementById('quick-product-display-name').textContent = productName || 'Produkt';
+    document.getElementById('quick-product-display-category').textContent = productCategory || 'Kategorie';
+    document.getElementById('quick-product-display-icon').innerHTML = `<i class="fas ${productIcon || 'fa-box'}"></i>`;
     
     document.getElementById('quick-quantity').value = 1;
     document.getElementById('quick-unit-price').value = suggestedPrice || '';
@@ -2897,6 +2924,8 @@ function proceedToCheckout() {
         showToast('Warenkorb ist leer', 'error');
         return;
     }
+    
+    console.log('Öffne Checkout Modal mit', shoppingCart.length, 'Artikeln'); // Debug log
     
     // Öffne das Checkout Modal
     updateCartDisplay(); // Aktualisiere Warenkorb-Anzeige
@@ -3325,10 +3354,19 @@ if (cartCheckoutForm) {
                 
                 showToast(`${totalItems} Artikel(n) für $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`, 'success', 'Ankauf erfolgreich');
                 
+                // Warenkorb und Formular richtig zurücksetzen
                 shoppingCart = [];
+                document.getElementById('cart-checkout-form').reset();
+                document.getElementById('checkout-seller-info').value = '';
+                
                 closeModals();
-                loadFenceData();
-                loadDashboardStats();
+                updateCartDisplay(); // Warenkorb-Anzeige sofort aktualisieren
+                
+                // Daten neu laden mit kleinem Delay
+                setTimeout(() => {
+                    loadFenceData();
+                    loadDashboardStats();
+                }, 100);
             } else {
                 showToast('Einige Artikel konnten nicht gespeichert werden', 'error');
             }
