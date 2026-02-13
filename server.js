@@ -2670,7 +2670,6 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
         res.status(500).json({ error: err.message });
     });
 });
-});
 
 // Server starten
 app.listen(PORT, () => {
