@@ -3013,6 +3013,69 @@ app.post('/api/treasury/contributions/create-week', requireLogin, (req, res) => 
     });
 });
 
+// Beiträge für Zeitraum anlegen (Mit Datum von-bis)
+app.post('/api/treasury/contributions/create-period', requireLogin, (req, res) => {
+    const { start_datum, end_datum, beitrag } = req.body;
+    
+    if (!start_datum || !end_datum) {
+        return res.status(400).json({ error: 'Start- und Enddatum sind erforderlich' });
+    }
+    
+    const startDate = new Date(start_datum);
+    const endDate = new Date(end_datum);
+    
+    if (startDate > endDate) {
+        return res.status(400).json({ error: 'Startdatum muss vor Enddatum liegen' });
+    }
+    
+    const standardBeitrag = beitrag ? parseFloat(beitrag) : 50.00;
+    
+    // Alle aktiven Mitglieder abrufen
+    db.query('SELECT id FROM members WHERE is_active = TRUE', (err, members) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (members.length === 0) {
+            return res.status(400).json({ error: 'Keine aktiven Mitglieder gefunden' });
+        }
+        
+        // Perioden-Beschreibung erstellen
+        const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        const startStr = startDate.toLocaleDateString('de-DE', options);
+        const endStr = endDate.toLocaleDateString('de-DE', options);
+        const periodeDesc = `${startStr} - ${endStr}`;
+        
+        // Beiträge für alle Mitglieder erstellen
+        const insertPromises = members.map(member => {
+            return new Promise((resolve, reject) => {
+                const query = `
+                    INSERT INTO member_contributions 
+                    (member_id, woche, woche_start, woche_ende, soll_betrag, status)
+                    VALUES (?, ?, ?, ?, ?, 'offen')
+                    ON DUPLICATE KEY UPDATE soll_betrag = VALUES(soll_betrag)
+                `;
+                
+                db.query(query, [member.id, periodeDesc, start_datum, end_datum, standardBeitrag], (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+        });
+        
+        Promise.all(insertPromises)
+            .then(() => {
+                res.json({ 
+                    success: true, 
+                    message: `Zeitraum ${periodeDesc}: $${standardBeitrag.toFixed(2)} für ${members.length} Mitglieder angelegt` 
+                });
+            })
+            .catch(err => {
+                res.status(500).json({ error: err.message });
+            });
+    });
+});
+
 // Server starten
 app.listen(PORT, () => {
     console.log(`Server läuft auf Port ${PORT}`);

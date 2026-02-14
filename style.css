@@ -4516,9 +4516,15 @@ body {
 
 .contribution-member {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.member-info {
+    flex: 1;
+    min-width: 150px;
 }
 
 .member-info .member-name {
@@ -4542,18 +4548,20 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-left: auto;
 }
 
 .btn-delete {
     background: var(--danger);
     color: white;
     border: none;
-    padding: 0.4rem 0.6rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 0.25rem;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-delete:hover {
@@ -4564,13 +4572,6 @@ body {
 .btn-small {
     padding: 0.3rem 0.5rem;
     font-size: 0.75rem;
-}
-
-.contribution-member {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    gap: 1rem;
 }
 
 .contribution-amounts {

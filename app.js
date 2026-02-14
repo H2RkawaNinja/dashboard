@@ -5288,16 +5288,60 @@ function renderContributions() {
     const container = document.getElementById('contributions-list');
     if (!container) return;
     
-    // Nach ausgewählter Woche filtern
-    const weekSelect = document.getElementById('contribution-week-select');
-    const selectedWeek = weekSelect?.value || '';
+    // Zeiträume aus Contributions extrahieren und Select befüllen
+    const periodSelect = document.getElementById('contribution-period-select');
+    if (periodSelect && treasuryContributions.length > 0) {
+        // Eindeutige Zeiträume sammeln
+        const periods = new Map();
+        treasuryContributions.forEach(c => {
+            if (c.woche_start && c.woche_ende) {
+                const key = `${c.woche_start}_${c.woche_ende}`;
+                if (!periods.has(key)) {
+                    periods.set(key, {
+                        start: c.woche_start,
+                        end: c.woche_ende
+                    });
+                }
+            }
+        });
+        
+        // Select nur befüllen wenn leer oder Perioden geändert
+        if (periodSelect.options.length === 0 || periodSelect.dataset.lastPeriods !== JSON.stringify([...periods.keys()])) {
+            const currentValue = periodSelect.value;
+            periodSelect.innerHTML = '<option value="">Alle Zeiträume</option>';
+            
+            // Nach Datum sortieren (neueste zuerst)
+            const sortedPeriods = [...periods.entries()].sort((a, b) => 
+                new Date(b[1].start) - new Date(a[1].start)
+            );
+            
+            sortedPeriods.forEach(([key, period]) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = formatDateRange(period.start, period.end);
+                periodSelect.appendChild(option);
+            });
+            
+            periodSelect.dataset.lastPeriods = JSON.stringify([...periods.keys()]);
+            
+            // Wert wiederherstellen oder ersten Zeitraum wählen
+            if (currentValue && [...periods.keys()].includes(currentValue)) {
+                periodSelect.value = currentValue;
+            } else if (sortedPeriods.length > 0) {
+                periodSelect.value = sortedPeriods[0][0];
+            }
+        }
+    }
     
-    const filteredContributions = selectedWeek ? 
-        treasuryContributions.filter(c => c.woche === selectedWeek) : 
+    // Nach ausgewähltem Zeitraum filtern
+    const selectedPeriod = periodSelect?.value || '';
+    
+    const filteredContributions = selectedPeriod ? 
+        treasuryContributions.filter(c => `${c.woche_start}_${c.woche_ende}` === selectedPeriod) : 
         treasuryContributions;
     
     if (filteredContributions.length === 0) {
-        container.innerHTML = '<div class="no-data">Keine Beiträge für diese Woche. Klicke "Neue Woche anlegen" um Beiträge zu erstellen.</div>';
+        container.innerHTML = '<div class="no-data">Keine Beiträge vorhanden. Klicke "Neuer Zeitraum" um Beiträge zu erstellen.</div>';
         return;
     }
     
@@ -5315,9 +5359,11 @@ function renderContributions() {
         };
         
         const percentage = contribution.soll_betrag > 0 ? 
-            (contribution.ist_betrag / contribution.soll_betrag * 100) : 0;
+            ((contribution.ist_betrag || 0) / contribution.soll_betrag * 100) : 0;
         
-        const outstanding = contribution.soll_betrag - contribution.ist_betrag;
+        const outstanding = contribution.soll_betrag - (contribution.ist_betrag || 0);
+        
+        const canDelete = !contribution.ist_betrag || contribution.ist_betrag === 0;
         
         return `
             <div class="contribution-item ${statusColor[contribution.status]}">
@@ -5330,14 +5376,14 @@ function renderContributions() {
                         <i class="fas ${statusIcon[contribution.status]}"></i>
                         <span>${getContributionStatusText(contribution.status)}</span>
                     </div>
+                    ${canDelete ? `
                     <div class="contribution-actions">
-                        ${contribution.ist_betrag === 0 || contribution.ist_betrag === null ? 
-                            `<button class="btn-delete btn-small" onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}')"
-                                title="Beitrag löschen">
-                                <i class="fas fa-trash"></i>
-                            </button>` : ''
-                        }
+                        <button class="btn-delete btn-small" onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}')"
+                            title="Beitrag löschen">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
+                    ` : ''}
                 </div>
                 <div class="contribution-amounts">
                     <div class="amount-row">
@@ -5346,7 +5392,7 @@ function renderContributions() {
                     </div>
                     <div class="amount-row">
                         <span class="label">Ist:</span>
-                        <span class="amount paid">$ ${formatCurrency(contribution.ist_betrag)}</span>
+                        <span class="amount paid">$ ${formatCurrency(contribution.ist_betrag || 0)}</span>
                     </div>
                     ${outstanding > 0 ? `
                     <div class="amount-row outstanding">
@@ -5369,6 +5415,18 @@ function renderContributions() {
     }).join('');
     
     container.innerHTML = contributionsHtml;
+}
+
+// Datumsbereich formatieren
+function formatDateRange(start, end) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    const startStr = startDate.toLocaleDateString('de-DE', options);
+    const endStr = endDate.toLocaleDateString('de-DE', options);
+    
+    return `${startStr} - ${endStr}`;
 }
 
 function getContributionStatusText(status) {
@@ -5736,61 +5794,52 @@ function populateWeekSelect() {
 
 // Modal für neue Woche öffnen
 function createWeeklyContributions() {
-    const modal = document.getElementById('create-week-modal');
-    const weekSelect = document.getElementById('create-week-select');
+    const modal = document.getElementById('create-period-modal');
     
-    // Wochen-Dropdown im Modal befüllen
-    weekSelect.innerHTML = '';
+    // Standard-Datumsfelder setzen (diese Woche Montag bis Sonntag)
     const now = new Date();
+    const dayOfWeek = now.getDay() || 7; // Sonntag = 7
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayOfWeek + 1);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
     
-    for (let i = -2; i <= 4; i++) {
-        const date = new Date(now);
-        date.setDate(date.getDate() + (i * 7));
-        
-        const weekNum = getWeekNumber(date);
-        const year = date.getFullYear();
-        const weekKey = `KW${String(weekNum).padStart(2, '0')}-${year}`;
-        
-        const option = document.createElement('option');
-        option.value = weekKey;
-        option.textContent = `KW ${weekNum} / ${year}`;
-        
-        if (i === 0) {
-            option.selected = true;
-        }
-        
-        weekSelect.appendChild(option);
-    }
+    const formatDateForInput = (date) => date.toISOString().slice(0, 10);
     
-    // Standard-Beitrag laden
-    fetch(`${API_URL}/treasury/balance`, { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => {
-            // Hier könnte man den Standard-Wochenbeitrag aus der DB laden
-            document.getElementById('create-week-amount').value = '50.00';
-        })
-        .catch(() => {
-            document.getElementById('create-week-amount').value = '50.00';
-        });
+    document.getElementById('period-start-date').value = formatDateForInput(monday);
+    document.getElementById('period-end-date').value = formatDateForInput(sunday);
+    document.getElementById('period-amount').value = '50.00';
     
     modal.style.display = 'block';
     document.getElementById('modal-overlay').style.display = 'flex';
 }
 
-// Neue Woche anlegen (Submit)
-async function submitCreateWeek(event) {
+// Neuen Zeitraum anlegen (Submit)
+async function submitCreatePeriod(event) {
     event.preventDefault();
     
-    const selectedWeek = document.getElementById('create-week-select').value;
-    const beitrag = parseFloat(document.getElementById('create-week-amount').value);
+    const startDate = document.getElementById('period-start-date').value;
+    const endDate = document.getElementById('period-end-date').value;
+    const beitrag = parseFloat(document.getElementById('period-amount').value);
+    
+    if (!startDate || !endDate) {
+        showToast('Bitte Start- und Enddatum auswählen', 'error');
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        showToast('Startdatum muss vor Enddatum liegen', 'error');
+        return;
+    }
     
     try {
-        const response = await fetch(`${API_URL}/treasury/contributions/create-week`, {
+        const response = await fetch(`${API_URL}/treasury/contributions/create-period`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ 
-                woche: selectedWeek,
+                start_datum: startDate,
+                end_datum: endDate,
                 beitrag: beitrag
             })
         });
@@ -5798,30 +5847,8 @@ async function submitCreateWeek(event) {
         const result = await response.json();
         
         if (result.success) {
-            showToast(result.message || 'Wochenbeiträge angelegt', 'success');
+            showToast(result.message || 'Beiträge angelegt', 'success');
             closeModals();
-            
-            // Wochen-Auswahl auf die neue Woche setzen
-            const mainWeekSelect = document.getElementById('contribution-week-select');
-            if (mainWeekSelect) {
-                // Prüfen ob Option existiert, sonst hinzufügen
-                let optionExists = false;
-                for (let opt of mainWeekSelect.options) {
-                    if (opt.value === selectedWeek) {
-                        optionExists = true;
-                        break;
-                    }
-                }
-                if (!optionExists) {
-                    const newOption = document.createElement('option');
-                    newOption.value = selectedWeek;
-                    const match = selectedWeek.match(/KW(\d+)-(\d+)/);
-                    newOption.textContent = `KW ${parseInt(match[1])} / ${match[2]}`;
-                    mainWeekSelect.insertBefore(newOption, mainWeekSelect.firstChild);
-                }
-                mainWeekSelect.value = selectedWeek;
-            }
-            
             loadContributions();
         } else {
             showToast(result.error || 'Fehler beim Anlegen', 'error');
