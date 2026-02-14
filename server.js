@@ -2730,7 +2730,7 @@ app.delete('/api/treasury/contributions/:id', requireLogin, (req, res) => {
         return res.status(400).json({ error: 'Beitrags-ID ist erforderlich' });
     }
     
-    // Prüfe ob Beitrag existiert und ob er gelöscht werden kann
+    // Prüfe ob Beitrag existiert
     db.query(
         'SELECT * FROM member_contributions WHERE id = ?',
         [contributionId],
@@ -2745,14 +2745,7 @@ app.delete('/api/treasury/contributions/:id', requireLogin, (req, res) => {
             
             const contribution = results[0];
             
-            // Prüfe ob bereits Zahlungen existieren
-            if (contribution.ist_betrag > 0) {
-                return res.status(400).json({ 
-                    error: 'Beitrag kann nicht gelöscht werden - bereits Zahlungen vorhanden' 
-                });
-            }
-            
-            // Lösche den Beitrag
+            // Lösche den Beitrag (auch wenn bereits bezahlt)
             db.query(
                 'DELETE FROM member_contributions WHERE id = ?',
                 [contributionId],
@@ -2770,7 +2763,7 @@ app.delete('/api/treasury/contributions/:id', requireLogin, (req, res) => {
                     db.query(logQuery, [
                         req.session.userId, 
                         'treasury_contribution_deleted', 
-                        `Beitrag gelöscht: ${contribution.woche} für Mitglied ${contribution.member_id}`
+                        `Beitrag gelöscht: ${contribution.woche} für Mitglied ${contribution.member_id} (Betrag: $${contribution.ist_betrag || 0})`
                     ]);
                     
                     res.json({ 

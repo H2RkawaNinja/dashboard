@@ -5363,7 +5363,8 @@ function renderContributions() {
         
         const outstanding = contribution.soll_betrag - (contribution.ist_betrag || 0);
         
-        const canDelete = !contribution.ist_betrag || contribution.ist_betrag === 0;
+        const istBetrag = parseFloat(contribution.ist_betrag) || 0;
+        const hasPaid = istBetrag > 0;
         
         return `
             <div class="contribution-item ${statusColor[contribution.status]}">
@@ -5376,14 +5377,13 @@ function renderContributions() {
                         <i class="fas ${statusIcon[contribution.status]}"></i>
                         <span>${getContributionStatusText(contribution.status)}</span>
                     </div>
-                    ${canDelete ? `
                     <div class="contribution-actions">
-                        <button class="btn-delete btn-small" onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}')"
+                        <button class="btn-delete btn-small ${hasPaid ? 'has-paid' : ''}" 
+                            onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}', ${hasPaid})"
                             title="Beitrag löschen">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
-                    ` : ''}
                 </div>
                 <div class="contribution-amounts">
                     <div class="amount-row">
@@ -6165,8 +6165,14 @@ function updateContributionAmount() {
 }
 
 // Beitrag löschen Bestätigung
-function confirmDeleteContribution(contributionId, memberName) {
-    if (confirm(`Möchten Sie den Beitrag für ${memberName} wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`)) {
+function confirmDeleteContribution(contributionId, memberName, hasPaid = false) {
+    let message = `Möchten Sie den Beitrag für ${memberName} wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`;
+    
+    if (hasPaid) {
+        message = `ACHTUNG: Dieser Beitrag hat bereits Zahlungen!\n\nMöchten Sie den Beitrag für ${memberName} wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`;
+    }
+    
+    if (confirm(message)) {
         deleteContribution(contributionId);
     }
 }
