@@ -4929,6 +4929,32 @@ body {
     font-size: 0.85rem;
 }
 
+/* Create Week Modal */
+.create-week-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 0.5rem;
+    border-left: 3px solid var(--primary);
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.create-week-info i {
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
 /* Treasury Modals */
 .treasury-modal .form-group {
     margin-bottom: 1rem;

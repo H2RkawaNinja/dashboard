@@ -2932,7 +2932,7 @@ app.get('/api/treasury/goals/:id/contributors', requireLogin, (req, res) => {
 
 // Wochenbeiträge für alle Mitglieder anlegen
 app.post('/api/treasury/contributions/create-week', requireLogin, (req, res) => {
-    const { woche } = req.body; // Format: "KW07-2026"
+    const { woche, beitrag } = req.body; // Format: "KW07-2026"
     
     if (!woche) {
         return res.status(400).json({ error: 'Kalenderwoche ist erforderlich' });
@@ -2958,14 +2958,20 @@ app.post('/api/treasury/contributions/create-week', requireLogin, (req, res) => 
     const wocheStartStr = weekStart.toISOString().slice(0, 10);
     const wocheEndeStr = weekEnd.toISOString().slice(0, 10);
     
-    // Standard-Beitrag aus gang_treasury holen
-    db.query('SELECT wochenbeitrag_standard FROM gang_treasury LIMIT 1', (err, treasuryResult) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+    // Beitrag aus Request verwenden oder Standard aus DB
+    const beitragToUse = beitrag ? parseFloat(beitrag) : null;
+    
+    const getBeitrag = (callback) => {
+        if (beitragToUse !== null) {
+            callback(beitragToUse);
+        } else {
+            db.query('SELECT wochenbeitrag_standard FROM gang_treasury LIMIT 1', (err, result) => {
+                callback(result?.[0]?.wochenbeitrag_standard || 50.00);
+            });
         }
-        
-        const standardBeitrag = treasuryResult[0]?.wochenbeitrag_standard || 50.00;
-        
+    };
+    
+    getBeitrag((standardBeitrag) => {
         // Alle aktiven Mitglieder abrufen
         db.query('SELECT id FROM members WHERE is_active = TRUE', (err, members) => {
             if (err) {
@@ -2997,7 +3003,7 @@ app.post('/api/treasury/contributions/create-week', requireLogin, (req, res) => 
                 .then(() => {
                     res.json({ 
                         success: true, 
-                        message: `Beiträge für ${woche} für ${members.length} Mitglieder angelegt` 
+                        message: `${woche}: $${standardBeitrag.toFixed(2)} für ${members.length} Mitglieder angelegt` 
                     });
                 })
                 .catch(err => {

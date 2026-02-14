@@ -5726,25 +5726,94 @@ function populateWeekSelect() {
     }
 }
 
-// Neue Woche für alle Mitglieder anlegen
-async function createWeeklyContributions() {
-    const weekSelect = document.getElementById('contribution-week-select');
-    const selectedWeek = weekSelect.value;
+// Modal für neue Woche öffnen
+function createWeeklyContributions() {
+    const modal = document.getElementById('create-week-modal');
+    const weekSelect = document.getElementById('create-week-select');
     
-    if (!confirm(`Beiträge für ${selectedWeek} für alle aktiven Mitglieder anlegen?`)) return;
+    // Wochen-Dropdown im Modal befüllen
+    weekSelect.innerHTML = '';
+    const now = new Date();
+    
+    for (let i = -2; i <= 4; i++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + (i * 7));
+        
+        const weekNum = getWeekNumber(date);
+        const year = date.getFullYear();
+        const weekKey = `KW${String(weekNum).padStart(2, '0')}-${year}`;
+        
+        const option = document.createElement('option');
+        option.value = weekKey;
+        option.textContent = `KW ${weekNum} / ${year}`;
+        
+        if (i === 0) {
+            option.selected = true;
+        }
+        
+        weekSelect.appendChild(option);
+    }
+    
+    // Standard-Beitrag laden
+    fetch(`${API_URL}/treasury/balance`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+            // Hier könnte man den Standard-Wochenbeitrag aus der DB laden
+            document.getElementById('create-week-amount').value = '50.00';
+        })
+        .catch(() => {
+            document.getElementById('create-week-amount').value = '50.00';
+        });
+    
+    modal.style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+// Neue Woche anlegen (Submit)
+async function submitCreateWeek(event) {
+    event.preventDefault();
+    
+    const selectedWeek = document.getElementById('create-week-select').value;
+    const beitrag = parseFloat(document.getElementById('create-week-amount').value);
     
     try {
         const response = await fetch(`${API_URL}/treasury/contributions/create-week`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ woche: selectedWeek })
+            body: JSON.stringify({ 
+                woche: selectedWeek,
+                beitrag: beitrag
+            })
         });
         
         const result = await response.json();
         
         if (result.success) {
             showToast(result.message || 'Wochenbeiträge angelegt', 'success');
+            closeModals();
+            
+            // Wochen-Auswahl auf die neue Woche setzen
+            const mainWeekSelect = document.getElementById('contribution-week-select');
+            if (mainWeekSelect) {
+                // Prüfen ob Option existiert, sonst hinzufügen
+                let optionExists = false;
+                for (let opt of mainWeekSelect.options) {
+                    if (opt.value === selectedWeek) {
+                        optionExists = true;
+                        break;
+                    }
+                }
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = selectedWeek;
+                    const match = selectedWeek.match(/KW(\d+)-(\d+)/);
+                    newOption.textContent = `KW ${parseInt(match[1])} / ${match[2]}`;
+                    mainWeekSelect.insertBefore(newOption, mainWeekSelect.firstChild);
+                }
+                mainWeekSelect.value = selectedWeek;
+            }
+            
             loadContributions();
         } else {
             showToast(result.error || 'Fehler beim Anlegen', 'error');
