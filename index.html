@@ -708,64 +708,42 @@
                 <div class="treasury-page-header">
                     <div class="treasury-title-section">
                         <h2><i class="fas fa-piggy-bank"></i> Gangkasse</h2>
-                        <p class="treasury-subtitle">Verwaltung der Gangkasse und Beiträge</p>
+                        <p class="treasury-subtitle">Beiträge, Ziele und Statistiken</p>
                     </div>
                     <div class="treasury-balance">
-                        <span class="balance-label">Aktueller Kontostand:</span>
-                        <span class="balance-amount" id="treasury-balance">€ 0,00</span>
-                        <button class="btn-primary btn-add-transaction" onclick="showAddTransactionModal()">
-                            <i class="fas fa-plus"></i> Neue Transaktion
-                        </button>
+                        <span class="balance-label">Kassenstand:</span>
+                        <span class="balance-amount" id="treasury-balance">$ 0,00</span>
                     </div>
                 </div>
 
                 <!-- Treasury Tabs -->
                 <div class="treasury-tabs">
-                    <button class="tab-btn active" onclick="switchTreasuryTab(this, 'transactions')">
-                        <i class="fas fa-exchange-alt"></i> Transaktionen
+                    <button class="tab-btn active" onclick="switchTreasuryTab(this, 'contributions')">
+                        <i class="fas fa-users"></i> Beiträge
                     </button>
-                    <button class="tab-btn" onclick="switchTreasuryTab(this, 'contributions')">
-                        <i class="fas fa-users"></i> Mitgliederbeiträge
+                    <button class="tab-btn" onclick="switchTreasuryTab(this, 'goals')">
+                        <i class="fas fa-bullseye"></i> Ziele
+                    </button>
+                    <button class="tab-btn" onclick="switchTreasuryTab(this, 'transactions')">
+                        <i class="fas fa-exchange-alt"></i> Kassenbuch
                     </button>
                     <button class="tab-btn" onclick="switchTreasuryTab(this, 'overview')">
-                        <i class="fas fa-chart-bar"></i> Übersicht
+                        <i class="fas fa-chart-bar"></i> Statistiken
                     </button>
                 </div>
 
-                <!-- Transactions Tab -->
-                <div id="treasury-transactions-tab" class="treasury-tab-content active">
-                    <div class="transactions-header">
-                        <div class="transactions-search-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="transaction-search" placeholder="Transaktion suchen..." oninput="filterTransactions()">
-                        </div>
-                        <div class="transaction-type-filter">
-                            <select id="transaction-type-filter" onchange="filterTransactions()">
-                                <option value="">Alle Transaktionen</option>
-                                <option value="einzahlung">Einzahlungen</option>
-                                <option value="auszahlung">Auszahlungen</option>
-                                <option value="korrektur">Korrekturen</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="transactions-list" id="transactions-list">
-                        <!-- Transaktionen werden hier dynamisch geladen -->
-                    </div>
-                </div>
-
-                <!-- Contributions Tab -->
-                <div id="treasury-contributions-tab" class="treasury-tab-content">
+                <!-- Contributions Tab (Beiträge) -->
+                <div id="treasury-contributions-tab" class="treasury-tab-content active">
                     <div class="contributions-header">
                         <div class="contribution-period">
-                            <label for="contribution-period-select">Zeitraum:</label>
-                            <select id="contribution-period-select" onchange="loadContributions()">
+                            <label for="contribution-week-select">Kalenderwoche:</label>
+                            <select id="contribution-week-select" onchange="loadContributions()">
                                 <!-- Dynamisch geladen -->
                             </select>
                         </div>
                         <div class="contribution-actions">
-                            <button class="btn-secondary" onclick="showSetContributionModal()">
-                                <i class="fas fa-cog"></i> Beitrag festlegen
+                            <button class="btn-secondary" onclick="createWeeklyContributions()">
+                                <i class="fas fa-calendar-plus"></i> Neue Woche anlegen
                             </button>
                             <button class="btn-primary" onclick="showMarkContributionModal()">
                                 <i class="fas fa-check"></i> Beitrag verbuchen
@@ -778,21 +756,61 @@
                     </div>
                 </div>
 
-                <!-- Overview Tab -->
+                <!-- Goals Tab (Ziele) -->
+                <div id="treasury-goals-tab" class="treasury-tab-content">
+                    <div class="goals-header">
+                        <h3>Gemeinsame Ziele</h3>
+                        <button class="btn-primary" onclick="showAddGoalModal()">
+                            <i class="fas fa-plus"></i> Neues Ziel
+                        </button>
+                    </div>
+
+                    <div class="goals-list" id="goals-list">
+                        <!-- Ziele werden hier dynamisch geladen -->
+                    </div>
+                </div>
+
+                <!-- Transactions Tab (Kassenbuch) -->
+                <div id="treasury-transactions-tab" class="treasury-tab-content">
+                    <div class="transactions-header">
+                        <div class="transactions-search-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="transaction-search" placeholder="Suchen..." oninput="filterTransactions()">
+                        </div>
+                        <div class="transaction-type-filter">
+                            <select id="transaction-type-filter" onchange="filterTransactions()">
+                                <option value="">Alle</option>
+                                <option value="beitrag">Beiträge</option>
+                                <option value="einzahlung">Einzahlungen</option>
+                                <option value="auszahlung">Auszahlungen</option>
+                                <option value="ziel_einzahlung">Ziel-Einzahlungen</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary btn-add-transaction" onclick="showAddTransactionModal()">
+                            <i class="fas fa-plus"></i> Neue Buchung
+                        </button>
+                    </div>
+
+                    <div class="transactions-list" id="transactions-list">
+                        <!-- Transaktionen werden hier dynamisch geladen -->
+                    </div>
+                </div>
+
+                <!-- Overview Tab (Statistiken) -->
                 <div id="treasury-overview-tab" class="treasury-tab-content">
                     <div class="treasury-overview-grid">
                         <div class="treasury-stat-card green">
                             <i class="fas fa-arrow-up"></i>
                             <div>
-                                <h3 id="total-deposits">€ 0,00</h3>
-                                <p>Einzahlungen (Monat)</p>
+                                <h3 id="total-deposits">$ 0,00</h3>
+                                <p>Einnahmen (Monat)</p>
                             </div>
                         </div>
                         <div class="treasury-stat-card red">
                             <i class="fas fa-arrow-down"></i>
                             <div>
-                                <h3 id="total-withdrawals">€ 0,00</h3>
-                                <p>Auszahlungen (Monat)</p>
+                                <h3 id="total-withdrawals">$ 0,00</h3>
+                                <p>Ausgaben (Monat)</p>
                             </div>
                         </div>
                         <div class="treasury-stat-card blue">
@@ -803,23 +821,25 @@
                             </div>
                         </div>
                         <div class="treasury-stat-card orange">
-                            <i class="fas fa-exclamation-triangle"></i>
+                            <i class="fas fa-bullseye"></i>
                             <div>
-                                <h3 id="outstanding-contributions">€ 0,00</h3>
-                                <p>Ausstehende Beiträge</p>
+                                <h3 id="active-goals">0</h3>
+                                <p>Aktive Ziele</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="treasury-charts">
-                        <div class="chart-container">
-                            <h4>Monatlicher Verlauf</h4>
-                            <div id="treasury-chart" class="chart-placeholder">Diagramm kommt hier hin</div>
-                        </div>
                         <div class="recent-transactions">
-                            <h4>Letzte Transaktionen</h4>
+                            <h4>Letzte Buchungen</h4>
                             <div id="recent-transactions-list">
                                 <!-- Letzte Transaktionen -->
+                            </div>
+                        </div>
+                        <div class="top-contributors">
+                            <h4>Top Einzahler</h4>
+                            <div id="top-contributors-list">
+                                <!-- Top Einzahler -->
                             </div>
                         </div>
                     </div>
@@ -2043,6 +2063,68 @@
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
                     <button type="submit" class="btn-primary">Beitrag verbuchen</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Neues Ziel Modal -->
+        <div id="add-goal-modal" class="modal treasury-modal" style="display: none; max-width: 550px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-bullseye"></i> Neues Ziel erstellen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="add-goal-form" onsubmit="submitGoal(event)">
+                <div class="form-group">
+                    <label for="goal-title">Titel*</label>
+                    <input type="text" id="goal-title" placeholder="z.B. Sammelbestellung Waffen" required maxlength="200">
+                </div>
+                <div class="form-group">
+                    <label for="goal-description">Beschreibung</label>
+                    <textarea id="goal-description" rows="3" placeholder="Wofür wird gesammelt?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="goal-amount">Zielbetrag ($)*</label>
+                    <input type="number" id="goal-amount" step="0.01" min="1" required placeholder="5000.00">
+                </div>
+                <div class="form-group">
+                    <label for="goal-deadline">Deadline (optional)</label>
+                    <input type="date" id="goal-deadline">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Ziel erstellen</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Ziel Einzahlung Modal -->
+        <div id="contribute-goal-modal" class="modal treasury-modal" style="display: none; max-width: 550px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-hand-holding-usd"></i> Einzahlung in Ziel</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="contribute-goal-form" onsubmit="submitGoalContribution(event)">
+                <input type="hidden" id="contribute-goal-id">
+                <div class="goal-info-display" id="contribute-goal-info">
+                    <!-- Ziel-Info wird hier angezeigt -->
+                </div>
+                <div class="form-group">
+                    <label for="contribute-member">Mitglied*</label>
+                    <select id="contribute-member" required>
+                        <option value="">Mitglied auswählen</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="contribute-amount">Betrag ($)*</label>
+                    <input type="number" id="contribute-amount" step="0.01" min="0.01" required placeholder="100.00">
+                </div>
+                <div class="form-group">
+                    <label for="contribute-comment">Kommentar (optional)</label>
+                    <input type="text" id="contribute-comment" maxlength="500" placeholder="z.B. Anteil für 2 Pistolen">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Einzahlen</button>
                 </div>
             </form>
         </div>

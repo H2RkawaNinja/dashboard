@@ -2321,18 +2321,17 @@ app.get('/api/maintenance/status/:module', requireLogin, (req, res) => {
 
 // Treasury Balance abrufen
 app.get('/api/treasury/balance', requireLogin, (req, res) => {
-    db.query('SELECT current_balance_usd, currency, last_updated, notes FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, results) => {
+    db.query('SELECT current_balance, last_updated, notes FROM gang_treasury LIMIT 1', (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
         
         if (results.length === 0) {
-            return res.json({ balance: 0, currency: 'USD', last_updated: null, notes: null });
+            return res.json({ balance: 0, last_updated: null, notes: null });
         }
         
         res.json({
-            balance: results[0].current_balance_usd,
-            currency: results[0].currency || 'USD',
+            balance: results[0].current_balance || 0,
             last_updated: results[0].last_updated,
             notes: results[0].notes
         });
@@ -2343,8 +2342,8 @@ app.get('/api/treasury/balance', requireLogin, (req, res) => {
 app.get('/api/treasury/transactions', requireLogin, (req, res) => {
     const query = `
         SELECT 
-            gt.id, gt.type, gt.amount_usd, gt.currency, gt.description, gt.reference_number,
-            gt.transaction_date, gt.status, gt.notes,
+            gt.id, gt.type, gt.amount, gt.description, gt.ziel_id,
+            gt.transaction_date,
             m.full_name as member_name,
             rb.full_name as recorded_by_name
         FROM gang_transactions gt 
@@ -2363,142 +2362,72 @@ app.get('/api/treasury/transactions', requireLogin, (req, res) => {
 
 // Neue Transaktion hinzufügen
 app.post('/api/treasury/transactions', requireLogin, (req, res) => {
-    const { member_id, type, amount, description, reference_number, notes } = req.body;
+    const { member_id, type, amount, description } = req.body;
     
     if (!type || !amount) {
         return res.status(400).json({ error: 'Typ und Betrag sind erforderlich' });
     }
     
-    // Berechne neuen Saldo
-    db.query('SELECT current_balance_usd FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, balanceResults) => {
+    // Transaktion hinzufügen
+    const insertQuery = `
+        INSERT INTO gang_transactions (member_id, type, amount, description, recorded_by)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    db.query(insertQuery, [member_id || null, type, amount, description, req.session.userId], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
         
-        let currentBalance = balanceResults.length > 0 ? balanceResults[0].current_balance_usd : 0;
-        let newBalance;
-        
-        if (type === 'einzahlung' || type === 'korrektur') {
-            newBalance = currentBalance + parseFloat(amount);
+        // Balance aktualisieren
+        let balanceChange = 0;
+        if (type === 'einzahlung' || type === 'beitrag' || type === 'ziel_einzahlung') {
+            balanceChange = parseFloat(amount);
         } else if (type === 'auszahlung') {
-            newBalance = currentBalance - parseFloat(amount);
+            balanceChange = -parseFloat(amount);
         }
         
-        // Transaction und Balance Update in einer Transaktion
-        db.getConnection((err, connection) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
+        db.query('UPDATE gang_treasury SET current_balance = current_balance + ?', [balanceChange], (err2) => {
+            if (err2) {
+                console.error('Balance update error:', err2);
             }
             
-            connection.beginTransaction(err => {
-                if (err) {
-                    connection.release();
-                    return res.status(500).json({ error: err.message });
-                }
-                
-                // Transaktion hinzufügen
-                const insertQuery = `
-                    INSERT INTO gang_transactions 
-                    (member_id, type, amount_usd, currency, description, reference_number, notes, recorded_by) 
-                    VALUES (?, ?, ?, 'USD', ?, ?, ?, ?)
-                `;
-                
-                connection.query(insertQuery, [
-                    member_id || null, type, amount, description, reference_number, notes, req.session.userId
-                ], (err, insertResult) => {
-                    if (err) {
-                        return connection.rollback(() => {
-                            connection.release();
-                            res.status(500).json({ error: err.message });
-                        });
-                    }
-                    
-                    // Balance update
-                    const updateBalanceQuery = `
-                        INSERT INTO gang_treasury (current_balance_usd, currency, updated_by, notes) 
-                        VALUES (?, 'USD', ?, ?)
-                    `;
-                    
-                    connection.query(updateBalanceQuery, [
-                        newBalance, req.session.userId, `${type}: ${description || ''}`
-                    ], (err) => {
-                        if (err) {
-                            return connection.rollback(() => {
-                                connection.release();
-                                res.status(500).json({ error: err.message });
-                            });
-                        }
-                        
-                        connection.commit(err => {
-                            if (err) {
-                                return connection.rollback(() => {
-                                    connection.release();
-                                    res.status(500).json({ error: err.message });
-                                });
-                            }
-                            
-                            connection.release();
-                            
-                            // Log activity
-                            const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
-                            db.query(logQuery, [
-                                req.session.userId, 
-                                'treasury_transaction', 
-                                `${type.charAt(0).toUpperCase() + type.slice(1)} von $${amount} ${member_id ? `für ${member_id}` : ''}`
-                            ]);
-                            
-                            res.json({ 
-                                success: true, 
-                                transaction_id: insertResult.insertId,
-                                new_balance: newBalance
-                            });
-                        });
-                    });
-                });
-            });
+            // Log activity
+            db.query(
+                'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                [req.session.userId, 'transaction_added', `${type}: $${amount}`]
+            );
+            
+            res.json({ success: true, id: result.insertId });
         });
     });
 });
 
-// Beiträge für einen Zeitraum abrufen
+// Beiträge abrufen (neues vereinfachtes Schema)
 app.get('/api/treasury/contributions', requireLogin, (req, res) => {
-    const { period_type, start_date, end_date } = req.query;
+    const { woche } = req.query;
     
     let query = `
         SELECT 
-            mc.id, mc.member_id, mc.period_type, mc.period_start, mc.period_end, mc.period_description,
-            mc.required_amount_usd, mc.paid_amount_usd, mc.status, mc.due_date,
-            mc.payment_date, mc.notes,
+            mc.id, mc.member_id, mc.woche, mc.woche_start, mc.woche_ende,
+            mc.soll_betrag, mc.ist_betrag, mc.status, mc.bezahlt_am,
             m.full_name as member_name, m.rank
         FROM member_contributions mc
         JOIN members m ON mc.member_id = m.id
     `;
     let params = [];
     
-    if (period_type) {
-        query += ' WHERE mc.period_type = ?';
-        params.push(period_type);
+    if (woche) {
+        query += ' WHERE mc.woche = ?';
+        params.push(woche);
     }
     
-    if (start_date && end_date) {
-        if (params.length > 0) query += ' AND';
-        else query += ' WHERE';
-        query += ' mc.period_start >= ? AND mc.period_end <= ?';
-        params.push(start_date, end_date);
-    }
-    
-    query += ' ORDER BY m.full_name, mc.period_start DESC';
+    query += ' ORDER BY mc.woche DESC, m.full_name';
     
     db.query(query, params, (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        
-        // Debug: Log the first result to see what fields we're getting
-        if (results.length > 0) {
-            console.log('Sample contribution data:', results[0]);
-        }
-        
         res.json(results);
     });
 });
@@ -2730,37 +2659,36 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
 app.get('/api/treasury/stats', requireLogin, (req, res) => {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
-    const currentWeekStart = new Date();
-    currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
     
     // Balance
-    const balanceQuery = 'SELECT current_balance_usd, currency FROM gang_treasury ORDER BY last_updated DESC LIMIT 1';
+    const balanceQuery = 'SELECT current_balance FROM gang_treasury LIMIT 1';
     
     // Monatliche Ein-/Auszahlungen
     const monthlyQuery = `
         SELECT 
-            SUM(CASE WHEN type = 'einzahlung' THEN amount_usd ELSE 0 END) as deposits,
-            SUM(CASE WHEN type = 'auszahlung' THEN amount_usd ELSE 0 END) as withdrawals
+            SUM(CASE WHEN type IN ('einzahlung', 'beitrag', 'ziel_einzahlung') THEN amount ELSE 0 END) as deposits,
+            SUM(CASE WHEN type = 'auszahlung' THEN amount ELSE 0 END) as withdrawals
         FROM gang_transactions 
         WHERE MONTH(transaction_date) = ? AND YEAR(transaction_date) = ?
     `;
     
-    // Aktuelle Beitragsstatus (nur aktuelle Woche/aktueller Zeitraum)
+    // Aktuelle Beitragsstatus
     const contributionsQuery = `
         SELECT 
-            COUNT(CASE WHEN status = 'vollständig_bezahlt' THEN 1 END) as paid_count,
-            COUNT(CASE WHEN status != 'vollständig_bezahlt' THEN 1 END) as unpaid_count,
-            COUNT(*) as total_count,
-            SUM(CASE WHEN status != 'vollständig_bezahlt' THEN (required_amount_usd - paid_amount_usd) ELSE 0 END) as outstanding_amount
+            COUNT(CASE WHEN status = 'bezahlt' THEN 1 END) as paid_count,
+            COUNT(*) as total_count
         FROM member_contributions 
-        WHERE period_start <= CURDATE() AND period_end >= CURDATE()
+        WHERE woche_start <= CURDATE() AND woche_ende >= CURDATE()
     `;
+    
+    // Aktive Ziele
+    const goalsQuery = `SELECT COUNT(*) as active_goals FROM treasury_goals WHERE status = 'aktiv'`;
     
     Promise.all([
         new Promise((resolve, reject) => {
             db.query(balanceQuery, (err, results) => {
                 if (err) reject(err);
-                else resolve(results.length > 0 ? results[0] : { current_balance_usd: 0, currency: 'USD' });
+                else resolve(results.length > 0 ? results[0] : { current_balance: 0 });
             });
         }),
         new Promise((resolve, reject) => {
@@ -2774,25 +2702,22 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
                 if (err) reject(err);
                 else resolve(results[0]);
             });
+        }),
+        new Promise((resolve, reject) => {
+            db.query(goalsQuery, (err, results) => {
+                if (err) reject(err);
+                else resolve(results[0]);
+            });
         })
-    ]).then(([balance, monthly, contributions]) => {
-        console.log(`DEBUG - Treasury Stats:`, {
-            paid_count: contributions.paid_count,
-            unpaid_count: contributions.unpaid_count, 
-            total_count: contributions.total_count,
-            outstanding_amount: contributions.outstanding_amount
-        });
-        
+    ]).then(([balance, monthly, contributions, goals]) => {
         res.json({
-            balance_usd: balance.current_balance_usd || 0,
-            currency: balance.currency || 'USD',
+            balance: balance.current_balance || 0,
             monthly_deposits: monthly.deposits || 0,
             monthly_withdrawals: monthly.withdrawals || 0,
             paid_members: `${contributions.paid_count || 0}/${contributions.total_count || 0}`,
-            outstanding_contributions: contributions.outstanding_amount || 0
+            active_goals: goals.active_goals || 0
         });
     }).catch(err => {
-        console.log(`DEBUG - Treasury Stats Fehler:`, err);
         res.status(500).json({ error: err.message });
     });
 });
@@ -2856,6 +2781,230 @@ app.delete('/api/treasury/contributions/:id', requireLogin, (req, res) => {
             );
         }
     );
+});
+
+// ========== ZIELE (GOALS) ENDPOINTS ==========
+
+// Alle Ziele abrufen
+app.get('/api/treasury/goals', requireLogin, (req, res) => {
+    const query = `
+        SELECT g.*, m.full_name as erstellt_von_name
+        FROM treasury_goals g
+        LEFT JOIN members m ON g.erstellt_von = m.id
+        ORDER BY 
+            CASE WHEN g.status = 'aktiv' THEN 1 ELSE 2 END,
+            g.erstellt_am DESC
+    `;
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
+
+// Neues Ziel erstellen
+app.post('/api/treasury/goals', requireLogin, (req, res) => {
+    const { titel, beschreibung, ziel_betrag, deadline } = req.body;
+    
+    if (!titel || !ziel_betrag) {
+        return res.status(400).json({ error: 'Titel und Zielbetrag sind erforderlich' });
+    }
+    
+    const query = `
+        INSERT INTO treasury_goals (titel, beschreibung, ziel_betrag, deadline, erstellt_von)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    db.query(query, [titel, beschreibung, ziel_betrag, deadline || null, req.session.userId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        // Log activity
+        db.query(
+            'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+            [req.session.userId, 'goal_created', `Neues Ziel erstellt: ${titel} ($${ziel_betrag})`]
+        );
+        
+        res.json({ success: true, id: result.insertId });
+    });
+});
+
+// In Ziel einzahlen
+app.post('/api/treasury/goals/contribute', requireLogin, (req, res) => {
+    const { goal_id, member_id, amount, kommentar } = req.body;
+    
+    if (!goal_id || !member_id || !amount) {
+        return res.status(400).json({ error: 'Ziel, Mitglied und Betrag sind erforderlich' });
+    }
+    
+    // Einzahlung in goal_contributions speichern
+    const insertQuery = `
+        INSERT INTO goal_contributions (goal_id, member_id, amount, kommentar)
+        VALUES (?, ?, ?, ?)
+    `;
+    
+    db.query(insertQuery, [goal_id, member_id, amount, kommentar], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        // Ziel-Betrag aktualisieren
+        db.query(
+            'UPDATE treasury_goals SET aktueller_betrag = aktueller_betrag + ? WHERE id = ?',
+            [amount, goal_id],
+            (err2) => {
+                if (err2) {
+                    return res.status(500).json({ error: err2.message });
+                }
+                
+                // Kassenbuch-Eintrag
+                db.query(
+                    `INSERT INTO gang_transactions (member_id, type, amount, description, ziel_id, recorded_by)
+                     VALUES (?, 'ziel_einzahlung', ?, ?, ?, ?)`,
+                    [member_id, amount, `Einzahlung in Ziel #${goal_id}`, goal_id, req.session.userId]
+                );
+                
+                // Kasse aktualisieren
+                db.query('UPDATE gang_treasury SET current_balance = current_balance + ?', [amount]);
+                
+                res.json({ success: true });
+            }
+        );
+    });
+});
+
+// Ziel als erreicht markieren
+app.put('/api/treasury/goals/:id/complete', requireLogin, (req, res) => {
+    const goalId = req.params.id;
+    
+    db.query(
+        `UPDATE treasury_goals SET status = 'erreicht', abgeschlossen_am = CURRENT_TIMESTAMP WHERE id = ?`,
+        [goalId],
+        (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true });
+        }
+    );
+});
+
+// Ziel abbrechen
+app.put('/api/treasury/goals/:id/cancel', requireLogin, (req, res) => {
+    const goalId = req.params.id;
+    
+    db.query(
+        `UPDATE treasury_goals SET status = 'abgebrochen', abgeschlossen_am = CURRENT_TIMESTAMP WHERE id = ?`,
+        [goalId],
+        (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true });
+        }
+    );
+});
+
+// Einzahler für ein Ziel abrufen
+app.get('/api/treasury/goals/:id/contributors', requireLogin, (req, res) => {
+    const goalId = req.params.id;
+    
+    const query = `
+        SELECT gc.*, m.full_name as member_name
+        FROM goal_contributions gc
+        JOIN members m ON gc.member_id = m.id
+        WHERE gc.goal_id = ?
+        ORDER BY gc.datum DESC
+    `;
+    
+    db.query(query, [goalId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
+
+// ========== WÖCHENTLICHE BEITRÄGE ==========
+
+// Wochenbeiträge für alle Mitglieder anlegen
+app.post('/api/treasury/contributions/create-week', requireLogin, (req, res) => {
+    const { woche } = req.body; // Format: "KW07-2026"
+    
+    if (!woche) {
+        return res.status(400).json({ error: 'Kalenderwoche ist erforderlich' });
+    }
+    
+    // Woche parsen (z.B. "KW07-2026")
+    const match = woche.match(/KW(\d+)-(\d+)/);
+    if (!match) {
+        return res.status(400).json({ error: 'Ungültiges Wochenformat' });
+    }
+    
+    const weekNum = parseInt(match[1]);
+    const year = parseInt(match[2]);
+    
+    // Wochenstart und -ende berechnen
+    const jan4 = new Date(year, 0, 4);
+    const dayOfWeek = jan4.getDay() || 7;
+    const weekStart = new Date(jan4);
+    weekStart.setDate(jan4.getDate() - dayOfWeek + 1 + (weekNum - 1) * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    
+    const wocheStartStr = weekStart.toISOString().slice(0, 10);
+    const wocheEndeStr = weekEnd.toISOString().slice(0, 10);
+    
+    // Standard-Beitrag aus gang_treasury holen
+    db.query('SELECT wochenbeitrag_standard FROM gang_treasury LIMIT 1', (err, treasuryResult) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const standardBeitrag = treasuryResult[0]?.wochenbeitrag_standard || 50.00;
+        
+        // Alle aktiven Mitglieder abrufen
+        db.query('SELECT id FROM members WHERE is_active = TRUE', (err, members) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            if (members.length === 0) {
+                return res.status(400).json({ error: 'Keine aktiven Mitglieder gefunden' });
+            }
+            
+            // Beiträge für alle Mitglieder erstellen
+            const insertPromises = members.map(member => {
+                return new Promise((resolve, reject) => {
+                    const query = `
+                        INSERT INTO member_contributions 
+                        (member_id, woche, woche_start, woche_ende, soll_betrag, status)
+                        VALUES (?, ?, ?, ?, ?, 'offen')
+                        ON DUPLICATE KEY UPDATE soll_betrag = VALUES(soll_betrag)
+                    `;
+                    
+                    db.query(query, [member.id, woche, wocheStartStr, wocheEndeStr, standardBeitrag], (err, result) => {
+                        if (err) reject(err);
+                        else resolve(result);
+                    });
+                });
+            });
+            
+            Promise.all(insertPromises)
+                .then(() => {
+                    res.json({ 
+                        success: true, 
+                        message: `Beiträge für ${woche} für ${members.length} Mitglieder angelegt` 
+                    });
+                })
+                .catch(err => {
+                    res.status(500).json({ error: err.message });
+                });
+        });
+    });
 });
 
 // Server starten

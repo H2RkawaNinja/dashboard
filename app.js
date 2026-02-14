@@ -5074,12 +5074,16 @@ async function loadTreasuryPage() {
     try {
         await Promise.all([
             loadTreasuryBalance(),
-            loadTreasuryTransactions(),
+            loadContributions(),
+            loadTreasuryGoals(),
             loadTreasuryStats()
         ]);
         
-        // Initial tab content laden
-        switchTreasuryTab(document.querySelector('.treasury-tabs .tab-btn.active'), 'transactions');
+        // Wochen-Dropdown initialisieren
+        populateWeekSelect();
+        
+        // Initial: Beiträge-Tab ist aktiv
+        switchTreasuryTab(document.querySelector('.treasury-tabs .tab-btn.active'), 'contributions');
         
     } catch (error) {
         console.error('Fehler beim Laden der Treasury-Seite:', error);
@@ -5157,11 +5161,14 @@ function switchTreasuryTab(button, tab) {
     
     // Content für aktiven Tab laden
     switch (tab) {
-        case 'transactions':
-            renderTransactions();
-            break;
         case 'contributions':
             loadContributions();
+            break;
+        case 'goals':
+            loadTreasuryGoals();
+            break;
+        case 'transactions':
+            loadTreasuryTransactions();
             break;
         case 'overview':
             renderTreasuryStats();
@@ -5175,46 +5182,51 @@ function renderTransactions() {
     if (!container) return;
     
     if (treasuryTransactions.length === 0) {
-        container.innerHTML = '<div class="no-data">Keine Transaktionen vorhanden</div>';
+        container.innerHTML = '<div class="no-data">Keine Buchungen vorhanden</div>';
         return;
     }
     
     const transactionsHtml = treasuryTransactions.map(transaction => {
         const typeIcon = {
+            'beitrag': 'fa-user-check',
             'einzahlung': 'fa-arrow-up',
             'auszahlung': 'fa-arrow-down',
-            'korrektur': 'fa-edit'
+            'ziel_einzahlung': 'fa-bullseye'
         };
         
         const typeColor = {
+            'beitrag': 'blue',
             'einzahlung': 'green',
             'auszahlung': 'red',
-            'korrektur': 'orange'
+            'ziel_einzahlung': 'purple'
         };
         
+        const typeLabel = {
+            'beitrag': 'Beitrag',
+            'einzahlung': 'Einzahlung',
+            'auszahlung': 'Auszahlung',
+            'ziel_einzahlung': 'Ziel-Einzahlung'
+        };
+        
+        const isIncome = ['beitrag', 'einzahlung', 'ziel_einzahlung'].includes(transaction.type);
+        
         return `
-            <div class="transaction-item ${typeColor[transaction.type]}">
+            <div class="transaction-item ${typeColor[transaction.type] || 'gray'}">
                 <div class="transaction-icon">
-                    <i class="fas ${typeIcon[transaction.type]}"></i>
+                    <i class="fas ${typeIcon[transaction.type] || 'fa-exchange-alt'}"></i>
                 </div>
                 <div class="transaction-details">
                     <div class="transaction-header">
-                        <span class="transaction-type">${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</span>
-                        <span class="transaction-amount ${transaction.type === 'auszahlung' ? 'negative' : 'positive'}">
-                            ${transaction.type === 'auszahlung' ? '-' : '+'}$ ${formatCurrency(transaction.amount_usd)}
+                        <span class="transaction-type">${typeLabel[transaction.type] || transaction.type}</span>
+                        <span class="transaction-amount ${isIncome ? 'positive' : 'negative'}">
+                            ${isIncome ? '+' : '-'}$ ${formatCurrency(transaction.amount)}
                         </span>
                     </div>
-                    <div class="transaction-description">${transaction.description || 'Keine Beschreibung'}</div>
+                    <div class="transaction-description">${transaction.description || '-'}</div>
                     <div class="transaction-meta">
                         <span class="transaction-date">${formatTransactionDate(transaction.transaction_date)}</span>
                         ${transaction.member_name ? `<span class="transaction-member">von ${transaction.member_name}</span>` : ''}
-                        ${transaction.recorded_by_name ? `<span class="transaction-recorder">erfasst von ${transaction.recorded_by_name}</span>` : ''}
                     </div>
-                    ${transaction.reference_number ? `<div class="transaction-reference">Ref: ${transaction.reference_number}</div>` : ''}
-                    ${transaction.notes ? `<div class="transaction-notes">${transaction.notes}</div>` : ''}
-                </div>
-                <div class="transaction-status">
-                    <span class="status ${transaction.status}">${getStatusText(transaction.status)}</span>
                 </div>
             </div>
         `;
@@ -5276,78 +5288,88 @@ function renderContributions() {
     const container = document.getElementById('contributions-list');
     if (!container) return;
     
-    // Nur offene Beiträge anzeigen (nicht vollständig bezahlte)
-    const openContributions = treasuryContributions.filter(contribution => 
-        contribution.status !== 'vollständig_bezahlt'
-    );
+    // Nach ausgewählter Woche filtern
+    const weekSelect = document.getElementById('contribution-week-select');
+    const selectedWeek = weekSelect?.value || '';
     
-    if (openContributions.length === 0) {
-        container.innerHTML = '<div class="no-data">Alle Beiträge für diesen Zeitraum sind bezahlt</div>';
+    const filteredContributions = selectedWeek ? 
+        treasuryContributions.filter(c => c.woche === selectedWeek) : 
+        treasuryContributions;
+    
+    if (filteredContributions.length === 0) {
+        container.innerHTML = '<div class="no-data">Keine Beiträge für diese Woche. Klicke "Neue Woche anlegen" um Beiträge zu erstellen.</div>';
         return;
     }
     
-    const contributionsHtml = openContributions.map(contribution => {
+    const contributionsHtml = filteredContributions.map(contribution => {
         const statusIcon = {
-            'nicht_bezahlt': 'fa-times-circle',
-            'vollständig_bezahlt': 'fa-check-circle'
+            'offen': 'fa-times-circle',
+            'teilweise': 'fa-adjust',
+            'bezahlt': 'fa-check-circle'
         };
         
         const statusColor = {
-            'nicht_bezahlt': 'red',
-            'vollständig_bezahlt': 'green'
+            'offen': 'red',
+            'teilweise': 'orange',
+            'bezahlt': 'green'
         };
         
-        const percentage = contribution.required_amount_usd > 0 ? 
-            (contribution.paid_amount_usd / contribution.required_amount_usd * 100) : 0;
+        const percentage = contribution.soll_betrag > 0 ? 
+            (contribution.ist_betrag / contribution.soll_betrag * 100) : 0;
+        
+        const outstanding = contribution.soll_betrag - contribution.ist_betrag;
         
         return `
             <div class="contribution-item ${statusColor[contribution.status]}">
                 <div class="contribution-member">
                     <div class="member-info">
                         <span class="member-name">${contribution.member_name}</span>
-                        <span class="member-rank">${contribution.rank}</span>
+                        <span class="member-rank">${contribution.rank || ''}</span>
                     </div>
                     <div class="contribution-status">
                         <i class="fas ${statusIcon[contribution.status]}"></i>
-                        <span>${getStatusText(contribution.status)}</span>
-                    </div>
-                    <div class="contribution-actions">
-                        ${contribution.paid_amount_usd === 0 ? 
-                            `<button class="btn-delete btn-small" onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}')"
-                                title="Beitrag löschen">
-                                <i class="fas fa-trash"></i>
-                            </button>` : ''
-                        }
+                        <span>${getContributionStatusText(contribution.status)}</span>
                     </div>
                 </div>
                 <div class="contribution-amounts">
                     <div class="amount-row">
-                        <span class="label">Erforderlich:</span>
-                        <span class="amount">$ ${formatCurrency(contribution.required_amount_usd)}</span>
+                        <span class="label">Soll:</span>
+                        <span class="amount">$ ${formatCurrency(contribution.soll_betrag)}</span>
                     </div>
                     <div class="amount-row">
-                        <span class="label">Bezahlt:</span>
-                        <span class="amount paid">$ ${formatCurrency(contribution.paid_amount_usd)}</span>
+                        <span class="label">Ist:</span>
+                        <span class="amount paid">$ ${formatCurrency(contribution.ist_betrag)}</span>
                     </div>
+                    ${outstanding > 0 ? `
                     <div class="amount-row outstanding">
-                        <span class="label">Ausstehend:</span>
-                        <span class="amount">$ ${formatCurrency(contribution.required_amount_usd - contribution.paid_amount_usd)}</span>
+                        <span class="label">Offen:</span>
+                        <span class="amount">$ ${formatCurrency(outstanding)}</span>
                     </div>
+                    ` : ''}
                 </div>
                 <div class="contribution-progress">
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${percentage}%"></div>
+                        <div class="progress-fill" style="width: ${Math.min(100, percentage)}%"></div>
                     </div>
                     <span class="progress-text">${Math.round(percentage)}%</span>
                 </div>
-                ${contribution.payment_date ? 
-                    `<div class="payment-date">Bezahlt: ${formatDate(contribution.payment_date)}</div>` : ''
+                ${contribution.bezahlt_am ? 
+                    `<div class="payment-date">Bezahlt: ${formatDate(contribution.bezahlt_am)}</div>` : ''
                 }
             </div>
         `;
     }).join('');
     
     container.innerHTML = contributionsHtml;
+}
+
+function getContributionStatusText(status) {
+    const texts = {
+        'offen': 'Offen',
+        'teilweise': 'Teilweise bezahlt',
+        'bezahlt': 'Bezahlt'
+    };
+    return texts[status] || status;
 }
 
 // Treasury Statistiken rendern
@@ -5358,19 +5380,379 @@ function renderTreasuryStats() {
         'total-deposits': treasuryStats.monthly_deposits,
         'total-withdrawals': treasuryStats.monthly_withdrawals,
         'paid-members': treasuryStats.paid_members,
-        'outstanding-contributions': treasuryStats.outstanding_contributions
+        'active-goals': treasuryStats.active_goals || 0
     };
     
     Object.keys(elements).forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (id.includes('deposits') || id.includes('withdrawals') || id.includes('outstanding')) {
-                el.textContent = `€ ${formatCurrency(elements[id])}`;
+            if (id.includes('deposits') || id.includes('withdrawals')) {
+                el.textContent = `$ ${formatCurrency(elements[id])}`;
             } else {
                 el.textContent = elements[id];
             }
         }
     });
+}
+
+// ========== ZIELE (GOALS) FUNKTIONEN ==========
+
+let treasuryGoals = [];
+
+// Ziele laden
+async function loadTreasuryGoals() {
+    try {
+        const response = await fetch(`${API_URL}/treasury/goals`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            treasuryGoals = await response.json();
+            renderGoals();
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Ziele:', error);
+    }
+}
+
+// Ziele rendern
+function renderGoals() {
+    const container = document.getElementById('goals-list');
+    if (!container) return;
+    
+    if (treasuryGoals.length === 0) {
+        container.innerHTML = '<div class="no-data">Keine Ziele vorhanden. Erstelle ein neues Ziel!</div>';
+        return;
+    }
+    
+    const goalsHtml = treasuryGoals.map(goal => {
+        const percentage = goal.ziel_betrag > 0 ? 
+            Math.min(100, (goal.aktueller_betrag / goal.ziel_betrag * 100)) : 0;
+        const remaining = goal.ziel_betrag - goal.aktueller_betrag;
+        
+        const statusClass = goal.status === 'erreicht' ? 'completed' : 
+                           goal.status === 'abgebrochen' ? 'cancelled' : 'active';
+        
+        const deadlineHtml = goal.deadline ? 
+            `<span class="goal-deadline"><i class="fas fa-calendar"></i> ${formatDate(goal.deadline)}</span>` : '';
+        
+        return `
+            <div class="goal-card ${statusClass}">
+                <div class="goal-header">
+                    <h4>${goal.titel}</h4>
+                    <span class="goal-status ${statusClass}">${getGoalStatusText(goal.status)}</span>
+                </div>
+                ${goal.beschreibung ? `<p class="goal-description">${goal.beschreibung}</p>` : ''}
+                <div class="goal-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span>$ ${formatCurrency(goal.aktueller_betrag)} / $ ${formatCurrency(goal.ziel_betrag)}</span>
+                        <span>${Math.round(percentage)}%</span>
+                    </div>
+                </div>
+                <div class="goal-meta">
+                    ${deadlineHtml}
+                    <span class="goal-remaining">Fehlt: $ ${formatCurrency(remaining > 0 ? remaining : 0)}</span>
+                </div>
+                ${goal.status === 'aktiv' ? `
+                    <div class="goal-actions">
+                        <button class="btn-primary btn-small" onclick="showContributeGoalModal(${goal.id})">
+                            <i class="fas fa-plus"></i> Einzahlen
+                        </button>
+                        <button class="btn-secondary btn-small" onclick="showGoalContributors(${goal.id})">
+                            <i class="fas fa-users"></i> Einzahler
+                        </button>
+                        <button class="btn-success btn-small" onclick="markGoalComplete(${goal.id})" title="Als erreicht markieren">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn-delete btn-small" onclick="cancelGoal(${goal.id})" title="Abbrechen">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = goalsHtml;
+}
+
+function getGoalStatusText(status) {
+    const statusTexts = {
+        'aktiv': 'Aktiv',
+        'erreicht': 'Erreicht',
+        'abgebrochen': 'Abgebrochen'
+    };
+    return statusTexts[status] || status;
+}
+
+// Neues Ziel Modal anzeigen
+function showAddGoalModal() {
+    document.getElementById('add-goal-modal').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('add-goal-form').reset();
+}
+
+// Ziel erstellen
+async function submitGoal(event) {
+    event.preventDefault();
+    
+    const formData = {
+        titel: document.getElementById('goal-title').value,
+        beschreibung: document.getElementById('goal-description').value || null,
+        ziel_betrag: parseFloat(document.getElementById('goal-amount').value),
+        deadline: document.getElementById('goal-deadline').value || null
+    };
+    
+    try {
+        const response = await fetch(`${API_URL}/treasury/goals`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Ziel erfolgreich erstellt', 'success');
+            closeModals();
+            loadTreasuryGoals();
+            loadTreasuryStats();
+        } else {
+            showToast(result.error || 'Fehler beim Erstellen des Ziels', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Einzahlung in Ziel Modal
+async function showContributeGoalModal(goalId) {
+    const goal = treasuryGoals.find(g => g.id === goalId);
+    if (!goal) return;
+    
+    document.getElementById('contribute-goal-modal').style.display = 'block';
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('contribute-goal-id').value = goalId;
+    
+    // Ziel-Infos anzeigen
+    const infoDiv = document.getElementById('contribute-goal-info');
+    const remaining = goal.ziel_betrag - goal.aktueller_betrag;
+    infoDiv.innerHTML = `
+        <div class="goal-info-card">
+            <h4>${goal.titel}</h4>
+            <p>Ziel: $ ${formatCurrency(goal.ziel_betrag)} | Gesammelt: $ ${formatCurrency(goal.aktueller_betrag)} | Fehlt: $ ${formatCurrency(remaining)}</p>
+        </div>
+    `;
+    
+    // Mitglieder laden
+    await loadMembersForGoalModal();
+}
+
+// Mitglieder für Ziel-Modal laden
+async function loadMembersForGoalModal() {
+    try {
+        const response = await fetch(`${API_URL}/members`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const members = await response.json();
+            const select = document.getElementById('contribute-member');
+            select.innerHTML = '<option value="">Mitglied auswählen</option>';
+            members.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.id;
+                option.textContent = `${member.full_name} (${member.rank})`;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Mitglieder:', error);
+    }
+}
+
+// Einzahlung in Ziel
+async function submitGoalContribution(event) {
+    event.preventDefault();
+    
+    const formData = {
+        goal_id: parseInt(document.getElementById('contribute-goal-id').value),
+        member_id: parseInt(document.getElementById('contribute-member').value),
+        amount: parseFloat(document.getElementById('contribute-amount').value),
+        kommentar: document.getElementById('contribute-comment').value || null
+    };
+    
+    try {
+        const response = await fetch(`${API_URL}/treasury/goals/contribute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Einzahlung erfolgreich', 'success');
+            closeModals();
+            await Promise.all([
+                loadTreasuryGoals(),
+                loadTreasuryBalance(),
+                loadTreasuryTransactions(),
+                loadTreasuryStats()
+            ]);
+        } else {
+            showToast(result.error || 'Fehler bei der Einzahlung', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Ziel als erreicht markieren
+async function markGoalComplete(goalId) {
+    if (!confirm('Ziel als erreicht markieren?')) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/treasury/goals/${goalId}/complete`, {
+            method: 'PUT',
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Ziel als erreicht markiert', 'success');
+            loadTreasuryGoals();
+            loadTreasuryStats();
+        } else {
+            showToast(result.error || 'Fehler', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Ziel abbrechen
+async function cancelGoal(goalId) {
+    if (!confirm('Ziel wirklich abbrechen?')) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/treasury/goals/${goalId}/cancel`, {
+            method: 'PUT',
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Ziel abgebrochen', 'success');
+            loadTreasuryGoals();
+            loadTreasuryStats();
+        } else {
+            showToast(result.error || 'Fehler', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Einzahler für ein Ziel anzeigen
+async function showGoalContributors(goalId) {
+    try {
+        const response = await fetch(`${API_URL}/treasury/goals/${goalId}/contributors`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const contributors = await response.json();
+            const goal = treasuryGoals.find(g => g.id === goalId);
+            
+            let html = `<h3>Einzahler für: ${goal.titel}</h3>`;
+            if (contributors.length === 0) {
+                html += '<p>Noch keine Einzahlungen.</p>';
+            } else {
+                html += '<ul class="contributors-list">';
+                contributors.forEach(c => {
+                    html += `<li><strong>${c.member_name}</strong>: $ ${formatCurrency(c.amount)} ${c.kommentar ? `<em>(${c.kommentar})</em>` : ''}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            alert(html.replace(/<[^>]*>/g, '')); // Einfacher Alert ohne HTML
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+
+// ========== WOCHEN-BEITRÄGE FUNKTIONEN ==========
+
+// Wochen-Dropdown befüllen
+function populateWeekSelect() {
+    const select = document.getElementById('contribution-week-select');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    
+    const now = new Date();
+    
+    // Aktuelle und letzte 8 Wochen + nächste 2 Wochen
+    for (let i = -8; i <= 2; i++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + (i * 7));
+        
+        const weekNum = getWeekNumber(date);
+        const year = date.getFullYear();
+        const weekKey = `KW${String(weekNum).padStart(2, '0')}-${year}`;
+        
+        const option = document.createElement('option');
+        option.value = weekKey;
+        option.textContent = `KW ${weekNum} / ${year}`;
+        
+        if (i === 0) {
+            option.selected = true;
+        }
+        
+        select.appendChild(option);
+    }
+}
+
+// Neue Woche für alle Mitglieder anlegen
+async function createWeeklyContributions() {
+    const weekSelect = document.getElementById('contribution-week-select');
+    const selectedWeek = weekSelect.value;
+    
+    if (!confirm(`Beiträge für ${selectedWeek} für alle aktiven Mitglieder anlegen?`)) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/treasury/contributions/create-week`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ woche: selectedWeek })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast(result.message || 'Wochenbeiträge angelegt', 'success');
+            loadContributions();
+        } else {
+            showToast(result.error || 'Fehler beim Anlegen', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
 }
 
 // Modal-Funktionen

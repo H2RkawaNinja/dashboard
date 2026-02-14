@@ -186,52 +186,74 @@ CREATE TABLE IF NOT EXISTS maintenance_settings (
     FOREIGN KEY (disabled_by) REFERENCES members(id) ON DELETE SET NULL
 );
 
+-- ========================================
+-- GANGKASSE - EINFACHES KASSENSYSTEM
+-- ========================================
+
 -- Tabelle: Gangkasse Kontostand
 CREATE TABLE IF NOT EXISTS gang_treasury (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    current_balance_usd DECIMAL(15, 2) DEFAULT 0,
-    currency VARCHAR(3) DEFAULT 'USD',
-    updated_by INT,
+    current_balance DECIMAL(15, 2) DEFAULT 0,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    notes TEXT,
-    FOREIGN KEY (updated_by) REFERENCES members(id) ON DELETE SET NULL
+    wochenbeitrag_standard DECIMAL(10, 2) DEFAULT 50.00,
+    notes TEXT
 );
 
--- Tabelle: Gangkasse Transaktionen
+-- Tabelle: Kassenbuch (alle Ein- und Auszahlungen)
 CREATE TABLE IF NOT EXISTS gang_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     member_id INT,
-    type ENUM('einzahlung', 'auszahlung', 'korrektur') NOT NULL,
-    amount_usd DECIMAL(15, 2) NOT NULL,
-    currency VARCHAR(3) DEFAULT 'USD',
+    type ENUM('beitrag', 'einzahlung', 'auszahlung', 'ziel_einzahlung') NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
     description VARCHAR(500),
-    reference_number VARCHAR(50),
+    ziel_id INT NULL,
     recorded_by INT,
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'confirmed',
-    notes TEXT,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL,
     FOREIGN KEY (recorded_by) REFERENCES members(id) ON DELETE SET NULL
 );
 
--- Tabelle: Mitglieder Beitragsstatus
+-- Tabelle: Mitglieder Beiträge (Wöchentliche Abgaben)
 CREATE TABLE IF NOT EXISTS member_contributions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     member_id INT NOT NULL,
-    period_type ENUM('weekly', 'biweekly', 'monthly', 'quarterly', 'custom') DEFAULT 'monthly',
-    period_start DATE NOT NULL,
-    period_end DATE NOT NULL,
-    period_description VARCHAR(100), -- z.B. "KW 7 2026", "Februar 2026", etc.
-    required_amount_usd DECIMAL(10, 2) DEFAULT 0,
-    paid_amount_usd DECIMAL(10, 2) DEFAULT 0,
-    status ENUM('nicht_bezahlt', 'teilweise_bezahlt', 'vollständig_bezahlt') DEFAULT 'nicht_bezahlt',
-    due_date DATE,
-    payment_date TIMESTAMP NULL,
-    notes TEXT,
+    woche VARCHAR(20) NOT NULL, -- z.B. "KW07-2026"
+    woche_start DATE NOT NULL,
+    woche_ende DATE NOT NULL,
+    soll_betrag DECIMAL(10, 2) NOT NULL,
+    ist_betrag DECIMAL(10, 2) DEFAULT 0,
+    status ENUM('offen', 'teilweise', 'bezahlt') DEFAULT 'offen',
+    bezahlt_am TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_member_period (member_id, period_start, period_end)
+    UNIQUE KEY einzigartig_pro_woche (member_id, woche)
+);
+
+-- Tabelle: Gemeinsame Ziele (Sammelaktionen)
+CREATE TABLE IF NOT EXISTS treasury_goals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titel VARCHAR(200) NOT NULL,
+    beschreibung TEXT,
+    ziel_betrag DECIMAL(10, 2) NOT NULL,
+    aktueller_betrag DECIMAL(10, 2) DEFAULT 0,
+    status ENUM('aktiv', 'erreicht', 'abgebrochen') DEFAULT 'aktiv',
+    deadline DATE NULL,
+    erstellt_von INT,
+    erstellt_am TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    abgeschlossen_am TIMESTAMP NULL,
+    FOREIGN KEY (erstellt_von) REFERENCES members(id) ON DELETE SET NULL
+);
+
+-- Tabelle: Einzahlungen in Ziele
+CREATE TABLE IF NOT EXISTS goal_contributions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    goal_id INT NOT NULL,
+    member_id INT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    datum TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    kommentar VARCHAR(500),
+    FOREIGN KEY (goal_id) REFERENCES treasury_goals(id) ON DELETE CASCADE,
+    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
 );
 
 -- Initial Wartungseinstellungen  
@@ -247,8 +269,8 @@ INSERT INTO maintenance_settings (module_name, is_disabled) VALUES
 ('activity', FALSE);
 
 -- Initial Gangkasse Setup
-INSERT INTO gang_treasury (current_balance_usd, currency, notes) VALUES 
-(0.00, 'USD', 'Startsaldo der Gangkasse in US-Dollar');
+INSERT INTO gang_treasury (current_balance, wochenbeitrag_standard, notes) VALUES 
+(0.00, 50.00, 'Startsaldo der Gangkasse');
 
 -- Gang Stats
 INSERT INTO gang_stats (stat_key, stat_value) VALUES
@@ -256,6 +278,5 @@ INSERT INTO gang_stats (stat_key, stat_value) VALUES
 ('total_members', '0'),
 ('total_revenue_today', '0'),
 ('overview_notes', ''),
-('treasury_balance_usd', '0.00'),
-('default_contribution_usd', '100.00'),
-('default_contribution_period', 'weekly');
+('treasury_balance', '0.00'),
+('wochenbeitrag_standard', '50.00');
