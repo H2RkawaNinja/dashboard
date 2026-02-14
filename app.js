@@ -5330,6 +5330,14 @@ function renderContributions() {
                         <i class="fas ${statusIcon[contribution.status]}"></i>
                         <span>${getContributionStatusText(contribution.status)}</span>
                     </div>
+                    <div class="contribution-actions">
+                        ${contribution.ist_betrag === 0 || contribution.ist_betrag === null ? 
+                            `<button class="btn-delete btn-small" onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}')"
+                                title="Beitrag löschen">
+                                <i class="fas fa-trash"></i>
+                            </button>` : ''
+                        }
+                    </div>
                 </div>
                 <div class="contribution-amounts">
                     <div class="amount-row">

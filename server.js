@@ -2746,7 +2746,7 @@ app.delete('/api/treasury/contributions/:id', requireLogin, (req, res) => {
             const contribution = results[0];
             
             // Prüfe ob bereits Zahlungen existieren
-            if (contribution.paid_amount_usd > 0) {
+            if (contribution.ist_betrag > 0) {
                 return res.status(400).json({ 
                     error: 'Beitrag kann nicht gelöscht werden - bereits Zahlungen vorhanden' 
                 });
@@ -2770,7 +2770,7 @@ app.delete('/api/treasury/contributions/:id', requireLogin, (req, res) => {
                     db.query(logQuery, [
                         req.session.userId, 
                         'treasury_contribution_deleted', 
-                        `Beitrag gelöscht: ${contribution.period_description} für Mitglied ${contribution.member_id}`
+                        `Beitrag gelöscht: ${contribution.woche} für Mitglied ${contribution.member_id}`
                     ]);
                     
                     res.json({ 
