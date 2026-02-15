@@ -2565,12 +2565,7 @@ app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
                         return res.status(500).json({ error: updateErr.message });
                     }
                     
-                    // Log activity
-                    db.query(
-                        'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
-                        [req.session.userId, 'balance_adjusted', `${kasseLabel} angepasst: $${oldBalance.toFixed(2)} → $${parseFloat(new_balance).toFixed(2)}`]
-                    );
-                    
+                    // Zuerst Response senden
                     res.json({ 
                         success: true, 
                         old_balance: oldBalance,
@@ -2578,6 +2573,13 @@ app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
                         difference: difference,
                         kasse: kasse
                     });
+                    
+                    // Log activity (fire-and-forget, nach Response)
+                    db.query(
+                        'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                        [req.session.userId, 'balance_adjusted', `${kasseLabel} angepasst: $${oldBalance.toFixed(2)} → $${parseFloat(new_balance).toFixed(2)}`],
+                        (logErr) => { if (logErr) console.error('Activity log error:', logErr); }
+                    );
                 });
             }
         );

@@ -6499,6 +6499,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
                 
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server-Fehler:', response.status, errorText);
+                    showToast(`Server-Fehler: ${response.status}`, 'error');
+                    return;
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
