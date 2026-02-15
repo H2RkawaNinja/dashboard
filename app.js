@@ -5105,9 +5105,53 @@ async function loadTreasuryBalance() {
                 balanceEl.textContent = `$ ${formatCurrency(data.balance)}`;
                 balanceEl.className = `balance-amount ${data.balance >= 0 ? 'positive' : 'negative'}`;
             }
+            // Speichere aktuelle Balance für das Modal
+            window.currentTreasuryBalance = data.balance || 0;
         }
     } catch (error) {
         console.error('Fehler beim Laden der Balance:', error);
+    }
+}
+
+// Kassenstand-Anpassungs-Modal anzeigen
+function showAdjustBalanceModal() {
+    const modal = document.getElementById('adjust-balance-modal');
+    const overlay = document.getElementById('modal-overlay');
+    
+    if (modal && overlay) {
+        modal.style.display = 'block';
+        overlay.style.display = 'flex';
+        
+        // Aktuellen Kassenstand anzeigen
+        const currentBalance = window.currentTreasuryBalance || 0;
+        document.getElementById('current-balance-display').textContent = `$ ${formatCurrency(currentBalance)}`;
+        document.getElementById('new-balance-amount').value = '';
+        document.getElementById('balance-adjust-reason').value = '';
+        document.getElementById('balance-difference-preview').style.display = 'none';
+        
+        // Live-Vorschau für Differenz
+        document.getElementById('new-balance-amount').addEventListener('input', updateBalanceDifferencePreview);
+    }
+}
+
+// Differenz-Vorschau aktualisieren
+function updateBalanceDifferencePreview() {
+    const newBalanceInput = document.getElementById('new-balance-amount');
+    const differencePreview = document.getElementById('balance-difference-preview');
+    const differenceValue = document.getElementById('balance-difference-value');
+    
+    const newBalance = parseFloat(newBalanceInput.value);
+    const currentBalance = window.currentTreasuryBalance || 0;
+    
+    if (!isNaN(newBalance)) {
+        const difference = newBalance - currentBalance;
+        differencePreview.style.display = 'block';
+        
+        const sign = difference >= 0 ? '+' : '';
+        differenceValue.textContent = `${sign}$ ${formatCurrency(Math.abs(difference))}`;
+        differenceValue.className = `value ${difference >= 0 ? 'positive' : 'negative'}`;
+    } else {
+        differencePreview.style.display = 'none';
     }
 }
 
@@ -5191,24 +5235,32 @@ function renderTransactions() {
             'beitrag': 'fa-user-check',
             'einzahlung': 'fa-arrow-up',
             'auszahlung': 'fa-arrow-down',
-            'ziel_einzahlung': 'fa-bullseye'
+            'ziel_einzahlung': 'fa-bullseye',
+            'korrektur': 'fa-balance-scale'
         };
         
         const typeColor = {
             'beitrag': 'blue',
             'einzahlung': 'green',
             'auszahlung': 'red',
-            'ziel_einzahlung': 'purple'
+            'ziel_einzahlung': 'purple',
+            'korrektur': 'orange'
         };
         
         const typeLabel = {
             'beitrag': 'Beitrag',
             'einzahlung': 'Einzahlung',
             'auszahlung': 'Auszahlung',
-            'ziel_einzahlung': 'Ziel-Einzahlung'
+            'ziel_einzahlung': 'Ziel-Einzahlung',
+            'korrektur': 'Korrektur'
         };
         
-        const isIncome = ['beitrag', 'einzahlung', 'ziel_einzahlung'].includes(transaction.type);
+        // Korrektur kann positiv oder negativ sein
+        const isIncome = transaction.type === 'korrektur' 
+            ? transaction.amount >= 0 
+            : ['beitrag', 'einzahlung', 'ziel_einzahlung'].includes(transaction.type);
+        
+        const displayAmount = Math.abs(transaction.amount);
         
         return `
             <div class="transaction-item ${typeColor[transaction.type] || 'gray'}">
@@ -5219,7 +5271,7 @@ function renderTransactions() {
                     <div class="transaction-header">
                         <span class="transaction-type">${typeLabel[transaction.type] || transaction.type}</span>
                         <span class="transaction-amount ${isIncome ? 'positive' : 'negative'}">
-                            ${isIncome ? '+' : '-'}$ ${formatCurrency(transaction.amount)}
+                            ${isIncome ? '+' : '-'}$ ${formatCurrency(displayAmount)}
                         </span>
                     </div>
                     <div class="transaction-description">${transaction.description || '-'}</div>
@@ -5991,6 +6043,55 @@ document.addEventListener('DOMContentLoaded', () => {
                     ]);
                 } else {
                     showToast(result.error || 'Fehler beim Hinzufügen der Transaktion', 'error');
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                showToast('Verbindungsfehler', 'error');
+            }
+        });
+    }
+    
+    // Adjust Balance Form (Kassenstand anpassen)
+    const adjustBalanceForm = document.getElementById('adjust-balance-form');
+    if (adjustBalanceForm) {
+        adjustBalanceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const newBalance = parseFloat(document.getElementById('new-balance-amount').value);
+            const reason = document.getElementById('balance-adjust-reason').value;
+            
+            if (isNaN(newBalance)) {
+                showToast('Bitte gültigen Betrag eingeben', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/treasury/balance/set`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        new_balance: newBalance,
+                        reason: reason 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const diff = result.difference;
+                    const diffText = diff >= 0 ? `+$${formatCurrency(diff)}` : `-$${formatCurrency(Math.abs(diff))}`;
+                    showToast(`Kassenstand angepasst (${diffText})`, 'success');
+                    closeModals();
+                    adjustBalanceForm.reset();
+                    await Promise.all([
+                        loadTreasuryBalance(),
+                        loadTreasuryTransactions(),
+                        loadTreasuryStats(),
+                        loadDashboardTreasuryStats()
+                    ]);
+                } else {
+                    showToast(result.error || 'Fehler beim Anpassen des Kassenstands', 'error');
                 }
             } catch (error) {
                 console.error('Fehler:', error);

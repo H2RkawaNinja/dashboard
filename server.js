@@ -2338,6 +2338,58 @@ app.get('/api/treasury/balance', requireLogin, (req, res) => {
     });
 });
 
+// Treasury Balance manuell setzen
+app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
+    const { new_balance, reason } = req.body;
+    
+    if (new_balance === undefined || new_balance === null) {
+        return res.status(400).json({ error: 'Neuer Kassenstand ist erforderlich' });
+    }
+    
+    // Aktuellen Stand abrufen
+    db.query('SELECT current_balance FROM gang_treasury LIMIT 1', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const oldBalance = results.length > 0 ? (results[0].current_balance || 0) : 0;
+        const difference = parseFloat(new_balance) - oldBalance;
+        
+        // Korrektur-Transaktion erstellen
+        const description = reason || `Manuelle Anpassung: ${oldBalance.toFixed(2)} → ${parseFloat(new_balance).toFixed(2)}`;
+        
+        db.query(
+            'INSERT INTO gang_transactions (member_id, type, amount, description, recorded_by) VALUES (?, ?, ?, ?, ?)',
+            [null, 'korrektur', difference, description, req.session.userId],
+            (insertErr, insertResult) => {
+                if (insertErr) {
+                    return res.status(500).json({ error: insertErr.message });
+                }
+                
+                // Balance direkt auf neuen Wert setzen
+                db.query('UPDATE gang_treasury SET current_balance = ?, last_updated = NOW()', [parseFloat(new_balance)], (updateErr) => {
+                    if (updateErr) {
+                        return res.status(500).json({ error: updateErr.message });
+                    }
+                    
+                    // Log activity
+                    db.query(
+                        'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                        [req.session.userId, 'balance_adjusted', `Kassenstand angepasst: $${oldBalance.toFixed(2)} → $${parseFloat(new_balance).toFixed(2)}`]
+                    );
+                    
+                    res.json({ 
+                        success: true, 
+                        old_balance: oldBalance,
+                        new_balance: parseFloat(new_balance),
+                        difference: difference
+                    });
+                });
+            }
+        );
+    });
+});
+
 // Alle Transaktionen abrufen
 app.get('/api/treasury/transactions', requireLogin, (req, res) => {
     const query = `
@@ -2385,6 +2437,9 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
             balanceChange = parseFloat(amount);
         } else if (type === 'auszahlung') {
             balanceChange = -parseFloat(amount);
+        } else if (type === 'korrektur') {
+            // Korrektur kann positiv oder negativ sein (Betrag enthält bereits das Vorzeichen)
+            balanceChange = parseFloat(amount);
         }
         
         db.query('UPDATE gang_treasury SET current_balance = current_balance + ?', [balanceChange], (err2) => {

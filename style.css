@@ -4252,6 +4252,76 @@ body {
     background: rgba(239, 68, 68, 0.1);
 }
 
+/* Balance Anpassen Button */
+.btn-adjust-balance {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+}
+
+.btn-adjust-balance:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* Adjust Balance Modal */
+.current-balance-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--dark-bg);
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+}
+
+.current-balance-display .label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.current-balance-display .value {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.balance-difference {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(251, 191, 36, 0.1);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.balance-difference .label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.balance-difference .value {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.balance-difference .value.positive {
+    color: var(--success);
+}
+
+.balance-difference .value.negative {
+    color: var(--danger);
+}
+
 .treasury-tabs {
     display: flex;
     background: var(--dark-card);
