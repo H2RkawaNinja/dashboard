@@ -2878,12 +2878,10 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                                             success: true,
                                             new_paid_amount: newPaidAmount,
                                             new_status: newStatus,
-                                            new_balance: newBalance,
                                             transaction_id: transactionResult.insertId
                                         });
                                     });
                                 });
-                            });
                         });
                     });
                 });
