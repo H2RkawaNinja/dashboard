@@ -385,7 +385,7 @@ app.get('/api/members', requireLogin, (req, res) => {
             COALESCE(can_view_stats, FALSE) as can_view_stats,
             COALESCE(can_manage_system, FALSE) as can_manage_system
         FROM members 
-        ORDER BY rank, full_name
+        ORDER BY FIELD(rank, 'OG', '2OG', 'Soldat', 'Member', 'Runner', 'Techniker'), full_name
     `;
     
     db.query(query, (err, results) => {
