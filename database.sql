@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS members (
     can_add_members BOOLEAN DEFAULT FALSE,
     can_view_fence BOOLEAN DEFAULT FALSE,
     can_manage_fence BOOLEAN DEFAULT FALSE,
+    can_view_recipes BOOLEAN DEFAULT FALSE,
     can_manage_recipes BOOLEAN DEFAULT FALSE,
+    can_view_storage BOOLEAN DEFAULT FALSE,
     can_manage_storage BOOLEAN DEFAULT FALSE,
     can_view_treasury BOOLEAN DEFAULT FALSE,
     can_manage_treasury BOOLEAN DEFAULT FALSE,
@@ -196,7 +198,9 @@ CREATE TABLE IF NOT EXISTS rank_permissions (
     can_add_members BOOLEAN DEFAULT FALSE,
     can_view_fence BOOLEAN DEFAULT FALSE,
     can_manage_fence BOOLEAN DEFAULT FALSE,
+    can_view_recipes BOOLEAN DEFAULT FALSE,
     can_manage_recipes BOOLEAN DEFAULT FALSE,
+    can_view_storage BOOLEAN DEFAULT FALSE,
     can_manage_storage BOOLEAN DEFAULT FALSE,
     can_view_treasury BOOLEAN DEFAULT FALSE,
     can_manage_treasury BOOLEAN DEFAULT FALSE,
@@ -207,13 +211,13 @@ CREATE TABLE IF NOT EXISTS rank_permissions (
 );
 
 -- Standard Rang-Berechtigungen
-INSERT INTO rank_permissions (rank_name, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system) VALUES
-('OG', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
-('2OG', FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, FALSE),
-('Member', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
-('Techniker', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
-('Soldat', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
-('Runner', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)
+INSERT INTO rank_permissions (rank_name, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system) VALUES
+('OG', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+('2OG', FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, FALSE),
+('Member', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+('Techniker', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+('Soldat', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+('Runner', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)
 ON DUPLICATE KEY UPDATE rank_name = VALUES(rank_name);
 
 -- ========================================
@@ -315,13 +319,17 @@ INSERT INTO gang_stats (stat_key, stat_value) VALUES
 -- MIGRATION: Neue Berechtigungsspalten hinzufügen (falls DB bereits existiert)
 -- ========================================
 ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_fence BOOLEAN DEFAULT FALSE AFTER can_add_members;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_recipes BOOLEAN DEFAULT FALSE AFTER can_manage_fence;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_storage BOOLEAN DEFAULT FALSE AFTER can_manage_recipes;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_treasury BOOLEAN DEFAULT FALSE AFTER can_manage_storage;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS can_manage_treasury BOOLEAN DEFAULT FALSE AFTER can_view_treasury;
 
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_fence BOOLEAN DEFAULT FALSE AFTER can_add_members;
+ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_recipes BOOLEAN DEFAULT FALSE AFTER can_manage_fence;
+ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_storage BOOLEAN DEFAULT FALSE AFTER can_manage_recipes;
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_treasury BOOLEAN DEFAULT FALSE AFTER can_manage_storage;
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_manage_treasury BOOLEAN DEFAULT FALSE AFTER can_view_treasury;
 
--- Bestehenden OG und Techniker Ränge mit neuen Rechten aktualisieren
-UPDATE rank_permissions SET can_view_fence = TRUE, can_view_treasury = TRUE, can_manage_treasury = TRUE WHERE rank_name IN ('OG', 'Techniker');
-UPDATE rank_permissions SET can_view_fence = TRUE, can_view_treasury = TRUE WHERE rank_name = '2OG';
+-- Bestehende Ränge mit neuen Rechten aktualisieren
+UPDATE rank_permissions SET can_view_fence = TRUE, can_view_recipes = TRUE, can_view_storage = TRUE, can_view_treasury = TRUE, can_manage_treasury = TRUE WHERE rank_name IN ('OG', 'Techniker');
+UPDATE rank_permissions SET can_view_fence = TRUE, can_view_recipes = TRUE, can_view_storage = TRUE, can_view_treasury = TRUE WHERE rank_name = '2OG';

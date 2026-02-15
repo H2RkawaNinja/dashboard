@@ -126,7 +126,9 @@ app.post('/api/auth/login', (req, res) => {
             req.session.canAddMembers = user.can_add_members;
             req.session.canViewFence = user.can_view_fence;
             req.session.canManageFence = user.can_manage_fence;
+            req.session.canViewRecipes = user.can_view_recipes;
             req.session.canManageRecipes = user.can_manage_recipes;
+            req.session.canViewStorage = user.can_view_storage;
             req.session.canManageStorage = user.can_manage_storage;
             req.session.canViewTreasury = user.can_view_treasury;
             req.session.canManageTreasury = user.can_manage_treasury;
@@ -139,7 +141,9 @@ app.post('/api/auth/login', (req, res) => {
                 req.session.canAddMembers = true;
                 req.session.canViewFence = true;
                 req.session.canManageFence = true;
+                req.session.canViewRecipes = true;
                 req.session.canManageRecipes = true;
+                req.session.canViewStorage = true;
                 req.session.canManageStorage = true;
                 req.session.canViewTreasury = true;
                 req.session.canManageTreasury = true;
@@ -164,7 +168,9 @@ app.post('/api/auth/login', (req, res) => {
                     can_add_members: req.session.canAddMembers,
                     can_view_fence: req.session.canViewFence,
                     can_manage_fence: req.session.canManageFence,
+                    can_view_recipes: req.session.canViewRecipes,
                     can_manage_recipes: req.session.canManageRecipes,
+                    can_view_storage: req.session.canViewStorage,
                     can_manage_storage: req.session.canManageStorage,
                     can_view_treasury: req.session.canViewTreasury,
                     can_manage_treasury: req.session.canManageTreasury,
@@ -187,7 +193,7 @@ app.post('/api/auth/logout', (req, res) => {
 // Session check
 app.get('/api/auth/session', (req, res) => {
     if (req.session.userId) {
-        db.query('SELECT id, username, full_name, rank, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?', 
+        db.query('SELECT id, username, full_name, rank, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?', 
             [req.session.userId], (err, results) => {
             if (err || results.length === 0) {
                 return res.json({ logged_in: false });
@@ -199,7 +205,9 @@ app.get('/api/auth/session', (req, res) => {
                 user.can_add_members = true;
                 user.can_view_fence = true;
                 user.can_manage_fence = true;
+                user.can_view_recipes = true;
                 user.can_manage_recipes = true;
+                user.can_view_storage = true;
                 user.can_manage_storage = true;
                 user.can_view_treasury = true;
                 user.can_manage_treasury = true;
@@ -211,7 +219,9 @@ app.get('/api/auth/session', (req, res) => {
                 req.session.canViewFence = true;
                 req.session.canManageHero = true;
                 req.session.canManageFence = true;
+                req.session.canViewRecipes = true;
                 req.session.canManageRecipes = true;
+                req.session.canViewStorage = true;
                 req.session.canManageStorage = true;
                 req.session.canViewTreasury = true;
                 req.session.canManageTreasury = true;
@@ -223,7 +233,9 @@ app.get('/api/auth/session', (req, res) => {
                 req.session.canAddMembers = user.can_add_members;
                 req.session.canViewFence = user.can_view_fence;
                 req.session.canManageFence = user.can_manage_fence;
+                req.session.canViewRecipes = user.can_view_recipes;
                 req.session.canManageRecipes = user.can_manage_recipes;
+                req.session.canViewStorage = user.can_view_storage;
                 req.session.canManageStorage = user.can_manage_storage;
                 req.session.canViewTreasury = user.can_view_treasury;
                 req.session.canManageTreasury = user.can_manage_treasury;
@@ -363,7 +375,9 @@ app.get('/api/members', requireLogin, (req, res) => {
             COALESCE(can_add_members, FALSE) as can_add_members,
             COALESCE(can_view_fence, FALSE) as can_view_fence,
             COALESCE(can_manage_fence, FALSE) as can_manage_fence,
+            COALESCE(can_view_recipes, FALSE) as can_view_recipes,
             COALESCE(can_manage_recipes, FALSE) as can_manage_recipes,
+            COALESCE(can_view_storage, FALSE) as can_view_storage,
             COALESCE(can_manage_storage, FALSE) as can_manage_storage,
             COALESCE(can_view_treasury, FALSE) as can_view_treasury,
             COALESCE(can_manage_treasury, FALSE) as can_manage_treasury,
@@ -404,7 +418,7 @@ app.post('/api/members/add', requireLogin, (req, res) => {
         return res.status(403).json({ error: 'Keine Berechtigung zum Hinzufügen von Mitgliedern' });
     }
     
-    const { username, full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
+    const { username, full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
     
     // Prüfe ob Username bereits existiert
     db.query('SELECT id FROM members WHERE username = ?', [username], (err, results) => {
@@ -422,9 +436,9 @@ app.post('/api/members/add', requireLogin, (req, res) => {
         const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 Tage gültig
         
         // Füge Mitglied hinzu
-        const query = 'INSERT INTO members (username, password, full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system, invitation_token, is_password_set, token_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)';
+        const query = 'INSERT INTO members (username, password, full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system, invitation_token, is_password_set, token_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)';
         
-        db.query(query, [username, tempPassword, full_name, rank, phone || null, can_add_members || false, can_view_fence || false, can_manage_fence || false, can_manage_recipes || false, can_manage_storage || false, can_view_treasury || false, can_manage_treasury || false, can_view_activity || false, can_view_stats || false, can_manage_system || false, token, tokenExpires], (err, result) => {
+        db.query(query, [username, tempPassword, full_name, rank, phone || null, can_add_members || false, can_view_fence || false, can_manage_fence || false, can_view_recipes || false, can_manage_recipes || false, can_view_storage || false, can_manage_storage || false, can_view_treasury || false, can_manage_treasury || false, can_view_activity || false, can_view_stats || false, can_manage_system || false, token, tokenExpires], (err, result) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
@@ -455,10 +469,10 @@ app.put('/api/members/:id/edit', requireLogin, (req, res) => {
     }
     
     const { id } = req.params;
-const { full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system, is_active } = req.body;
+const { full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system, is_active } = req.body;
 
-    const query = 'UPDATE members SET full_name = ?, rank = ?, phone = ?, can_add_members = ?, can_view_fence = ?, can_manage_fence = ?, can_manage_recipes = ?, can_manage_storage = ?, can_view_treasury = ?, can_manage_treasury = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?, is_active = ? WHERE id = ?';
-    const params = [full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system, is_active, id];
+    const query = 'UPDATE members SET full_name = ?, rank = ?, phone = ?, can_add_members = ?, can_view_fence = ?, can_manage_fence = ?, can_view_recipes = ?, can_manage_recipes = ?, can_view_storage = ?, can_manage_storage = ?, can_view_treasury = ?, can_manage_treasury = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?, is_active = ? WHERE id = ?';
+    const params = [full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system, is_active, id];
     
     db.query(query, params, (err) => {
         if (err) {
@@ -2374,15 +2388,17 @@ app.put('/api/rank-permissions/:rankName', requireLogin, (req, res) => {
     }
     
     const { rankName } = req.params;
-    const { can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
+    const { can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
     
-    const query = `INSERT INTO rank_permissions (rank_name, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+    const query = `INSERT INTO rank_permissions (rank_name, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
         ON DUPLICATE KEY UPDATE 
             can_add_members = VALUES(can_add_members),
             can_view_fence = VALUES(can_view_fence),
             can_manage_fence = VALUES(can_manage_fence),
+            can_view_recipes = VALUES(can_view_recipes),
             can_manage_recipes = VALUES(can_manage_recipes),
+            can_view_storage = VALUES(can_view_storage),
             can_manage_storage = VALUES(can_manage_storage),
             can_view_treasury = VALUES(can_view_treasury),
             can_manage_treasury = VALUES(can_manage_treasury),
@@ -2390,7 +2406,7 @@ app.put('/api/rank-permissions/:rankName', requireLogin, (req, res) => {
             can_view_stats = VALUES(can_view_stats),
             can_manage_system = VALUES(can_manage_system)`;
     
-    db.query(query, [rankName, can_add_members, can_view_fence, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system], (err) => {
+    db.query(query, [rankName, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system], (err) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -2424,13 +2440,13 @@ app.post('/api/rank-permissions/:rankName/apply', requireLogin, (req, res) => {
         
         // Auf alle aktiven Mitglieder mit diesem Rang anwenden
         const updateQuery = `UPDATE members SET 
-            can_add_members = ?, can_view_fence = ?, can_manage_fence = ?, can_manage_recipes = ?, 
-            can_manage_storage = ?, can_view_treasury = ?, can_manage_treasury = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?
+            can_add_members = ?, can_view_fence = ?, can_manage_fence = ?, can_view_recipes = ?, can_manage_recipes = ?, 
+            can_view_storage = ?, can_manage_storage = ?, can_view_treasury = ?, can_manage_treasury = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?
             WHERE \`rank\` = ? AND is_active = TRUE`;
         
         db.query(updateQuery, [
-            rp.can_add_members, rp.can_view_fence, rp.can_manage_fence, rp.can_manage_recipes,
-            rp.can_manage_storage, rp.can_view_treasury, rp.can_manage_treasury, rp.can_view_activity, rp.can_view_stats, rp.can_manage_system,
+            rp.can_add_members, rp.can_view_fence, rp.can_manage_fence, rp.can_view_recipes, rp.can_manage_recipes,
+            rp.can_view_storage, rp.can_manage_storage, rp.can_view_treasury, rp.can_manage_treasury, rp.can_view_activity, rp.can_view_stats, rp.can_manage_system,
             rankName
         ], (err, result) => {
             if (err) {
@@ -2459,7 +2475,9 @@ app.get('/api/permissions-overview', requireLogin, (req, res) => {
         COALESCE(can_add_members, FALSE) as can_add_members,
         COALESCE(can_view_fence, FALSE) as can_view_fence,
         COALESCE(can_manage_fence, FALSE) as can_manage_fence,
+        COALESCE(can_view_recipes, FALSE) as can_view_recipes,
         COALESCE(can_manage_recipes, FALSE) as can_manage_recipes,
+        COALESCE(can_view_storage, FALSE) as can_view_storage,
         COALESCE(can_manage_storage, FALSE) as can_manage_storage,
         COALESCE(can_view_treasury, FALSE) as can_view_treasury,
         COALESCE(can_manage_treasury, FALSE) as can_manage_treasury,

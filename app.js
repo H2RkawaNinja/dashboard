@@ -238,16 +238,16 @@ function updateNavigationAccess() {
         fenceNav.style.display = (currentUser.can_view_fence || currentUser.can_manage_fence || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
-    // Rezepte Navigation
+    // Rezepte Navigation (sichtbar wenn Einsicht ODER Verwalten)
     const recipesNav = document.querySelector('[data-page="recipes"]');
     if (recipesNav) {
-        recipesNav.style.display = (currentUser.can_manage_recipes || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        recipesNav.style.display = (currentUser.can_view_recipes || currentUser.can_manage_recipes || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
-    // Lager Navigation
+    // Lager Navigation (sichtbar wenn Einsicht ODER Verwalten)
     const storageNav = document.querySelector('[data-page="storage-overview"]');
     if (storageNav) {
-        storageNav.style.display = (currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        storageNav.style.display = (currentUser.can_view_storage || currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
     // Gangkasse Navigation (sichtbar wenn Einsicht ODER Verwalten)
@@ -273,6 +273,12 @@ function updateNavigationAccess() {
     
     // Gangkasse: Bearbeitungselemente verstecken wenn nur Einsicht
     updateTreasuryEditAccess();
+    
+    // Rezepte: Bearbeitungselemente verstecken wenn nur Einsicht
+    updateRecipesEditAccess();
+    
+    // Lager: Bearbeitungselemente verstecken wenn nur Einsicht
+    updateStorageEditAccess();
 }
 
 // Hehler: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
@@ -293,6 +299,26 @@ function updateTreasuryEditAccess() {
     
     // Alle Treasury-Bearbeitungs-Buttons verstecken/anzeigen
     document.querySelectorAll('.treasury-manage-only').forEach(el => {
+        el.style.display = canManage ? '' : 'none';
+    });
+}
+
+// Rezepte: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
+function updateRecipesEditAccess() {
+    if (!currentUser) return;
+    const canManage = currentUser.can_manage_recipes || currentUser.rank === 'Techniker';
+    
+    document.querySelectorAll('.recipes-manage-only').forEach(el => {
+        el.style.display = canManage ? '' : 'none';
+    });
+}
+
+// Lager: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
+function updateStorageEditAccess() {
+    if (!currentUser) return;
+    const canManage = currentUser.can_manage_storage || currentUser.rank === 'Techniker';
+    
+    document.querySelectorAll('.storage-manage-only').forEach(el => {
         el.style.display = canManage ? '' : 'none';
     });
 }
@@ -597,8 +623,10 @@ async function loadMembers() {
             if (m.can_manage_system) permBadges.push('<span class="perm-badge perm-badge-red" title="Einstellungen"><i class="fas fa-cog"></i></span>');
             if (m.can_view_fence && !m.can_manage_fence) permBadges.push('<span class="perm-badge perm-badge-teal" title="Hehler einsehen"><i class="fas fa-eye"></i></span>');
             if (m.can_manage_fence) permBadges.push('<span class="perm-badge perm-badge-green" title="Hehler verwalten"><i class="fas fa-handshake"></i></span>');
-            if (m.can_manage_recipes) permBadges.push('<span class="perm-badge perm-badge-purple" title="Rezepte"><i class="fas fa-book"></i></span>');
-            if (m.can_manage_storage) permBadges.push('<span class="perm-badge perm-badge-orange" title="Lager"><i class="fas fa-warehouse"></i></span>');
+            if (m.can_view_recipes && !m.can_manage_recipes) permBadges.push('<span class="perm-badge perm-badge-teal" title="Rezepte einsehen"><i class="fas fa-eye"></i></span>');
+            if (m.can_manage_recipes) permBadges.push('<span class="perm-badge perm-badge-purple" title="Rezepte verwalten"><i class="fas fa-book"></i></span>');
+            if (m.can_view_storage && !m.can_manage_storage) permBadges.push('<span class="perm-badge perm-badge-teal" title="Lager einsehen"><i class="fas fa-eye"></i></span>');
+            if (m.can_manage_storage) permBadges.push('<span class="perm-badge perm-badge-orange" title="Lager verwalten"><i class="fas fa-warehouse"></i></span>');
             if (m.can_view_treasury && !m.can_manage_treasury) permBadges.push('<span class="perm-badge perm-badge-teal" title="Gangkasse einsehen"><i class="fas fa-piggy-bank"></i></span>');
             if (m.can_manage_treasury) permBadges.push('<span class="perm-badge perm-badge-gold" title="Gangkasse verwalten"><i class="fas fa-coins"></i></span>');
             if (m.can_view_activity) permBadges.push('<span class="perm-badge perm-badge-cyan" title="Aktivitäten"><i class="fas fa-clipboard-list"></i></span>');
@@ -2514,7 +2542,9 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
 
         can_view_fence: document.getElementById('new-member-can-view-fence').checked,
         can_manage_fence: document.getElementById('new-member-can-fence').checked,
+        can_view_recipes: document.getElementById('new-member-can-view-recipes').checked,
         can_manage_recipes: document.getElementById('new-member-can-recipes').checked,
+        can_view_storage: document.getElementById('new-member-can-view-storage').checked,
         can_manage_storage: document.getElementById('new-member-can-storage').checked,
         can_view_treasury: document.getElementById('new-member-can-view-treasury').checked,
         can_manage_treasury: document.getElementById('new-member-can-manage-treasury').checked,
@@ -2569,7 +2599,9 @@ async function editMember(id) {
 
         document.getElementById('edit-member-can-view-fence').checked = member.can_view_fence;
         document.getElementById('edit-member-can-fence').checked = member.can_manage_fence;
+        document.getElementById('edit-member-can-view-recipes').checked = member.can_view_recipes;
         document.getElementById('edit-member-can-recipes').checked = member.can_manage_recipes;
+        document.getElementById('edit-member-can-view-storage').checked = member.can_view_storage;
         document.getElementById('edit-member-can-storage').checked = member.can_manage_storage;
         document.getElementById('edit-member-can-view-treasury').checked = member.can_view_treasury;
         document.getElementById('edit-member-can-manage-treasury').checked = member.can_manage_treasury;
@@ -2597,7 +2629,9 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
 
         can_view_fence: document.getElementById('edit-member-can-view-fence').checked,
         can_manage_fence: document.getElementById('edit-member-can-fence').checked,
+        can_view_recipes: document.getElementById('edit-member-can-view-recipes').checked,
         can_manage_recipes: document.getElementById('edit-member-can-recipes').checked,
+        can_view_storage: document.getElementById('edit-member-can-view-storage').checked,
         can_manage_storage: document.getElementById('edit-member-can-storage').checked,
         can_view_treasury: document.getElementById('edit-member-can-view-treasury').checked,
         can_manage_treasury: document.getElementById('edit-member-can-manage-treasury').checked,
@@ -5011,13 +5045,15 @@ function hideMaintenanceBanner(module) {
 // RANG-BERECHTIGUNGEN & RECHTE-ÜBERSICHT
 // ========================================
 
-const PERM_KEYS = ['can_add_members', 'can_view_fence', 'can_manage_fence', 'can_manage_recipes', 'can_manage_storage', 'can_view_treasury', 'can_manage_treasury', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
+const PERM_KEYS = ['can_add_members', 'can_view_fence', 'can_manage_fence', 'can_view_recipes', 'can_manage_recipes', 'can_view_storage', 'can_manage_storage', 'can_view_treasury', 'can_manage_treasury', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
 const PERM_LABELS = {
     can_add_members: 'Mitglieder',
     can_view_fence: 'Hehler (Einsicht)',
     can_manage_fence: 'Hehler (Verwalten)',
-    can_manage_recipes: 'Rezepte',
-    can_manage_storage: 'Lager',
+    can_view_recipes: 'Rezepte (Einsicht)',
+    can_manage_recipes: 'Rezepte (Verwalten)',
+    can_view_storage: 'Lager (Einsicht)',
+    can_manage_storage: 'Lager (Verwalten)',
     can_view_treasury: 'Gangkasse (Einsicht)',
     can_manage_treasury: 'Gangkasse (Verwalten)',
     can_view_activity: 'Aktivitäten',
@@ -5028,7 +5064,9 @@ const PERM_ICONS = {
     can_add_members: 'fa-user-plus',
     can_view_fence: 'fa-eye',
     can_manage_fence: 'fa-handshake',
+    can_view_recipes: 'fa-eye',
     can_manage_recipes: 'fa-book',
+    can_view_storage: 'fa-eye',
     can_manage_storage: 'fa-warehouse',
     can_view_treasury: 'fa-piggy-bank',
     can_manage_treasury: 'fa-coins',
@@ -5191,7 +5229,7 @@ async function loadPermissionsOverview() {
         
     } catch (error) {
         console.error('Fehler beim Laden der Rechte-Übersicht:', error);
-        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: var(--text-secondary); padding: 1rem;">Fehler beim Laden</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: var(--text-secondary); padding: 1rem;">Fehler beim Laden</td></tr>';
     }
 }
 
@@ -5209,7 +5247,9 @@ async function applyRankTemplate(rankName, prefix) {
             const shortKey = key.replace('can_add_members', 'add')
                 .replace('can_view_fence', 'view-fence')
                 .replace('can_manage_fence', 'fence')
+                .replace('can_view_recipes', 'view-recipes')
                 .replace('can_manage_recipes', 'recipes')
+                .replace('can_view_storage', 'view-storage')
                 .replace('can_manage_storage', 'storage')
                 .replace('can_view_treasury', 'view-treasury')
                 .replace('can_manage_treasury', 'manage-treasury')

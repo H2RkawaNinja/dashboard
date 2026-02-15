@@ -747,8 +747,10 @@
                                         <th class="pm-perm-col" title="Mitglieder verwalten"><i class="fas fa-user-plus"></i></th>
                                         <th class="pm-perm-col" title="Hehler einsehen"><i class="fas fa-eye"></i></th>
                                         <th class="pm-perm-col" title="Hehler verwalten"><i class="fas fa-handshake"></i></th>
-                                        <th class="pm-perm-col" title="Rezepte"><i class="fas fa-book"></i></th>
-                                        <th class="pm-perm-col" title="Lager"><i class="fas fa-warehouse"></i></th>
+                                        <th class="pm-perm-col" title="Rezepte einsehen"><i class="fas fa-eye"></i></th>
+                                        <th class="pm-perm-col" title="Rezepte verwalten"><i class="fas fa-book"></i></th>
+                                        <th class="pm-perm-col" title="Lager einsehen"><i class="fas fa-eye"></i></th>
+                                        <th class="pm-perm-col" title="Lager verwalten"><i class="fas fa-warehouse"></i></th>
                                         <th class="pm-perm-col" title="Gangkasse einsehen"><i class="fas fa-piggy-bank"></i></th>
                                         <th class="pm-perm-col" title="Gangkasse verwalten"><i class="fas fa-coins"></i></th>
                                         <th class="pm-perm-col" title="Aktivitäten"><i class="fas fa-clipboard-list"></i></th>
@@ -1766,10 +1768,23 @@
                         </div>
                         <div class="perm-item">
                             <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Rezepte einsehen</span>
+                                    <span class="perm-desc">Kann Rezepte sehen, aber nicht bearbeiten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-view-recipes">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
                                 <i class="fas fa-book perm-icon text-purple"></i>
                                 <div>
-                                    <span class="perm-name">Rezepte</span>
-                                    <span class="perm-desc">Kann Rezepte einsehen und verwalten</span>
+                                    <span class="perm-name">Rezepte verwalten</span>
+                                    <span class="perm-desc">Kann Rezepte erstellen und bearbeiten</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
@@ -1779,10 +1794,23 @@
                         </div>
                         <div class="perm-item">
                             <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Lager einsehen</span>
+                                    <span class="perm-desc">Kann Lagerbestände sehen, aber nicht ändern</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-view-storage">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
                                 <i class="fas fa-warehouse perm-icon text-orange"></i>
                                 <div>
-                                    <span class="perm-name">Lager</span>
-                                    <span class="perm-desc">Kann das Lager und Bestände verwalten</span>
+                                    <span class="perm-name">Lager verwalten</span>
+                                    <span class="perm-desc">Kann Lager und Bestände verwalten</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
@@ -1967,10 +1995,23 @@
                         </div>
                         <div class="perm-item">
                             <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Rezepte einsehen</span>
+                                    <span class="perm-desc">Kann Rezepte sehen, aber nicht bearbeiten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-view-recipes">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
                                 <i class="fas fa-book perm-icon text-purple"></i>
                                 <div>
-                                    <span class="perm-name">Rezepte</span>
-                                    <span class="perm-desc">Kann Rezepte einsehen und verwalten</span>
+                                    <span class="perm-name">Rezepte verwalten</span>
+                                    <span class="perm-desc">Kann Rezepte erstellen und bearbeiten</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
@@ -1980,10 +2021,23 @@
                         </div>
                         <div class="perm-item">
                             <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Lager einsehen</span>
+                                    <span class="perm-desc">Kann Lagerbestände sehen, aber nicht ändern</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-view-storage">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
                                 <i class="fas fa-warehouse perm-icon text-orange"></i>
                                 <div>
-                                    <span class="perm-name">Lager</span>
-                                    <span class="perm-desc">Kann das Lager und Bestände verwalten</span>
+                                    <span class="perm-name">Lager verwalten</span>
+                                    <span class="perm-desc">Kann Lager und Bestände verwalten</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
