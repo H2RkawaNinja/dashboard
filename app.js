@@ -177,7 +177,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             'recipes': 'Rezepte',
             'intelligence': 'Intel-Sammlung',
             'activity': 'Aktivitäten',
-            'maintenance': 'System Wartung'
+            'maintenance': 'Einstellungen'
         };
         
         document.getElementById('page-title').textContent = titles[page] || 'Dashboard';
@@ -560,7 +560,7 @@ async function loadMembers() {
         tbody.innerHTML = members.map(m => {
             const permBadges = [];
             if (m.can_add_members) permBadges.push('<span class="perm-badge perm-badge-blue" title="Mitglieder verwalten"><i class="fas fa-user-plus"></i></span>');
-            if (m.can_manage_system) permBadges.push('<span class="perm-badge perm-badge-red" title="System verwalten"><i class="fas fa-server"></i></span>');
+            if (m.can_manage_system) permBadges.push('<span class="perm-badge perm-badge-red" title="Einstellungen"><i class="fas fa-cog"></i></span>');
             if (m.can_manage_fence) permBadges.push('<span class="perm-badge perm-badge-green" title="Hehler-Geschäft"><i class="fas fa-handshake"></i></span>');
             if (m.can_manage_recipes) permBadges.push('<span class="perm-badge perm-badge-purple" title="Rezepte"><i class="fas fa-book"></i></span>');
             if (m.can_manage_storage) permBadges.push('<span class="perm-badge perm-badge-orange" title="Lager"><i class="fas fa-warehouse"></i></span>');
@@ -4690,8 +4690,24 @@ function filterRecipes() {
 }
 
 // ========================================
-// SYSTEM WARTUNG FUNKTIONEN (nur Techniker)
+// EINSTELLUNGEN (ehemals System Wartung)
 // ========================================
+
+// Tab-Wechsel für Einstellungen
+function switchSettingsTab(btn, tabName) {
+    // Alle Tabs deaktivieren
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.remove('active'));
+    
+    // Aktiven Tab setzen
+    btn.classList.add('active');
+    const content = document.getElementById('settings-' + tabName);
+    if (content) content.classList.add('active');
+    
+    // Daten laden beim Tab-Wechsel
+    if (tabName === 'rang-vorlagen') loadRankPermissions();
+    if (tabName === 'rechte-uebersicht') loadPermissionsOverview();
+}
 
 // Wartungsseite für Techniker anzeigen/verstecken
 function updateMaintenanceAccess() {
@@ -4727,6 +4743,10 @@ async function loadMaintenanceSettings() {
     } catch (error) {
         console.error('Fehler beim Laden der Wartungseinstellungen:', error);
     }
+    
+    // Rang-Vorlagen und Rechte-Übersicht laden
+    loadRankPermissions();
+    loadPermissionsOverview();
 }
 
 // Wartungseinstellungen speichern
@@ -4756,7 +4776,7 @@ async function saveMaintenanceSettings() {
         console.log('DEBUG - Server Response:', result);
         
         if (result.success) {
-            showToast('Wartungseinstellungen gespeichert', 'success', 'System Wartung');
+            showToast('Wartungseinstellungen gespeichert', 'success', 'Einstellungen');
             checkMaintenanceModes(); // Bereiche aktualisieren
         } else {
             showToast(result.error || 'Fehler beim Speichern', 'error');
@@ -4940,6 +4960,231 @@ function hideMaintenanceBanner(module) {
         });
     }
 }
+
+// ========================================
+// RANG-BERECHTIGUNGEN & RECHTE-ÜBERSICHT
+// ========================================
+
+const PERM_KEYS = ['can_add_members', 'can_manage_fence', 'can_manage_recipes', 'can_manage_storage', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
+const PERM_LABELS = {
+    can_add_members: 'Mitglieder',
+    can_manage_fence: 'Hehler',
+    can_manage_recipes: 'Rezepte',
+    can_manage_storage: 'Lager',
+    can_view_activity: 'Aktivitäten',
+    can_view_stats: 'Statistiken',
+    can_manage_system: 'System'
+};
+const PERM_ICONS = {
+    can_add_members: 'fa-user-plus',
+    can_manage_fence: 'fa-handshake',
+    can_manage_recipes: 'fa-book',
+    can_manage_storage: 'fa-warehouse',
+    can_view_activity: 'fa-clipboard-list',
+    can_view_stats: 'fa-chart-bar',
+    can_manage_system: 'fa-server'
+};
+const RANK_COLORS = {
+    'Techniker': '#ffc107',
+    'OG': '#ff5252',
+    '2OG': '#ff9800',
+    'Member': '#4caf50',
+    'Soldat': '#4a9eff',
+    'Runner': '#26c6da'
+};
+
+// Rang-Vorlagen laden und rendern
+async function loadRankPermissions() {
+    const grid = document.getElementById('rank-templates-grid');
+    if (!grid) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/rank-permissions`, { credentials: 'include' });
+        const data = await response.json();
+        
+        if (!data.success) return;
+        
+        grid.innerHTML = data.ranks.map(rank => {
+            const color = RANK_COLORS[rank.rank_name] || '#888';
+            const permToggles = PERM_KEYS.map(key => {
+                const checked = rank[key] ? 'checked' : '';
+                return `
+                    <div class="rt-perm-row">
+                        <span class="rt-perm-label">
+                            <i class="fas ${PERM_ICONS[key]}"></i> ${PERM_LABELS[key]}
+                        </span>
+                        <label class="toggle-switch-sm">
+                            <input type="checkbox" data-rank="${rank.rank_name}" data-perm="${key}" ${checked}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                `;
+            }).join('');
+            
+            return `
+                <div class="rank-template-card">
+                    <div class="rt-header" style="border-left: 3px solid ${color};">
+                        <span class="rt-rank-name" style="color: ${color};">${rank.rank_name}</span>
+                        <span class="rt-rank-hint">${rank.rank_name === 'Techniker' ? 'Vollzugriff' : ''}</span>
+                    </div>
+                    <div class="rt-perms">
+                        ${permToggles}
+                    </div>
+                    <div class="rt-actions">
+                        <button class="btn-sm btn-primary" onclick="saveRankPermissions('${rank.rank_name}')">
+                            <i class="fas fa-save"></i> Speichern
+                        </button>
+                        <button class="btn-sm btn-secondary" onclick="applyRankPermissions('${rank.rank_name}')">
+                            <i class="fas fa-sync"></i> Auf alle anwenden
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Fehler beim Laden der Rang-Vorlagen:', error);
+        grid.innerHTML = '<p style="color: var(--text-secondary); padding: 1rem;">Fehler beim Laden der Rang-Vorlagen.</p>';
+    }
+}
+
+// Rang-Vorlage speichern
+async function saveRankPermissions(rankName) {
+    const perms = {};
+    PERM_KEYS.forEach(key => {
+        const cb = document.querySelector(`input[data-rank="${rankName}"][data-perm="${key}"]`);
+        perms[key] = cb ? cb.checked : false;
+    });
+    
+    try {
+        const response = await fetch(`${API_URL}/rank-permissions/${encodeURIComponent(rankName)}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(perms)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            showToast(`Berechtigungen für "${rankName}" gespeichert`, 'success', 'Rang-Vorlagen');
+        } else {
+            showToast(result.error || 'Fehler', 'error');
+        }
+    } catch (error) {
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Rang-Vorlage auf alle Mitglieder anwenden
+async function applyRankPermissions(rankName) {
+    if (!confirm(`Willst du die Standard-Berechtigungen wirklich auf ALLE aktiven "${rankName}"-Mitglieder anwenden?\n\nDas überschreibt deren aktuelle Einzelrechte!`)) {
+        return;
+    }
+    
+    // Erst speichern, dann anwenden
+    await saveRankPermissions(rankName);
+    
+    try {
+        const response = await fetch(`${API_URL}/rank-permissions/${encodeURIComponent(rankName)}/apply`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            showToast(result.message, 'success', 'Rang-Vorlagen');
+            loadPermissionsOverview();
+            loadMembers();
+        } else {
+            showToast(result.error || 'Fehler', 'error');
+        }
+    } catch (error) {
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Rechte-Übersicht Matrix laden
+async function loadPermissionsOverview() {
+    const tbody = document.getElementById('permissions-matrix-body');
+    if (!tbody) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/permissions-overview`, { credentials: 'include' });
+        const data = await response.json();
+        
+        if (!data.success) return;
+        
+        tbody.innerHTML = data.members.map(m => {
+            const color = RANK_COLORS[m.rank] || '#888';
+            const isTechniker = m.rank === 'Techniker';
+            
+            const cells = PERM_KEYS.map(key => {
+                const hasIt = isTechniker || m[key];
+                return `<td class="pm-perm-cell ${hasIt ? 'pm-yes' : 'pm-no'}">
+                    ${hasIt 
+                        ? '<i class="fas fa-check-circle"></i>' 
+                        : '<i class="fas fa-times-circle"></i>'}
+                </td>`;
+            }).join('');
+            
+            return `
+                <tr${isTechniker ? ' class="pm-techniker-row"' : ''}>
+                    <td class="pm-name-cell">${m.full_name}</td>
+                    <td><span class="pm-rank-badge" style="color: ${color}; border-color: ${color};">${m.rank}</span></td>
+                    ${cells}
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Fehler beim Laden der Rechte-Übersicht:', error);
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 1rem;">Fehler beim Laden</td></tr>';
+    }
+}
+
+// Rang-Vorlage beim Hinzufügen/Bearbeiten automatisch vorschlagen
+async function applyRankTemplate(rankName, prefix) {
+    try {
+        const response = await fetch(`${API_URL}/rank-permissions`, { credentials: 'include' });
+        const data = await response.json();
+        if (!data.success) return;
+        
+        const rankPerms = data.ranks.find(r => r.rank_name === rankName);
+        if (!rankPerms) return;
+        
+        PERM_KEYS.forEach(key => {
+            const shortKey = key.replace('can_add_members', 'add')
+                .replace('can_manage_fence', 'fence')
+                .replace('can_manage_recipes', 'recipes')
+                .replace('can_manage_storage', 'storage')
+                .replace('can_view_activity', 'activity')
+                .replace('can_view_stats', 'stats')
+                .replace('can_manage_system', 'system');
+            const cb = document.getElementById(`${prefix}-can-${shortKey}`);
+            if (cb) cb.checked = !!rankPerms[key];
+        });
+        
+        // Toggle-All sync
+        const section = document.querySelector(`#${prefix === 'new-member' ? 'add-member-modal' : 'edit-member-modal'} .permissions-section`);
+        if (section) {
+            const toggleAll = section.querySelector('.toggle-all');
+            const checkboxes = section.querySelectorAll('.toggle-switch input[type="checkbox"]');
+            if (toggleAll) toggleAll.checked = Array.from(checkboxes).every(c => c.checked);
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Rang-Vorlage:', error);
+    }
+}
+
+// Rang-Select Listener: Auto-Vorschlag bei Rang-Wechsel
+document.getElementById('new-member-rank')?.addEventListener('change', function() {
+    applyRankTemplate(this.value, 'new-member');
+});
+
+document.getElementById('edit-member-rank')?.addEventListener('change', function() {
+    applyRankTemplate(this.value, 'edit-member');
+});
 
 // ========================================
 // EVENT LISTENERS

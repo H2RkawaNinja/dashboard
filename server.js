@@ -2316,6 +2316,128 @@ app.get('/api/maintenance/status/:module', requireLogin, (req, res) => {
 });
 
 // ========================================
+// RANG-BERECHTIGUNGEN ENDPUNKTE
+// ========================================
+
+// Alle Rang-Vorlagen laden
+app.get('/api/rank-permissions', requireLogin, (req, res) => {
+    if (req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Nur Techniker können Rang-Berechtigungen verwalten' });
+    }
+    
+    db.query('SELECT * FROM rank_permissions ORDER BY FIELD(rank_name, "Techniker", "OG", "2OG", "Member", "Soldat", "Runner")', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ success: true, ranks: results });
+    });
+});
+
+// Rang-Vorlage speichern
+app.put('/api/rank-permissions/:rankName', requireLogin, (req, res) => {
+    if (req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Nur Techniker können Rang-Berechtigungen verwalten' });
+    }
+    
+    const { rankName } = req.params;
+    const { can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system } = req.body;
+    
+    const query = `INSERT INTO rank_permissions (rank_name, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
+        ON DUPLICATE KEY UPDATE 
+            can_add_members = VALUES(can_add_members),
+            can_manage_fence = VALUES(can_manage_fence),
+            can_manage_recipes = VALUES(can_manage_recipes),
+            can_manage_storage = VALUES(can_manage_storage),
+            can_view_activity = VALUES(can_view_activity),
+            can_view_stats = VALUES(can_view_stats),
+            can_manage_system = VALUES(can_manage_system)`;
+    
+    db.query(query, [rankName, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system], (err) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+            [req.session.userId, 'rank_permissions', `Rang-Berechtigungen für "${rankName}" geändert`]);
+        
+        res.json({ success: true, message: `Berechtigungen für "${rankName}" gespeichert` });
+    });
+});
+
+// Rang-Vorlage auf alle Mitglieder dieses Rangs anwenden
+app.post('/api/rank-permissions/:rankName/apply', requireLogin, (req, res) => {
+    if (req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Nur Techniker können Rang-Berechtigungen anwenden' });
+    }
+    
+    const { rankName } = req.params;
+    
+    // Erst Rang-Vorlage laden
+    db.query('SELECT * FROM rank_permissions WHERE rank_name = ?', [rankName], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Rang-Vorlage nicht gefunden' });
+        }
+        
+        const rp = results[0];
+        
+        // Auf alle aktiven Mitglieder mit diesem Rang anwenden
+        const updateQuery = `UPDATE members SET 
+            can_add_members = ?, can_manage_fence = ?, can_manage_recipes = ?, 
+            can_manage_storage = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?
+            WHERE \`rank\` = ? AND is_active = TRUE`;
+        
+        db.query(updateQuery, [
+            rp.can_add_members, rp.can_manage_fence, rp.can_manage_recipes,
+            rp.can_manage_storage, rp.can_view_activity, rp.can_view_stats, rp.can_manage_system,
+            rankName
+        ], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                [req.session.userId, 'rank_permissions_applied', `Rang-Berechtigungen auf ${result.affectedRows} "${rankName}"-Mitglieder angewendet`]);
+            
+            res.json({ 
+                success: true, 
+                message: `Berechtigungen auf ${result.affectedRows} Mitglieder mit Rang "${rankName}" angewendet`,
+                affected: result.affectedRows
+            });
+        });
+    });
+});
+
+// Rechte-Übersicht: Alle Mitglieder mit ihren Rechten
+app.get('/api/permissions-overview', requireLogin, (req, res) => {
+    if (req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Nur Techniker können die Rechte-Übersicht sehen' });
+    }
+    
+    const query = `SELECT id, full_name, \`rank\`, is_active,
+        COALESCE(can_add_members, FALSE) as can_add_members,
+        COALESCE(can_manage_fence, FALSE) as can_manage_fence,
+        COALESCE(can_manage_recipes, FALSE) as can_manage_recipes,
+        COALESCE(can_manage_storage, FALSE) as can_manage_storage,
+        COALESCE(can_view_activity, FALSE) as can_view_activity,
+        COALESCE(can_view_stats, FALSE) as can_view_stats,
+        COALESCE(can_manage_system, FALSE) as can_manage_system
+        FROM members WHERE is_active = TRUE 
+        ORDER BY FIELD(\`rank\`, 'Techniker', 'OG', '2OG', 'Member', 'Soldat', 'Runner'), full_name`;
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ success: true, members: results });
+    });
+});
+
+// ========================================
 // TREASURY ENDPUNKTE
 // ========================================
 

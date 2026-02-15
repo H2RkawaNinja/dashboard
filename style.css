@@ -4154,8 +4154,75 @@ body {
 }
 
 /* =======================================
-   SYSTEM WARTUNG STYLES
+   EINSTELLUNGEN (Settings) STYLES
 ======================================= */
+
+/* Settings Tabs */
+.settings-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-tab {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.settings-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-tab.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb, 99, 102, 241), 0.3);
+}
+
+.settings-tab i {
+    font-size: 0.8rem;
+}
+
+.settings-tab-content {
+    display: none;
+}
+
+.settings-tab-content.active {
+    display: block;
+    animation: settingsFadeIn 0.25s ease;
+}
+
+@keyframes settingsFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+    .settings-tabs {
+        flex-direction: column;
+    }
+    
+    .settings-tab {
+        justify-content: flex-start;
+    }
+}
 
 .maintenance-info {
     background: var(--warning);
@@ -4277,6 +4344,282 @@ body {
     .maintenance-actions button {
         min-width: auto;
         max-width: none;
+    }
+}
+
+/* ========== Rang-Vorlagen ========== */
+.card-header-row {
+    margin-bottom: 1rem;
+}
+
+.card-header-row h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-header-row .maintenance-info {
+    margin-top: 0.25rem;
+}
+
+.rank-templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.rank-template-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+}
+
+.rank-template-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.rt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rt-rank-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.rt-rank-hint {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.rt-perms {
+    padding: 0.5rem 0;
+}
+
+.rt-perm-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 1rem;
+    transition: background 0.1s;
+}
+
+.rt-perm-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.rt-perm-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rt-perm-label i {
+    width: 14px;
+    text-align: center;
+    font-size: 0.7rem;
+}
+
+/* Small Toggle Switch */
+.toggle-switch-sm {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.toggle-switch-sm input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.toggle-switch-sm .toggle-slider {
+    width: 32px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9px;
+    position: relative;
+    display: block;
+    transition: background 0.25s ease;
+}
+
+.toggle-switch-sm .toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch-sm input:checked + .toggle-slider {
+    background: var(--success, #28a745);
+}
+
+.toggle-switch-sm input:checked + .toggle-slider::after {
+    transform: translateX(14px);
+}
+
+.rt-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.15s ease;
+    font-weight: 500;
+}
+
+.btn-sm.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-sm.btn-primary:hover {
+    filter: brightness(1.15);
+}
+
+.btn-sm.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-sm.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+}
+
+/* ========== Rechte-Übersicht Matrix ========== */
+.permissions-matrix-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.permissions-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.permissions-matrix thead th {
+    padding: 0.7rem 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.permissions-matrix thead th.pm-name-col,
+.permissions-matrix thead th.pm-rank-col {
+    text-align: left;
+}
+
+.permissions-matrix thead th.pm-perm-col {
+    width: 45px;
+    min-width: 45px;
+}
+
+.permissions-matrix thead th.pm-perm-col i {
+    opacity: 0.7;
+}
+
+.permissions-matrix tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.1s;
+}
+
+.permissions-matrix tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.permissions-matrix tbody tr.pm-techniker-row {
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.permissions-matrix tbody tr.pm-techniker-row:hover {
+    background: rgba(255, 193, 7, 0.08);
+}
+
+.pm-name-cell {
+    padding: 0.65rem 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.pm-rank-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid;
+    background: rgba(255, 255, 255, 0.03);
+    white-space: nowrap;
+}
+
+.pm-perm-cell {
+    text-align: center;
+    padding: 0.65rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.pm-perm-cell.pm-yes {
+    color: var(--success, #28a745);
+}
+
+.pm-perm-cell.pm-yes i {
+    filter: drop-shadow(0 0 3px rgba(40, 167, 69, 0.3));
+}
+
+.pm-perm-cell.pm-no {
+    color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 768px) {
+    .rank-templates-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .permissions-matrix {
+        font-size: 0.75rem;
+    }
+    
+    .pm-name-cell {
+        padding: 0.5rem;
+    }
+    
+    .pm-perm-cell {
+        padding: 0.5rem 0.25rem;
     }
 }
 

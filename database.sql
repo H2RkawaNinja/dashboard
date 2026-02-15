@@ -186,6 +186,30 @@ CREATE TABLE IF NOT EXISTS maintenance_settings (
     FOREIGN KEY (disabled_by) REFERENCES members(id) ON DELETE SET NULL
 );
 
+-- Tabelle: Standard-Berechtigungen pro Rang
+CREATE TABLE IF NOT EXISTS rank_permissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rank_name VARCHAR(50) NOT NULL UNIQUE,
+    can_add_members BOOLEAN DEFAULT FALSE,
+    can_manage_fence BOOLEAN DEFAULT FALSE,
+    can_manage_recipes BOOLEAN DEFAULT FALSE,
+    can_manage_storage BOOLEAN DEFAULT FALSE,
+    can_view_activity BOOLEAN DEFAULT FALSE,
+    can_view_stats BOOLEAN DEFAULT FALSE,
+    can_manage_system BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Standard Rang-Berechtigungen
+INSERT INTO rank_permissions (rank_name, can_add_members, can_manage_fence, can_manage_recipes, can_manage_storage, can_view_activity, can_view_stats, can_manage_system) VALUES
+('OG', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+('2OG', FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+('Member', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+('Techniker', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+('Soldat', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+('Runner', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)
+ON DUPLICATE KEY UPDATE rank_name = VALUES(rank_name);
+
 -- ========================================
 -- GANGKASSE - EINFACHES KASSENSYSTEM
 -- ========================================

@@ -77,7 +77,7 @@
                     <i class="fas fa-clipboard-list"></i><span>Aktivitäten</span>
                 </a>
                 <a href="#" class="nav-item" data-page="maintenance" id="maintenance-nav" style="display: none;">
-                    <i class="fas fa-tools"></i><span>System Wartung</span>
+                    <i class="fas fa-cog"></i><span>Einstellungen</span>
                 </a>
             </nav>
             <button id="logout-btn" class="btn-logout">
@@ -592,116 +592,175 @@
                 </div>
             </div>
 
-            <!-- System Wartung Page (nur für Techniker) -->
+            <!-- Einstellungen Page (nur für Techniker/System-Berechtigung) -->
             <div id="maintenance-page" class="page">
-                <div class="card">
-                    <h2><i class="fas fa-tools"></i> System Wartung</h2>
-                    <p class="maintenance-info">Bereiche temporär deaktivieren, wenn sie unter Bearbeitung stehen.</p>
-                    
-                    <div class="maintenance-sections">
-                        <div class="maintenance-section">
-                            <h3>Mitglieder-System</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-members">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Mitgliederverwaltung</p>
+                
+                <!-- Einstellungen Tabs -->
+                <div class="settings-tabs">
+                    <button class="settings-tab active" onclick="switchSettingsTab(this, 'wartung')">
+                        <i class="fas fa-tools"></i> Wartung
+                    </button>
+                    <button class="settings-tab" onclick="switchSettingsTab(this, 'rang-vorlagen')">
+                        <i class="fas fa-user-tag"></i> Rang-Vorlagen
+                    </button>
+                    <button class="settings-tab" onclick="switchSettingsTab(this, 'rechte-uebersicht')">
+                        <i class="fas fa-th"></i> Rechte-Übersicht
+                    </button>
+                </div>
+
+                <!-- Tab: Wartung -->
+                <div id="settings-wartung" class="settings-tab-content active">
+                    <div class="card">
+                        <h3><i class="fas fa-tools"></i> Wartungsmodus</h3>
+                        <p class="maintenance-info">Bereiche temporär deaktivieren, wenn sie unter Bearbeitung stehen.</p>
+                        
+                        <div class="maintenance-sections">
+                            <div class="maintenance-section">
+                                <h3>Mitglieder-System</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-members">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Mitgliederverwaltung</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Hero-Verkauf</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-hero">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Hero-Lager und Verkäufe</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Hehler-System</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-fence">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Hehler-Geschäfte</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Sortier-Bereich</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-warehouse">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Sortierbereich und unsortierte Artikel</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Lager-System</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-storage">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Lagerplätze und gespeicherte Artikel</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Gangkasse (Treasury)</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-treasury">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Transaktionen und Beitragsverwaltung</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Rezepte</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-recipes">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Herstellungsrezepte</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Intel-Sammlung</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-intelligence">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Intelligence-Datenbank</p>
+                            </div>
+                            
+                            <div class="maintenance-section">
+                                <h3>Aktivitäts-Log</h3>
+                                <label class="maintenance-toggle">
+                                    <input type="checkbox" id="maintenance-activity">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Wartungsmodus aktivieren</span>
+                                </label>
+                                <p class="maintenance-description">Verhindert Zugriff auf Aktivitätenprotokoll</p>
+                            </div>
                         </div>
                         
-                        <div class="maintenance-section">
-                            <h3>Hero-Verkauf</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-hero">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Hero-Lager und Verkäufe</p>
+                        <div class="maintenance-actions">
+                            <button class="btn-primary" onclick="saveMaintenanceSettings()">
+                                <i class="fas fa-save"></i> Speichern
+                            </button>
+                            <button class="btn-warning" onclick="disableAllSystems()">
+                                <i class="fas fa-exclamation-triangle"></i> Alle deaktivieren
+                            </button>
+                            <button class="btn-success" onclick="enableAllSystems()">
+                                <i class="fas fa-check"></i> Alle aktivieren
+                            </button>
                         </div>
-                        
-                        <div class="maintenance-section">
-                            <h3>Hehler-System</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-fence">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Hehler-Geschäfte</p>
-                        </div>
-                        
-                        <div class="maintenance-section">
-                            <h3>Sortier-Bereich</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-warehouse">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Sortierbereich und unsortierte Artikel</p>
-                        </div>
-                        
-                        <div class="maintenance-section">
-                            <h3>Lager-System</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-storage">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Lagerplätze und gespeicherte Artikel</p>
-                        </div>
-                        
-                        <div class="maintenance-section">
-                            <h3>Gangkasse (Treasury)</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-treasury">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Transaktionen und Beitragsverwaltung</p>
-                        </div>
-                        
-                        <div class="maintenance-section">
-                            <h3>Rezepte</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-recipes">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Herstellungsrezepte</p>
-                        </div>
-                        
-                        <div class="maintenance-section">
-                            <h3>Intel-Sammlung</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-intelligence">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Intelligence-Datenbank</p>
-                        </div>
-                        
-                        <div class="maintenance-section">
-                            <h3>Aktivitäts-Log</h3>
-                            <label class="maintenance-toggle">
-                                <input type="checkbox" id="maintenance-activity">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-text">Wartungsmodus aktivieren</span>
-                            </label>
-                            <p class="maintenance-description">Verhindert Zugriff auf Aktivitätenprotokoll</p>
-                        </div>
-                    </div>
-                    
-                    <div class="maintenance-actions">
-                        <button class="btn-primary" onclick="saveMaintenanceSettings()">
-                            <i class="fas fa-save"></i> Einstellungen speichern
-                        </button>
-                        <button class="btn-warning" onclick="disableAllSystems()">
-                            <i class="fas fa-exclamation-triangle"></i> Alle Systeme deaktivieren
-                        </button>
-                        <button class="btn-success" onclick="enableAllSystems()">
-                            <i class="fas fa-check"></i> Alle Systeme aktivieren
-                        </button>
                     </div>
                 </div>
+
+                <!-- Tab: Rang-Vorlagen -->
+                <div id="settings-rang-vorlagen" class="settings-tab-content">
+                    <div class="card">
+                        <h3><i class="fas fa-user-tag"></i> Rang-Vorlagen</h3>
+                        <p class="maintenance-info">Standard-Berechtigungen pro Rang festlegen. Beim Hinzufügen eines neuen Mitglieds werden diese automatisch vorgeschlagen.</p>
+                        
+                        <div class="rank-templates-grid" id="rank-templates-grid">
+                            <!-- Wird dynamisch geladen -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Rechte-Übersicht -->
+                <div id="settings-rechte-uebersicht" class="settings-tab-content">
+                    <div class="card">
+                        <h3><i class="fas fa-th"></i> Rechte-Übersicht</h3>
+                        <p class="maintenance-info">Übersicht aller aktiven Mitglieder und deren aktuelle Berechtigungen.</p>
+                        
+                        <div class="permissions-matrix-wrapper">
+                            <table class="permissions-matrix" id="permissions-matrix">
+                                <thead>
+                                    <tr>
+                                        <th class="pm-name-col">Mitglied</th>
+                                        <th class="pm-rank-col">Rang</th>
+                                        <th class="pm-perm-col" title="Mitglieder verwalten"><i class="fas fa-user-plus"></i></th>
+                                        <th class="pm-perm-col" title="Hehler-Geschäft"><i class="fas fa-handshake"></i></th>
+                                        <th class="pm-perm-col" title="Rezepte"><i class="fas fa-book"></i></th>
+                                        <th class="pm-perm-col" title="Lager"><i class="fas fa-warehouse"></i></th>
+                                        <th class="pm-perm-col" title="Aktivitäten"><i class="fas fa-clipboard-list"></i></th>
+                                        <th class="pm-perm-col" title="Statistiken"><i class="fas fa-chart-bar"></i></th>
+                                        <th class="pm-perm-col" title="System"><i class="fas fa-server"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="permissions-matrix-body">
+                                    <!-- Wird dynamisch geladen -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Treasury Page -->
@@ -1661,8 +1720,8 @@
                             <div class="perm-info">
                                 <i class="fas fa-server perm-icon text-red"></i>
                                 <div>
-                                    <span class="perm-name">System verwalten</span>
-                                    <span class="perm-desc">Zugriff auf Systemwartung und Einstellungen</span>
+                                    <span class="perm-name">Einstellungen</span>
+                                    <span class="perm-desc">Zugriff auf Einstellungen und Systemverwaltung</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
@@ -1817,8 +1876,8 @@
                             <div class="perm-info">
                                 <i class="fas fa-server perm-icon text-red"></i>
                                 <div>
-                                    <span class="perm-name">System verwalten</span>
-                                    <span class="perm-desc">Zugriff auf Systemwartung und Einstellungen</span>
+                                    <span class="perm-name">Einstellungen</span>
+                                    <span class="perm-desc">Zugriff auf Einstellungen und Systemverwaltung</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
