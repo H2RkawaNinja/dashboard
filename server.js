@@ -2538,8 +2538,8 @@ app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         
-        const oldContributions = results.length > 0 ? (results[0].contributions_balance || 0) : 0;
-        const oldGoals = results.length > 0 ? (results[0].goals_balance || 0) : 0;
+        const oldContributions = results.length > 0 ? parseFloat(results[0].contributions_balance) || 0 : 0;
+        const oldGoals = results.length > 0 ? parseFloat(results[0].goals_balance) || 0 : 0;
         const oldBalance = kasse === 'goals' ? oldGoals : oldContributions;
         const difference = parseFloat(new_balance) - oldBalance;
         
