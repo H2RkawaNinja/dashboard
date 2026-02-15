@@ -1114,6 +1114,8 @@ body {
 .perm-icon.text-orange { color: #ff9800; }
 .perm-icon.text-cyan { color: #26c6da; }
 .perm-icon.text-yellow { color: #ffd54f; }
+.perm-icon.text-teal { color: #009688; }
+.perm-icon.text-gold { color: #ffc107; }
 
 /* ========== Permission Badges in Mitgliedertabelle ========== */
 .perm-badges-row {
@@ -1196,6 +1198,12 @@ body {
     gap: 4px;
     font-size: 0.7rem;
     font-weight: 600;
+}
+
+.perm-badge-teal {
+    background: rgba(0, 150, 136, 0.15);
+    color: #009688;
+    border: 1px solid rgba(0, 150, 136, 0.3);
 }
 
 .form-group h4 {

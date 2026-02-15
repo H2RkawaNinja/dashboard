@@ -279,7 +279,7 @@
             <div id="fence-page" class="page">
                 <div id="fence-no-permission" class="info-banner" style="display: none; background: #ff9800; color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
                     <i class="fas fa-exclamation-triangle"></i> 
-                    <strong>Keine Berechtigung:</strong> Sie haben keine Berechtigung, Hehler-Ankäufe einzutragen. Wenden Sie sich an einen Administrator.
+                    <strong>Nur Leserechte:</strong> Sie können den Hehlerbereich einsehen, aber keine Änderungen vornehmen.
                 </div>
                 
                 <!-- Tabs für verschiedene Ansichten -->
@@ -745,9 +745,12 @@
                                         <th class="pm-name-col">Mitglied</th>
                                         <th class="pm-rank-col">Rang</th>
                                         <th class="pm-perm-col" title="Mitglieder verwalten"><i class="fas fa-user-plus"></i></th>
-                                        <th class="pm-perm-col" title="Hehler-Geschäft"><i class="fas fa-handshake"></i></th>
+                                        <th class="pm-perm-col" title="Hehler einsehen"><i class="fas fa-eye"></i></th>
+                                        <th class="pm-perm-col" title="Hehler verwalten"><i class="fas fa-handshake"></i></th>
                                         <th class="pm-perm-col" title="Rezepte"><i class="fas fa-book"></i></th>
                                         <th class="pm-perm-col" title="Lager"><i class="fas fa-warehouse"></i></th>
+                                        <th class="pm-perm-col" title="Gangkasse einsehen"><i class="fas fa-piggy-bank"></i></th>
+                                        <th class="pm-perm-col" title="Gangkasse verwalten"><i class="fas fa-coins"></i></th>
                                         <th class="pm-perm-col" title="Aktivitäten"><i class="fas fa-clipboard-list"></i></th>
                                         <th class="pm-perm-col" title="Statistiken"><i class="fas fa-chart-bar"></i></th>
                                         <th class="pm-perm-col" title="System"><i class="fas fa-server"></i></th>
@@ -773,7 +776,7 @@
                     <div class="treasury-balance">
                         <span class="balance-label">Kassenstand:</span>
                         <span class="balance-amount" id="treasury-balance">$ 0,00</span>
-                        <button class="btn-adjust-balance" onclick="showAdjustBalanceModal()" title="Kassenstand anpassen">
+                        <button class="btn-adjust-balance treasury-manage-only" onclick="showAdjustBalanceModal()" title="Kassenstand anpassen">
                             <i class="fas fa-edit"></i>
                         </button>
                     </div>
@@ -804,7 +807,7 @@
                                 <option value="">Alle Zeiträume</option>
                             </select>
                         </div>
-                        <div class="contribution-actions">
+                        <div class="contribution-actions treasury-manage-only">
                             <button class="btn-secondary" onclick="createWeeklyContributions()">
                                 <i class="fas fa-calendar-plus"></i> Neuer Zeitraum
                             </button>
@@ -823,7 +826,7 @@
                 <div id="treasury-goals-tab" class="treasury-tab-content">
                     <div class="goals-header">
                         <h3>Gemeinsame Ziele</h3>
-                        <button class="btn-primary" onclick="showAddGoalModal()">
+                        <button class="btn-primary treasury-manage-only" onclick="showAddGoalModal()">
                             <i class="fas fa-plus"></i> Neues Ziel
                         </button>
                     </div>
@@ -850,7 +853,7 @@
                                 <option value="korrektur">Korrekturen</option>
                             </select>
                         </div>
-                        <button class="btn-primary btn-add-transaction" onclick="showAddTransactionModal()">
+                        <button class="btn-primary btn-add-transaction treasury-manage-only" onclick="showAddTransactionModal()">
                             <i class="fas fa-plus"></i> Neue Buchung
                         </button>
                     </div>
@@ -1737,10 +1740,23 @@
                         </div>
                         <div class="perm-item">
                             <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Hehler einsehen</span>
+                                    <span class="perm-desc">Kann den Hehlerbereich sehen, aber nichts ändern</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-view-fence">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
                                 <i class="fas fa-handshake perm-icon text-green"></i>
                                 <div>
-                                    <span class="perm-name">Hehler-Geschäft</span>
-                                    <span class="perm-desc">Kann An- und Verkäufe im Hehler verwalten</span>
+                                    <span class="perm-name">Hehler verwalten</span>
+                                    <span class="perm-desc">Kann Produkte anlegen und An-/Verkäufe verwalten</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
@@ -1771,6 +1787,38 @@
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="new-member-can-storage">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-piggy-bank"></i> Gangkasse
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Gangkasse einsehen</span>
+                                    <span class="perm-desc">Kann Kontostand und Transaktionen sehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-view-treasury">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-coins perm-icon text-gold"></i>
+                                <div>
+                                    <span class="perm-name">Gangkasse verwalten</span>
+                                    <span class="perm-desc">Kann Ein-/Auszahlungen, Beiträge und Ziele verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-manage-treasury">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -1893,10 +1941,23 @@
                         </div>
                         <div class="perm-item">
                             <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Hehler einsehen</span>
+                                    <span class="perm-desc">Kann den Hehlerbereich sehen, aber nichts ändern</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-view-fence">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
                                 <i class="fas fa-handshake perm-icon text-green"></i>
                                 <div>
-                                    <span class="perm-name">Hehler-Geschäft</span>
-                                    <span class="perm-desc">Kann An- und Verkäufe im Hehler verwalten</span>
+                                    <span class="perm-name">Hehler verwalten</span>
+                                    <span class="perm-desc">Kann Produkte anlegen und An-/Verkäufe verwalten</span>
                                 </div>
                             </div>
                             <label class="toggle-switch">
@@ -1927,6 +1988,38 @@
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="edit-member-can-storage">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-piggy-bank"></i> Gangkasse
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-eye perm-icon text-teal"></i>
+                                <div>
+                                    <span class="perm-name">Gangkasse einsehen</span>
+                                    <span class="perm-desc">Kann Kontostand und Transaktionen sehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-view-treasury">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-coins perm-icon text-gold"></i>
+                                <div>
+                                    <span class="perm-name">Gangkasse verwalten</span>
+                                    <span class="perm-desc">Kann Ein-/Auszahlungen, Beiträge und Ziele verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-manage-treasury">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>

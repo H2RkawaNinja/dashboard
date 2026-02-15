@@ -232,10 +232,10 @@ function loadDashboardData() {
 function updateNavigationAccess() {
     if (!currentUser) return;
     
-    // Hehler Navigation
+    // Hehler Navigation (sichtbar wenn Einsicht ODER Verwalten)
     const fenceNav = document.querySelector('[data-page="fence"]');
     if (fenceNav) {
-        fenceNav.style.display = (currentUser.can_manage_fence || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        fenceNav.style.display = (currentUser.can_view_fence || currentUser.can_manage_fence || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
     // Rezepte Navigation
@@ -250,6 +250,12 @@ function updateNavigationAccess() {
         storageNav.style.display = (currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
     
+    // Gangkasse Navigation (sichtbar wenn Einsicht ODER Verwalten)
+    const treasuryNav = document.querySelector('[data-page="treasury"]');
+    if (treasuryNav) {
+        treasuryNav.style.display = (currentUser.can_view_treasury || currentUser.can_manage_treasury || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+    }
+    
     // Aktivitäten Navigation
     const activityNav = document.querySelector('[data-page="activity"]');
     if (activityNav) {
@@ -261,6 +267,34 @@ function updateNavigationAccess() {
     if (maintenanceNav) {
         maintenanceNav.style.display = (currentUser.can_manage_system || currentUser.rank === 'Techniker') ? 'flex' : 'none';
     }
+    
+    // Hehler: Bearbeitungselemente verstecken wenn nur Einsicht
+    updateFenceEditAccess();
+    
+    // Gangkasse: Bearbeitungselemente verstecken wenn nur Einsicht
+    updateTreasuryEditAccess();
+}
+
+// Hehler: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
+function updateFenceEditAccess() {
+    if (!currentUser) return;
+    const canManage = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
+    
+    // Alle Fence-Bearbeitungs-Buttons verstecken/anzeigen
+    document.querySelectorAll('.fence-manage-only').forEach(el => {
+        el.style.display = canManage ? '' : 'none';
+    });
+}
+
+// Gangkasse: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
+function updateTreasuryEditAccess() {
+    if (!currentUser) return;
+    const canManage = currentUser.can_manage_treasury || currentUser.rank === 'Techniker';
+    
+    // Alle Treasury-Bearbeitungs-Buttons verstecken/anzeigen
+    document.querySelectorAll('.treasury-manage-only').forEach(el => {
+        el.style.display = canManage ? '' : 'none';
+    });
 }
 
 async function loadDashboardStats() {
@@ -561,9 +595,12 @@ async function loadMembers() {
             const permBadges = [];
             if (m.can_add_members) permBadges.push('<span class="perm-badge perm-badge-blue" title="Mitglieder verwalten"><i class="fas fa-user-plus"></i></span>');
             if (m.can_manage_system) permBadges.push('<span class="perm-badge perm-badge-red" title="Einstellungen"><i class="fas fa-cog"></i></span>');
-            if (m.can_manage_fence) permBadges.push('<span class="perm-badge perm-badge-green" title="Hehler-Geschäft"><i class="fas fa-handshake"></i></span>');
+            if (m.can_view_fence && !m.can_manage_fence) permBadges.push('<span class="perm-badge perm-badge-teal" title="Hehler einsehen"><i class="fas fa-eye"></i></span>');
+            if (m.can_manage_fence) permBadges.push('<span class="perm-badge perm-badge-green" title="Hehler verwalten"><i class="fas fa-handshake"></i></span>');
             if (m.can_manage_recipes) permBadges.push('<span class="perm-badge perm-badge-purple" title="Rezepte"><i class="fas fa-book"></i></span>');
             if (m.can_manage_storage) permBadges.push('<span class="perm-badge perm-badge-orange" title="Lager"><i class="fas fa-warehouse"></i></span>');
+            if (m.can_view_treasury && !m.can_manage_treasury) permBadges.push('<span class="perm-badge perm-badge-teal" title="Gangkasse einsehen"><i class="fas fa-piggy-bank"></i></span>');
+            if (m.can_manage_treasury) permBadges.push('<span class="perm-badge perm-badge-gold" title="Gangkasse verwalten"><i class="fas fa-coins"></i></span>');
             if (m.can_view_activity) permBadges.push('<span class="perm-badge perm-badge-cyan" title="Aktivitäten"><i class="fas fa-clipboard-list"></i></span>');
             if (m.can_view_stats) permBadges.push('<span class="perm-badge perm-badge-yellow" title="Statistiken"><i class="fas fa-chart-bar"></i></span>');
             
@@ -2475,9 +2512,12 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
         phone: document.getElementById('new-member-phone').value,
         can_add_members: document.getElementById('new-member-can-add').checked,
 
+        can_view_fence: document.getElementById('new-member-can-view-fence').checked,
         can_manage_fence: document.getElementById('new-member-can-fence').checked,
         can_manage_recipes: document.getElementById('new-member-can-recipes').checked,
         can_manage_storage: document.getElementById('new-member-can-storage').checked,
+        can_view_treasury: document.getElementById('new-member-can-view-treasury').checked,
+        can_manage_treasury: document.getElementById('new-member-can-manage-treasury').checked,
         can_view_activity: document.getElementById('new-member-can-activity').checked,
         can_view_stats: document.getElementById('new-member-can-stats').checked,
         can_manage_system: document.getElementById('new-member-can-system').checked
@@ -2527,9 +2567,12 @@ async function editMember(id) {
         document.getElementById('edit-member-active').checked = member.is_active;
         document.getElementById('edit-member-can-add').checked = member.can_add_members;
 
+        document.getElementById('edit-member-can-view-fence').checked = member.can_view_fence;
         document.getElementById('edit-member-can-fence').checked = member.can_manage_fence;
         document.getElementById('edit-member-can-recipes').checked = member.can_manage_recipes;
         document.getElementById('edit-member-can-storage').checked = member.can_manage_storage;
+        document.getElementById('edit-member-can-view-treasury').checked = member.can_view_treasury;
+        document.getElementById('edit-member-can-manage-treasury').checked = member.can_manage_treasury;
         document.getElementById('edit-member-can-activity').checked = member.can_view_activity;
         document.getElementById('edit-member-can-stats').checked = member.can_view_stats;
         document.getElementById('edit-member-can-system').checked = member.can_manage_system;
@@ -2552,9 +2595,12 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
         is_active: document.getElementById('edit-member-active').checked,
         can_add_members: document.getElementById('edit-member-can-add').checked,
 
+        can_view_fence: document.getElementById('edit-member-can-view-fence').checked,
         can_manage_fence: document.getElementById('edit-member-can-fence').checked,
         can_manage_recipes: document.getElementById('edit-member-can-recipes').checked,
         can_manage_storage: document.getElementById('edit-member-can-storage').checked,
+        can_view_treasury: document.getElementById('edit-member-can-view-treasury').checked,
+        can_manage_treasury: document.getElementById('edit-member-can-manage-treasury').checked,
         can_view_activity: document.getElementById('edit-member-can-activity').checked,
         can_view_stats: document.getElementById('edit-member-can-stats').checked,
         can_manage_system: document.getElementById('edit-member-can-system').checked
@@ -4965,21 +5011,27 @@ function hideMaintenanceBanner(module) {
 // RANG-BERECHTIGUNGEN & RECHTE-ÜBERSICHT
 // ========================================
 
-const PERM_KEYS = ['can_add_members', 'can_manage_fence', 'can_manage_recipes', 'can_manage_storage', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
+const PERM_KEYS = ['can_add_members', 'can_view_fence', 'can_manage_fence', 'can_manage_recipes', 'can_manage_storage', 'can_view_treasury', 'can_manage_treasury', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
 const PERM_LABELS = {
     can_add_members: 'Mitglieder',
-    can_manage_fence: 'Hehler',
+    can_view_fence: 'Hehler (Einsicht)',
+    can_manage_fence: 'Hehler (Verwalten)',
     can_manage_recipes: 'Rezepte',
     can_manage_storage: 'Lager',
+    can_view_treasury: 'Gangkasse (Einsicht)',
+    can_manage_treasury: 'Gangkasse (Verwalten)',
     can_view_activity: 'Aktivitäten',
     can_view_stats: 'Statistiken',
     can_manage_system: 'System'
 };
 const PERM_ICONS = {
     can_add_members: 'fa-user-plus',
+    can_view_fence: 'fa-eye',
     can_manage_fence: 'fa-handshake',
     can_manage_recipes: 'fa-book',
     can_manage_storage: 'fa-warehouse',
+    can_view_treasury: 'fa-piggy-bank',
+    can_manage_treasury: 'fa-coins',
     can_view_activity: 'fa-clipboard-list',
     can_view_stats: 'fa-chart-bar',
     can_manage_system: 'fa-server'
@@ -5139,7 +5191,7 @@ async function loadPermissionsOverview() {
         
     } catch (error) {
         console.error('Fehler beim Laden der Rechte-Übersicht:', error);
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 1rem;">Fehler beim Laden</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: var(--text-secondary); padding: 1rem;">Fehler beim Laden</td></tr>';
     }
 }
 
@@ -5155,9 +5207,12 @@ async function applyRankTemplate(rankName, prefix) {
         
         PERM_KEYS.forEach(key => {
             const shortKey = key.replace('can_add_members', 'add')
+                .replace('can_view_fence', 'view-fence')
                 .replace('can_manage_fence', 'fence')
                 .replace('can_manage_recipes', 'recipes')
                 .replace('can_manage_storage', 'storage')
+                .replace('can_view_treasury', 'view-treasury')
+                .replace('can_manage_treasury', 'manage-treasury')
                 .replace('can_view_activity', 'activity')
                 .replace('can_view_stats', 'stats')
                 .replace('can_manage_system', 'system');
