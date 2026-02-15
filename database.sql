@@ -224,10 +224,12 @@ ON DUPLICATE KEY UPDATE rank_name = VALUES(rank_name);
 -- GANGKASSE - EINFACHES KASSENSYSTEM
 -- ========================================
 
--- Tabelle: Gangkasse Kontostand
+-- Tabelle: Gangkasse Kontostand (getrennte Kassen)
 CREATE TABLE IF NOT EXISTS gang_treasury (
     id INT AUTO_INCREMENT PRIMARY KEY,
     current_balance DECIMAL(15, 2) DEFAULT 0,
+    contributions_balance DECIMAL(15, 2) DEFAULT 0,
+    goals_balance DECIMAL(15, 2) DEFAULT 0,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     wochenbeitrag_standard DECIMAL(10, 2) DEFAULT 50.00,
     notes TEXT
@@ -303,8 +305,8 @@ INSERT INTO maintenance_settings (module_name, is_disabled) VALUES
 ('activity', FALSE);
 
 -- Initial Gangkasse Setup
-INSERT INTO gang_treasury (current_balance, wochenbeitrag_standard, notes) VALUES 
-(0.00, 50.00, 'Startsaldo der Gangkasse');
+INSERT INTO gang_treasury (current_balance, contributions_balance, goals_balance, wochenbeitrag_standard, notes) VALUES 
+(0.00, 0.00, 0.00, 50.00, 'Startsaldo der Gangkasse');
 
 -- Gang Stats
 INSERT INTO gang_stats (stat_key, stat_value) VALUES
@@ -333,3 +335,7 @@ ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_manage_treasury BOOLEA
 -- Bestehende Ränge mit neuen Rechten aktualisieren
 UPDATE rank_permissions SET can_view_fence = TRUE, can_view_recipes = TRUE, can_view_storage = TRUE, can_view_treasury = TRUE, can_manage_treasury = TRUE WHERE rank_name IN ('OG', 'Techniker');
 UPDATE rank_permissions SET can_view_fence = TRUE, can_view_recipes = TRUE, can_view_storage = TRUE, can_view_treasury = TRUE WHERE rank_name = '2OG';
+
+-- Migration: Getrennte Kassen-Spalten hinzufügen
+ALTER TABLE gang_treasury ADD COLUMN IF NOT EXISTS contributions_balance DECIMAL(15, 2) DEFAULT 0 AFTER current_balance;
+ALTER TABLE gang_treasury ADD COLUMN IF NOT EXISTS goals_balance DECIMAL(15, 2) DEFAULT 0 AFTER contributions_balance;

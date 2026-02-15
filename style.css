@@ -4874,6 +4874,44 @@ body {
     gap: 1rem;
 }
 
+/* Getrennte Kassen-Anzeige */
+.treasury-balances-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.treasury-balance-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.treasury-balance-box.contributions-box {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.treasury-balance-box.goals-box {
+    border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.treasury-balance-box .balance-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.treasury-balance-box .balance-amount {
+    font-size: 1.4rem;
+}
+
 .balance-label {
     color: var(--text-secondary);
     font-size: 0.9rem;
@@ -5391,6 +5429,14 @@ body {
     border-left-color: var(--warning);
 }
 
+.treasury-stat-card.teal {
+    border-left-color: #14b8a6;
+}
+
+.treasury-stat-card.purple {
+    border-left-color: #8b5cf6;
+}
+
 .treasury-stat-card i {
     font-size: 2rem;
     opacity: 0.7;
@@ -5724,6 +5770,16 @@ body {
     .treasury-balance {
         flex-direction: column;
         gap: 0.5rem;
+    }
+    
+    .treasury-balances-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .treasury-balance-box {
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     .transactions-header,

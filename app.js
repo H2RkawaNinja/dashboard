@@ -361,17 +361,27 @@ async function loadDashboardTreasuryStats() {
         if (response.ok) {
             const treasuryStats = await response.json();
             
-            // Treasury Balance
-            const balanceEl = document.getElementById('stat-treasury-balance');
-            const balanceCardEl = document.getElementById('treasury-balance-card');
-            if (balanceEl && balanceCardEl) {
-                const balance = treasuryStats.balance_usd || 0;
-                balanceEl.textContent = `$ ${formatCurrency(balance)}`;
-                
-                // Färbung je nach positiv/negativ
-                balanceCardEl.classList.remove('negative');
-                if (balance < 0) {
-                    balanceCardEl.classList.add('negative');
+            // Beitragskasse
+            const contribBalanceEl = document.getElementById('stat-treasury-contributions-balance');
+            const contribCardEl = document.getElementById('treasury-balance-card');
+            if (contribBalanceEl) {
+                const contribBalance = treasuryStats.contributions_balance || 0;
+                contribBalanceEl.textContent = `$ ${formatCurrency(contribBalance)}`;
+                if (contribCardEl) {
+                    contribCardEl.classList.remove('negative');
+                    if (contribBalance < 0) contribCardEl.classList.add('negative');
+                }
+            }
+            
+            // Zielkasse
+            const goalsBalanceEl = document.getElementById('stat-treasury-goals-balance');
+            const goalsCardEl = document.getElementById('treasury-goals-card');
+            if (goalsBalanceEl) {
+                const goalsBalance = treasuryStats.goals_balance || 0;
+                goalsBalanceEl.textContent = `$ ${formatCurrency(goalsBalance)}`;
+                if (goalsCardEl) {
+                    goalsCardEl.classList.remove('negative');
+                    if (goalsBalance < 0) goalsCardEl.classList.add('negative');
                 }
             }
             
@@ -5476,12 +5486,24 @@ async function loadTreasuryBalance() {
         
         if (response.ok) {
             const data = await response.json();
-            const balanceEl = document.getElementById('treasury-balance');
-            if (balanceEl) {
-                balanceEl.textContent = `$ ${formatCurrency(data.balance)}`;
-                balanceEl.className = `balance-amount ${data.balance >= 0 ? 'positive' : 'negative'}`;
+            
+            // Beitragskasse
+            const contribEl = document.getElementById('treasury-contributions-balance');
+            if (contribEl) {
+                contribEl.textContent = `$ ${formatCurrency(data.contributions_balance)}`;
+                contribEl.className = `balance-amount ${data.contributions_balance >= 0 ? 'positive' : 'negative'}`;
             }
-            // Speichere aktuelle Balance für das Modal
+            
+            // Zielkasse
+            const goalsEl = document.getElementById('treasury-goals-balance');
+            if (goalsEl) {
+                goalsEl.textContent = `$ ${formatCurrency(data.goals_balance)}`;
+                goalsEl.className = `balance-amount ${data.goals_balance >= 0 ? 'positive' : 'negative'}`;
+            }
+            
+            // Speichere aktuelle Balances für die Modals
+            window.currentContributionsBalance = data.contributions_balance || 0;
+            window.currentGoalsBalance = data.goals_balance || 0;
             window.currentTreasuryBalance = data.balance || 0;
         }
     } catch (error) {
@@ -5490,7 +5512,8 @@ async function loadTreasuryBalance() {
 }
 
 // Kassenstand-Anpassungs-Modal anzeigen
-function showAdjustBalanceModal() {
+function showAdjustBalanceModal(kasse) {
+    kasse = kasse || 'contributions';
     const modal = document.getElementById('adjust-balance-modal');
     const overlay = document.getElementById('modal-overlay');
     
@@ -5498,8 +5521,17 @@ function showAdjustBalanceModal() {
         modal.style.display = 'block';
         overlay.style.display = 'flex';
         
+        // Kasse-Typ speichern
+        document.getElementById('adjust-balance-kasse').value = kasse;
+        
+        // Titel und Label anpassen
+        const isGoals = kasse === 'goals';
+        const kasseLabel = isGoals ? 'Zielkasse' : 'Beitragskasse';
+        document.getElementById('adjust-balance-title').textContent = `${kasseLabel} anpassen`;
+        document.getElementById('current-balance-label').textContent = `Aktueller Stand (${kasseLabel}):`;
+        
         // Aktuellen Kassenstand anzeigen
-        const currentBalance = window.currentTreasuryBalance || 0;
+        const currentBalance = isGoals ? (window.currentGoalsBalance || 0) : (window.currentContributionsBalance || 0);
         document.getElementById('current-balance-display').textContent = `$ ${formatCurrency(currentBalance)}`;
         document.getElementById('new-balance-amount').value = '';
         document.getElementById('balance-adjust-reason').value = '';
@@ -5517,7 +5549,8 @@ function updateBalanceDifferencePreview() {
     const differenceValue = document.getElementById('balance-difference-value');
     
     const newBalance = parseFloat(newBalanceInput.value);
-    const currentBalance = window.currentTreasuryBalance || 0;
+    const kasse = document.getElementById('adjust-balance-kasse').value;
+    const currentBalance = kasse === 'goals' ? (window.currentGoalsBalance || 0) : (window.currentContributionsBalance || 0);
     
     if (!isNaN(newBalance)) {
         const difference = newBalance - currentBalance;
@@ -5869,6 +5902,17 @@ function getContributionStatusText(status) {
 // Treasury Statistiken rendern
 function renderTreasuryStats() {
     if (!treasuryStats) return;
+    
+    // Getrennte Kassenstände
+    const contribBalanceEl = document.getElementById('stat-contributions-balance');
+    if (contribBalanceEl) {
+        contribBalanceEl.textContent = `$ ${formatCurrency(treasuryStats.contributions_balance || 0)}`;
+    }
+    
+    const goalsBalanceEl = document.getElementById('stat-goals-balance');
+    if (goalsBalanceEl) {
+        goalsBalanceEl.textContent = `$ ${formatCurrency(treasuryStats.goals_balance || 0)}`;
+    }
     
     const elements = {
         'total-deposits': treasuryStats.monthly_deposits,
@@ -6435,6 +6479,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const newBalance = parseFloat(document.getElementById('new-balance-amount').value);
             const reason = document.getElementById('balance-adjust-reason').value;
+            const kasse = document.getElementById('adjust-balance-kasse').value || 'contributions';
+            const kasseLabel = kasse === 'goals' ? 'Zielkasse' : 'Beitragskasse';
             
             if (isNaN(newBalance)) {
                 showToast('Bitte gültigen Betrag eingeben', 'error');
@@ -6448,7 +6494,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     credentials: 'include',
                     body: JSON.stringify({ 
                         new_balance: newBalance,
-                        reason: reason 
+                        reason: reason,
+                        kasse: kasse
                     })
                 });
                 
@@ -6457,7 +6504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (result.success) {
                     const diff = result.difference;
                     const diffText = diff >= 0 ? `+$${formatCurrency(diff)}` : `-$${formatCurrency(Math.abs(diff))}`;
-                    showToast(`Kassenstand angepasst (${diffText})`, 'success');
+                    showToast(`${kasseLabel} angepasst (${diffText})`, 'success');
                     closeModals();
                     adjustBalanceForm.reset();
                     await Promise.all([
@@ -6467,7 +6514,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         loadDashboardTreasuryStats()
                     ]);
                 } else {
-                    showToast(result.error || 'Fehler beim Anpassen des Kassenstands', 'error');
+                    showToast(result.error || 'Fehler beim Anpassen', 'error');
                 }
             } catch (error) {
                 console.error('Fehler:', error);

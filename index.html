@@ -123,10 +123,18 @@
 
                     <!-- Gangkasse Statistiken -->
                     <div class="stat-card treasury" id="treasury-balance-card">
-                        <i class="fas fa-piggy-bank"></i>
+                        <i class="fas fa-users"></i>
                         <div>
-                            <h3>Kassenstand</h3>
-                            <p class="stat-number" id="stat-treasury-balance">€ 0,00</p>
+                            <h3>Beitragskasse</h3>
+                            <p class="stat-number" id="stat-treasury-contributions-balance">$ 0,00</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card treasury" id="treasury-goals-card">
+                        <i class="fas fa-bullseye"></i>
+                        <div>
+                            <h3>Zielkasse</h3>
+                            <p class="stat-number" id="stat-treasury-goals-balance">$ 0,00</p>
                         </div>
                     </div>
                     
@@ -775,12 +783,21 @@
                         <h2><i class="fas fa-piggy-bank"></i> Gangkasse</h2>
                         <p class="treasury-subtitle">Beiträge, Ziele und Statistiken</p>
                     </div>
-                    <div class="treasury-balance">
-                        <span class="balance-label">Kassenstand:</span>
-                        <span class="balance-amount" id="treasury-balance">$ 0,00</span>
-                        <button class="btn-adjust-balance treasury-manage-only" onclick="showAdjustBalanceModal()" title="Kassenstand anpassen">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                    <div class="treasury-balances-row">
+                        <div class="treasury-balance-box contributions-box">
+                            <span class="balance-label"><i class="fas fa-users"></i> Beitragskasse:</span>
+                            <span class="balance-amount" id="treasury-contributions-balance">$ 0,00</span>
+                            <button class="btn-adjust-balance treasury-manage-only" onclick="showAdjustBalanceModal('contributions')" title="Beitragskasse anpassen">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <div class="treasury-balance-box goals-box">
+                            <span class="balance-label"><i class="fas fa-bullseye"></i> Zielkasse:</span>
+                            <span class="balance-amount" id="treasury-goals-balance">$ 0,00</span>
+                            <button class="btn-adjust-balance treasury-manage-only" onclick="showAdjustBalanceModal('goals')" title="Zielkasse anpassen">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -868,6 +885,20 @@
                 <!-- Overview Tab (Statistiken) -->
                 <div id="treasury-overview-tab" class="treasury-tab-content">
                     <div class="treasury-overview-grid">
+                        <div class="treasury-stat-card teal">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h3 id="stat-contributions-balance">$ 0,00</h3>
+                                <p>Beitragskasse</p>
+                            </div>
+                        </div>
+                        <div class="treasury-stat-card purple">
+                            <i class="fas fa-bullseye"></i>
+                            <div>
+                                <h3 id="stat-goals-balance">$ 0,00</h3>
+                                <p>Zielkasse</p>
+                            </div>
+                        </div>
                         <div class="treasury-stat-card green">
                             <i class="fas fa-arrow-up"></i>
                             <div>
@@ -2370,12 +2401,13 @@
         <!-- Adjust Balance Modal (Kassenstand anpassen) -->
         <div id="adjust-balance-modal" class="modal treasury-modal" style="display: none; max-width: 450px;">
             <div class="modal-header">
-                <h2><i class="fas fa-balance-scale"></i> Kassenstand anpassen</h2>
+                <h2><i class="fas fa-balance-scale"></i> <span id="adjust-balance-title">Kassenstand anpassen</span></h2>
                 <button class="close-modal" onclick="closeModals()">&times;</button>
             </div>
             <form id="adjust-balance-form">
+                <input type="hidden" id="adjust-balance-kasse" value="contributions">
                 <div class="current-balance-display">
-                    <span class="label">Aktueller Kassenstand:</span>
+                    <span class="label" id="current-balance-label">Aktueller Kassenstand:</span>
                     <span class="value" id="current-balance-display">$ 0,00</span>
                 </div>
                 <div class="form-group">

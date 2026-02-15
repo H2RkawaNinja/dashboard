@@ -2501,17 +2501,19 @@ app.get('/api/permissions-overview', requireLogin, (req, res) => {
 
 // Treasury Balance abrufen
 app.get('/api/treasury/balance', requireLogin, (req, res) => {
-    db.query('SELECT current_balance, last_updated, notes FROM gang_treasury LIMIT 1', (err, results) => {
+    db.query('SELECT current_balance, contributions_balance, goals_balance, last_updated, notes FROM gang_treasury LIMIT 1', (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
         
         if (results.length === 0) {
-            return res.json({ balance: 0, last_updated: null, notes: null });
+            return res.json({ balance: 0, contributions_balance: 0, goals_balance: 0, last_updated: null, notes: null });
         }
         
         res.json({
             balance: results[0].current_balance || 0,
+            contributions_balance: results[0].contributions_balance || 0,
+            goals_balance: results[0].goals_balance || 0,
             last_updated: results[0].last_updated,
             notes: results[0].notes
         });
@@ -2526,17 +2528,23 @@ app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
         return res.status(400).json({ error: 'Neuer Kassenstand ist erforderlich' });
     }
     
+    const kasse = req.body.kasse || 'contributions'; // 'contributions' oder 'goals'
+    const balanceField = kasse === 'goals' ? 'goals_balance' : 'contributions_balance';
+    const kasseLabel = kasse === 'goals' ? 'Zielkasse' : 'Beitragskasse';
+    
     // Aktuellen Stand abrufen
-    db.query('SELECT current_balance FROM gang_treasury LIMIT 1', (err, results) => {
+    db.query('SELECT current_balance, contributions_balance, goals_balance FROM gang_treasury LIMIT 1', (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
         
-        const oldBalance = results.length > 0 ? (results[0].current_balance || 0) : 0;
+        const oldContributions = results.length > 0 ? (results[0].contributions_balance || 0) : 0;
+        const oldGoals = results.length > 0 ? (results[0].goals_balance || 0) : 0;
+        const oldBalance = kasse === 'goals' ? oldGoals : oldContributions;
         const difference = parseFloat(new_balance) - oldBalance;
         
         // Korrektur-Transaktion erstellen
-        const description = reason || `Manuelle Anpassung: ${oldBalance.toFixed(2)} → ${parseFloat(new_balance).toFixed(2)}`;
+        const description = reason || `${kasseLabel} Anpassung: ${oldBalance.toFixed(2)} → ${parseFloat(new_balance).toFixed(2)}`;
         
         db.query(
             'INSERT INTO gang_transactions (member_id, type, amount, description, recorded_by) VALUES (?, ?, ?, ?, ?)',
@@ -2546,8 +2554,13 @@ app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
                     return res.status(500).json({ error: insertErr.message });
                 }
                 
-                // Balance direkt auf neuen Wert setzen
-                db.query('UPDATE gang_treasury SET current_balance = ?, last_updated = NOW()', [parseFloat(new_balance)], (updateErr) => {
+                // Balance direkt auf neuen Wert setzen + current_balance synchronisieren
+                const newContributions = kasse === 'goals' ? oldContributions : parseFloat(new_balance);
+                const newGoals = kasse === 'goals' ? parseFloat(new_balance) : oldGoals;
+                const newTotal = newContributions + newGoals;
+                
+                db.query('UPDATE gang_treasury SET current_balance = ?, contributions_balance = ?, goals_balance = ?, last_updated = NOW()', 
+                    [newTotal, newContributions, newGoals], (updateErr) => {
                     if (updateErr) {
                         return res.status(500).json({ error: updateErr.message });
                     }
@@ -2555,14 +2568,15 @@ app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
                     // Log activity
                     db.query(
                         'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
-                        [req.session.userId, 'balance_adjusted', `Kassenstand angepasst: $${oldBalance.toFixed(2)} → $${parseFloat(new_balance).toFixed(2)}`]
+                        [req.session.userId, 'balance_adjusted', `${kasseLabel} angepasst: $${oldBalance.toFixed(2)} → $${parseFloat(new_balance).toFixed(2)}`]
                     );
                     
                     res.json({ 
                         success: true, 
                         old_balance: oldBalance,
                         new_balance: parseFloat(new_balance),
-                        difference: difference
+                        difference: difference,
+                        kasse: kasse
                     });
                 });
             }
@@ -2611,18 +2625,21 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         
-        // Balance aktualisieren
+        // Balance aktualisieren - getrennte Kassen
         let balanceChange = 0;
-        if (type === 'einzahlung' || type === 'beitrag' || type === 'ziel_einzahlung') {
+        if (type === 'einzahlung' || type === 'beitrag') {
+            balanceChange = parseFloat(amount);
+        } else if (type === 'ziel_einzahlung') {
             balanceChange = parseFloat(amount);
         } else if (type === 'auszahlung') {
             balanceChange = -parseFloat(amount);
         } else if (type === 'korrektur') {
-            // Korrektur kann positiv oder negativ sein (Betrag enthält bereits das Vorzeichen)
             balanceChange = parseFloat(amount);
         }
         
-        db.query('UPDATE gang_treasury SET current_balance = current_balance + ?', [balanceChange], (err2) => {
+        // Ziel-Einzahlungen gehen in goals_balance, alles andere in contributions_balance
+        const balanceField = type === 'ziel_einzahlung' ? 'goals_balance' : 'contributions_balance';
+        db.query(`UPDATE gang_treasury SET current_balance = current_balance + ?, ${balanceField} = ${balanceField} + ?`, [balanceChange, balanceChange], (err2) => {
             if (err2) {
                 console.error('Balance update error:', err2);
             }
@@ -2825,26 +2842,11 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
                                 });
                             }
                             
-                            // Treasury Balance aktualisieren
-                            db.query('SELECT current_balance_usd FROM gang_treasury ORDER BY last_updated DESC LIMIT 1', (err, balanceResults) => {
-                                if (err) {
-                                    return connection.rollback(() => {
-                                        connection.release();
-                                        res.status(500).json({ error: err.message });
-                                    });
-                                }
-                                
-                                const currentBalance = balanceResults.length > 0 ? balanceResults[0].current_balance_usd : 0;
-                                const newBalance = currentBalance + parseFloat(newPaidAmount);
-                                
-                                const updateBalanceQuery = `
-                                    INSERT INTO gang_treasury (current_balance_usd, currency, updated_by, notes) 
-                                    VALUES (?, 'USD', ?, ?)
-                                `;
-                                
-                                connection.query(updateBalanceQuery, [
-                                    newBalance, req.session.userId, `Beitragszahlung: ${description}`
-                                ], (err) => {
+                            // Treasury Balance aktualisieren (Beitragskasse)
+                            connection.query(
+                                'UPDATE gang_treasury SET current_balance = current_balance + ?, contributions_balance = contributions_balance + ?, last_updated = NOW() LIMIT 1',
+                                [parseFloat(newPaidAmount), parseFloat(newPaidAmount)],
+                                (err) => {
                                     if (err) {
                                         return connection.rollback(() => {
                                             connection.release();
@@ -2896,7 +2898,7 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
     const currentYear = new Date().getFullYear();
     
     // Balance
-    const balanceQuery = 'SELECT current_balance FROM gang_treasury LIMIT 1';
+    const balanceQuery = 'SELECT current_balance, contributions_balance, goals_balance FROM gang_treasury LIMIT 1';
     
     // Monatliche Ein-/Auszahlungen
     const monthlyQuery = `
@@ -2923,7 +2925,7 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
         new Promise((resolve, reject) => {
             db.query(balanceQuery, (err, results) => {
                 if (err) reject(err);
-                else resolve(results.length > 0 ? results[0] : { current_balance: 0 });
+                else resolve(results.length > 0 ? results[0] : { current_balance: 0, contributions_balance: 0, goals_balance: 0 });
             });
         }),
         new Promise((resolve, reject) => {
@@ -2947,6 +2949,8 @@ app.get('/api/treasury/stats', requireLogin, (req, res) => {
     ]).then(([balance, monthly, contributions, goals]) => {
         res.json({
             balance: balance.current_balance || 0,
+            contributions_balance: balance.contributions_balance || 0,
+            goals_balance: balance.goals_balance || 0,
             monthly_deposits: monthly.deposits || 0,
             monthly_withdrawals: monthly.withdrawals || 0,
             paid_members: `${contributions.paid_count || 0}/${contributions.total_count || 0}`,
@@ -3095,8 +3099,8 @@ app.post('/api/treasury/goals/contribute', requireLogin, (req, res) => {
                     [member_id, amount, `Einzahlung in Ziel #${goal_id}`, goal_id, req.session.userId]
                 );
                 
-                // Kasse aktualisieren
-                db.query('UPDATE gang_treasury SET current_balance = current_balance + ?', [amount]);
+                // Zielkasse aktualisieren
+                db.query('UPDATE gang_treasury SET current_balance = current_balance + ?, goals_balance = goals_balance + ?', [amount, amount]);
                 
                 res.json({ success: true });
             }
