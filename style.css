@@ -904,6 +904,300 @@ body {
     cursor: pointer;
 }
 
+/* ========== Berechtigungen - Neues Design ========== */
+.permissions-section {
+    margin-top: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.permissions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.permissions-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.permissions-header h4 i {
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+/* Toggle-All */
+.toggle-all-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    position: relative;
+}
+
+.toggle-all-label input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.toggle-all-label .toggle-slider {
+    width: 36px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.25s ease;
+}
+
+.toggle-all-label .toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+}
+
+.toggle-all-label input:checked + .toggle-slider {
+    background: var(--primary);
+}
+
+.toggle-all-label input:checked + .toggle-slider::after {
+    transform: translateX(16px);
+}
+
+/* Permission Groups */
+.perm-group {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.perm-group:last-child {
+    border-bottom: none;
+}
+
+.perm-group-header {
+    padding: 0.6rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.perm-group-header i {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+/* Permission Item */
+.perm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1rem;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.perm-item:last-child {
+    border-bottom: none;
+}
+
+.perm-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.perm-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.perm-icon {
+    font-size: 1rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+
+.perm-name {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.perm-desc {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 1px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.toggle-switch .toggle-slider {
+    width: 40px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 11px;
+    position: relative;
+    display: block;
+    transition: background 0.25s ease;
+}
+
+.toggle-switch .toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--success, #28a745);
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+    transform: translateX(18px);
+}
+
+/* Perm Icon Farben */
+.perm-icon.text-blue { color: #4a9eff; }
+.perm-icon.text-red { color: #ff5252; }
+.perm-icon.text-green { color: #4caf50; }
+.perm-icon.text-purple { color: #b388ff; }
+.perm-icon.text-orange { color: #ff9800; }
+.perm-icon.text-cyan { color: #26c6da; }
+.perm-icon.text-yellow { color: #ffd54f; }
+
+/* ========== Permission Badges in Mitgliedertabelle ========== */
+.perm-badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.perm-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    cursor: default;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+}
+
+.perm-badge:hover {
+    transform: scale(1.2);
+    z-index: 2;
+}
+
+.perm-badge i {
+    font-size: 0.65rem;
+}
+
+.perm-badge-blue {
+    background: rgba(74, 158, 255, 0.15);
+    color: #4a9eff;
+    border: 1px solid rgba(74, 158, 255, 0.3);
+}
+
+.perm-badge-red {
+    background: rgba(255, 82, 82, 0.15);
+    color: #ff5252;
+    border: 1px solid rgba(255, 82, 82, 0.3);
+}
+
+.perm-badge-green {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.perm-badge-purple {
+    background: rgba(179, 136, 255, 0.15);
+    color: #b388ff;
+    border: 1px solid rgba(179, 136, 255, 0.3);
+}
+
+.perm-badge-orange {
+    background: rgba(255, 152, 0, 0.15);
+    color: #ff9800;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.perm-badge-cyan {
+    background: rgba(38, 198, 218, 0.15);
+    color: #26c6da;
+    border: 1px solid rgba(38, 198, 218, 0.3);
+}
+
+.perm-badge-yellow {
+    background: rgba(255, 213, 79, 0.15);
+    color: #ffd54f;
+    border: 1px solid rgba(255, 213, 79, 0.3);
+}
+
+.perm-badge-gold {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    width: auto;
+    padding: 0 8px;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
 .form-group h4 {
     margin-top: 1rem;
     margin-bottom: 0.5rem;

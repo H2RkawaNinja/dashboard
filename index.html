@@ -262,6 +262,7 @@
                                 <th>Name</th>
                                 <th>Benutzername</th>
                                 <th>Rang</th>
+                                <th>Berechtigungen</th>
                                 <th>Passwort</th>
                                 <th>Telefon</th>
                                 <th>Letzter Login</th>
@@ -1629,36 +1630,124 @@
                     <label>Telefonnummer</label>
                     <input type="text" id="new-member-phone">
                 </div>
-                <div class="form-group">
-                    <h4>Berechtigungen</h4>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-add">
-                        Kann Mitglieder hinzufügen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-fence">
-                        Kann Hehler-Geschäft verwalten
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-recipes">
-                        Kann Rezepte verwalten
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-storage">
-                        Kann Lager verwalten
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-activity">
-                        Kann Aktivitäten sehen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-stats">
-                        Kann Statistiken sehen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="new-member-can-system">
-                        Kann System verwalten
-                    </label>
+                <div class="permissions-section">
+                    <div class="permissions-header">
+                        <h4><i class="fas fa-shield-alt"></i> Berechtigungen</h4>
+                        <label class="toggle-all-label">
+                            <span>Alle</span>
+                            <input type="checkbox" class="toggle-all" data-target="new-member">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-cogs"></i> Verwaltung
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-user-plus perm-icon text-blue"></i>
+                                <div>
+                                    <span class="perm-name">Mitglieder verwalten</span>
+                                    <span class="perm-desc">Kann neue Mitglieder hinzufügen und bearbeiten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-add">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-server perm-icon text-red"></i>
+                                <div>
+                                    <span class="perm-name">System verwalten</span>
+                                    <span class="perm-desc">Zugriff auf Systemwartung und Einstellungen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-system">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-briefcase"></i> Geschäft
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-handshake perm-icon text-green"></i>
+                                <div>
+                                    <span class="perm-name">Hehler-Geschäft</span>
+                                    <span class="perm-desc">Kann An- und Verkäufe im Hehler verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-fence">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-book perm-icon text-purple"></i>
+                                <div>
+                                    <span class="perm-name">Rezepte</span>
+                                    <span class="perm-desc">Kann Rezepte einsehen und verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-recipes">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-warehouse perm-icon text-orange"></i>
+                                <div>
+                                    <span class="perm-name">Lager</span>
+                                    <span class="perm-desc">Kann das Lager und Bestände verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-storage">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-eye"></i> Einsicht
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-clipboard-list perm-icon text-cyan"></i>
+                                <div>
+                                    <span class="perm-name">Aktivitäten</span>
+                                    <span class="perm-desc">Kann das Aktivitäten-Log einsehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-activity">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-chart-bar perm-icon text-yellow"></i>
+                                <div>
+                                    <span class="perm-name">Statistiken</span>
+                                    <span class="perm-desc">Kann Statistiken und Auswertungen sehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-stats">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
                 <button type="submit" class="btn-primary">Mitglied hinzufügen</button>
             </form>
@@ -1697,36 +1786,124 @@
                         Aktiv
                     </label>
                 </div>
-                <div class="form-group">
-                    <h4>Berechtigungen</h4>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-add">
-                        Kann Mitglieder hinzufügen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-fence">
-                        Kann Hehler-Geschäft verwalten
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-recipes">
-                        Kann Rezepte verwalten
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-storage">
-                        Kann Lager verwalten
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-activity">
-                        Kann Aktivitäten sehen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-stats">
-                        Kann Statistiken sehen
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="edit-member-can-system">
-                        Kann System verwalten
-                    </label>
+                <div class="permissions-section">
+                    <div class="permissions-header">
+                        <h4><i class="fas fa-shield-alt"></i> Berechtigungen</h4>
+                        <label class="toggle-all-label">
+                            <span>Alle</span>
+                            <input type="checkbox" class="toggle-all" data-target="edit-member">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-cogs"></i> Verwaltung
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-user-plus perm-icon text-blue"></i>
+                                <div>
+                                    <span class="perm-name">Mitglieder verwalten</span>
+                                    <span class="perm-desc">Kann neue Mitglieder hinzufügen und bearbeiten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-add">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-server perm-icon text-red"></i>
+                                <div>
+                                    <span class="perm-name">System verwalten</span>
+                                    <span class="perm-desc">Zugriff auf Systemwartung und Einstellungen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-system">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-briefcase"></i> Geschäft
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-handshake perm-icon text-green"></i>
+                                <div>
+                                    <span class="perm-name">Hehler-Geschäft</span>
+                                    <span class="perm-desc">Kann An- und Verkäufe im Hehler verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-fence">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-book perm-icon text-purple"></i>
+                                <div>
+                                    <span class="perm-name">Rezepte</span>
+                                    <span class="perm-desc">Kann Rezepte einsehen und verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-recipes">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-warehouse perm-icon text-orange"></i>
+                                <div>
+                                    <span class="perm-name">Lager</span>
+                                    <span class="perm-desc">Kann das Lager und Bestände verwalten</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-storage">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <i class="fas fa-eye"></i> Einsicht
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-clipboard-list perm-icon text-cyan"></i>
+                                <div>
+                                    <span class="perm-name">Aktivitäten</span>
+                                    <span class="perm-desc">Kann das Aktivitäten-Log einsehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-activity">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-chart-bar perm-icon text-yellow"></i>
+                                <div>
+                                    <span class="perm-name">Statistiken</span>
+                                    <span class="perm-desc">Kann Statistiken und Auswertungen sehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-stats">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
                 <button type="submit" class="btn-primary">Änderungen speichern</button>
             </form>

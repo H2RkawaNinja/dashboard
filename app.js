@@ -553,15 +553,30 @@ async function loadMembers() {
         const canViewPasswords = currentUser && currentUser.rank === 'Techniker';
         
         if (members.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-secondary);">Keine Mitglieder gefunden</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--text-secondary);">Keine Mitglieder gefunden</td></tr>';
             return;
         }
         
-        tbody.innerHTML = members.map(m => `
+        tbody.innerHTML = members.map(m => {
+            const permBadges = [];
+            if (m.can_add_members) permBadges.push('<span class="perm-badge perm-badge-blue" title="Mitglieder verwalten"><i class="fas fa-user-plus"></i></span>');
+            if (m.can_manage_system) permBadges.push('<span class="perm-badge perm-badge-red" title="System verwalten"><i class="fas fa-server"></i></span>');
+            if (m.can_manage_fence) permBadges.push('<span class="perm-badge perm-badge-green" title="Hehler-Geschäft"><i class="fas fa-handshake"></i></span>');
+            if (m.can_manage_recipes) permBadges.push('<span class="perm-badge perm-badge-purple" title="Rezepte"><i class="fas fa-book"></i></span>');
+            if (m.can_manage_storage) permBadges.push('<span class="perm-badge perm-badge-orange" title="Lager"><i class="fas fa-warehouse"></i></span>');
+            if (m.can_view_activity) permBadges.push('<span class="perm-badge perm-badge-cyan" title="Aktivitäten"><i class="fas fa-clipboard-list"></i></span>');
+            if (m.can_view_stats) permBadges.push('<span class="perm-badge perm-badge-yellow" title="Statistiken"><i class="fas fa-chart-bar"></i></span>');
+            
+            const permDisplay = m.rank === 'Techniker' 
+                ? '<span class="perm-badge perm-badge-gold" title="Techniker – Vollzugriff"><i class="fas fa-crown"></i> Alle</span>'
+                : (permBadges.length > 0 ? permBadges.join('') : '<span style="color: var(--text-secondary); font-size: 0.8rem;">Keine</span>');
+            
+            return `
             <tr>
                 <td>${m.full_name}</td>
                 <td>${m.username}</td>
                 <td>${m.rank}</td>
+                <td><div class="perm-badges-row">${permDisplay}</div></td>
                 <td>
                     ${m.is_password_set 
                         ? '<span class="status-badge active"><i class="fas fa-check"></i> Eingerichtet</span>' 
@@ -578,7 +593,7 @@ async function loadMembers() {
                     ` : '-'}
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
     } catch (error) {
         console.error('Fehler beim Laden der Mitglieder:', error);
     }
@@ -2428,6 +2443,27 @@ function showAddMemberModal() {
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('add-member-modal').style.display = 'block';
 }
+
+// Toggle-All Berechtigungen
+document.querySelectorAll('.toggle-all').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+        const target = this.dataset.target;
+        const checkboxes = this.closest('.permissions-section').querySelectorAll('.toggle-switch input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+});
+
+// Einzelne Toggles -> Toggle-All synchronisieren
+document.querySelectorAll('.permissions-section').forEach(section => {
+    const toggleAll = section.querySelector('.toggle-all');
+    const checkboxes = section.querySelectorAll('.toggle-switch input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const allChecked = Array.from(checkboxes).every(c => c.checked);
+            if (toggleAll) toggleAll.checked = allChecked;
+        });
+    });
+});
 
 document.getElementById('add-member-form').addEventListener('submit', async (e) => {
     e.preventDefault();
