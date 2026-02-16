@@ -2262,6 +2262,51 @@ app.delete('/api/recipes/:id', requireLogin, (req, res) => {
     });
 });
 
+// ========== DASHBOARD STATS EINSTELLUNGEN ==========
+
+// Dashboard-Statistik-Einstellungen abrufen (für alle eingeloggten User)
+app.get('/api/dashboard/stat-settings', requireLogin, (req, res) => {
+    db.query('SELECT stat_key, label, is_visible, sort_order FROM dashboard_stat_settings ORDER BY sort_order', (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ success: true, settings: results });
+    });
+});
+
+// Dashboard-Statistik-Einstellungen speichern (nur Techniker)
+app.post('/api/dashboard/stat-settings', requireLogin, (req, res) => {
+    if (req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Nur Techniker können Dashboard-Einstellungen verwalten' });
+    }
+    
+    const { settings } = req.body;
+    if (!settings || !Array.isArray(settings)) {
+        return res.status(400).json({ error: 'Ungültige Einstellungen' });
+    }
+    
+    let updateCount = 0;
+    const total = settings.length;
+    
+    settings.forEach(stat => {
+        db.query(
+            'UPDATE dashboard_stat_settings SET is_visible = ?, sort_order = ? WHERE stat_key = ?',
+            [stat.is_visible ? 1 : 0, stat.sort_order || 0, stat.stat_key],
+            (err) => {
+                if (err) console.error('Dashboard stat update error:', err);
+                updateCount++;
+                if (updateCount === total) {
+                    db.query('INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                        [req.session.userId, 'dashboard_settings', 'Dashboard-Statistik-Einstellungen geändert'],
+                        () => {}
+                    );
+                    res.json({ success: true, message: 'Dashboard-Einstellungen gespeichert' });
+                }
+            }
+        );
+    });
+});
+
 // ========== SYSTEM WARTUNG (nur für Techniker) ==========
 
 // Wartungseinstellungen abrufen

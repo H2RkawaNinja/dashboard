@@ -325,6 +325,9 @@ function updateStorageEditAccess() {
 
 async function loadDashboardStats() {
     try {
+        // Sichtbarkeit der Stat-Karten anwenden
+        await applyDashboardStatVisibility();
+        
         // Standard Dashboard Stats laden
         const response = await fetch(`${API_URL}/stats/dashboard`, {
             credentials: 'include'
@@ -4797,6 +4800,7 @@ function switchSettingsTab(btn, tabName) {
     // Daten laden beim Tab-Wechsel
     if (tabName === 'rang-vorlagen') loadRankPermissions();
     if (tabName === 'rechte-uebersicht') loadPermissionsOverview();
+    if (tabName === 'dashboard-stats') loadDashboardStatSettings();
 }
 
 // Wartungsseite für Techniker anzeigen/verstecken
@@ -4899,6 +4903,113 @@ function enableAllSystems() {
     });
     
     saveMaintenanceSettings();
+}
+
+// ========== DASHBOARD STATS EINSTELLUNGEN ==========
+
+// Dashboard-Statistik-Einstellungen laden und rendern
+async function loadDashboardStatSettings() {
+    try {
+        const response = await fetch(`${API_URL}/dashboard/stat-settings`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) return;
+        const result = await response.json();
+        
+        if (result.success) {
+            const container = document.getElementById('dashboard-stats-list');
+            if (!container) return;
+            
+            container.innerHTML = result.settings.map(stat => `
+                <div class="maintenance-section dashboard-stat-item" data-key="${stat.stat_key}">
+                    <h3>${stat.label}</h3>
+                    <label class="maintenance-toggle">
+                        <input type="checkbox" class="dashboard-stat-toggle" data-key="${stat.stat_key}" ${stat.is_visible ? 'checked' : ''}>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">${stat.is_visible ? 'Sichtbar' : 'Ausgeblendet'}</span>
+                    </label>
+                </div>
+            `).join('');
+            
+            // Toggle-Text aktualisieren bei Änderung
+            container.querySelectorAll('.dashboard-stat-toggle').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    cb.closest('.maintenance-toggle').querySelector('.toggle-text').textContent = cb.checked ? 'Sichtbar' : 'Ausgeblendet';
+                });
+            });
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Dashboard-Stat-Einstellungen:', error);
+    }
+}
+
+// Dashboard-Statistik-Einstellungen speichern
+async function saveDashboardStatSettings() {
+    const toggles = document.querySelectorAll('.dashboard-stat-toggle');
+    const settings = [];
+    let order = 1;
+    
+    toggles.forEach(toggle => {
+        settings.push({
+            stat_key: toggle.dataset.key,
+            is_visible: toggle.checked,
+            sort_order: order++
+        });
+    });
+    
+    try {
+        const response = await fetch(`${API_URL}/dashboard/stat-settings`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ settings })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Dashboard-Einstellungen gespeichert', 'success');
+            // Übersichts-Karten sofort aktualisieren
+            applyDashboardStatVisibility();
+        } else {
+            showToast(result.error || 'Fehler beim Speichern', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+        showToast('Fehler beim Speichern', 'error');
+    }
+}
+
+// Alle Dashboard-Stats ein-/ausblenden
+function toggleAllDashboardStats(visible) {
+    document.querySelectorAll('.dashboard-stat-toggle').forEach(toggle => {
+        toggle.checked = visible;
+        toggle.closest('.maintenance-toggle').querySelector('.toggle-text').textContent = visible ? 'Sichtbar' : 'Ausgeblendet';
+    });
+}
+
+// Sichtbarkeit der Stat-Karten auf der Übersichtsseite anwenden
+async function applyDashboardStatVisibility() {
+    try {
+        const response = await fetch(`${API_URL}/dashboard/stat-settings`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) return;
+        const result = await response.json();
+        
+        if (result.success) {
+            result.settings.forEach(stat => {
+                const card = document.querySelector(`.stat-card[data-stat-key="${stat.stat_key}"]`);
+                if (card) {
+                    card.style.display = stat.is_visible ? '' : 'none';
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Fehler beim Anwenden der Dashboard-Sichtbarkeit:', error);
+    }
 }
 
 // Wartungsmodus für Bereiche prüfen und Banner anzeigen

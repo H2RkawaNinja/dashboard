@@ -339,3 +339,24 @@ UPDATE rank_permissions SET can_view_fence = TRUE, can_view_recipes = TRUE, can_
 -- Migration: Getrennte Kassen-Spalten hinzufügen
 ALTER TABLE gang_treasury ADD COLUMN IF NOT EXISTS contributions_balance DECIMAL(15, 2) DEFAULT 0 AFTER current_balance;
 ALTER TABLE gang_treasury ADD COLUMN IF NOT EXISTS goals_balance DECIMAL(15, 2) DEFAULT 0 AFTER contributions_balance;
+
+-- Dashboard-Statistik-Einstellungen
+CREATE TABLE IF NOT EXISTS dashboard_stat_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    stat_key VARCHAR(50) NOT NULL UNIQUE,
+    label VARCHAR(100) NOT NULL,
+    is_visible BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0
+);
+
+INSERT INTO dashboard_stat_settings (stat_key, label, is_visible, sort_order) VALUES
+('members', 'Aktive Mitglieder', TRUE, 1),
+('pending', 'Offene Abrechnungen', TRUE, 2),
+('warehouse', 'Lagerwert', TRUE, 3),
+('contributions_balance', 'Beitragskasse', TRUE, 4),
+('goals_balance', 'Zielkasse', TRUE, 5),
+('deposits', 'Einzahlungen (Monat)', TRUE, 6),
+('withdrawals', 'Auszahlungen (Monat)', TRUE, 7),
+('contributions_paid', 'Beiträge bezahlt', TRUE, 8),
+('outstanding', 'Ausstehende Beiträge', TRUE, 9)
+ON DUPLICATE KEY UPDATE label = VALUES(label);

@@ -4247,6 +4247,12 @@ body {
     margin-bottom: 2rem;
 }
 
+.dashboard-stats-settings {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
 .maintenance-section {
     background: var(--dark-hover);
     padding: 1.5rem;
