@@ -253,7 +253,7 @@ CREATE TABLE IF NOT EXISTS gang_transactions (
 CREATE TABLE IF NOT EXISTS member_contributions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     member_id INT NOT NULL,
-    woche VARCHAR(20) NOT NULL, -- z.B. "KW07-2026"
+    woche VARCHAR(50) NOT NULL, -- z.B. "KW07-2026" oder "16.02.2026 - 22.02.2026"
     woche_start DATE NOT NULL,
     woche_ende DATE NOT NULL,
     soll_betrag DECIMAL(10, 2) NOT NULL,
