@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS gang_treasury (
 CREATE TABLE IF NOT EXISTS gang_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     member_id INT,
-    type ENUM('beitrag', 'einzahlung', 'auszahlung', 'ziel_einzahlung') NOT NULL,
+    type ENUM('beitrag', 'einzahlung', 'auszahlung', 'ziel_einzahlung', 'korrektur') NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     description VARCHAR(500),
     ziel_id INT NULL,
