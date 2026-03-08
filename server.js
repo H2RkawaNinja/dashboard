@@ -1687,7 +1687,12 @@ app.get('/api/storage-slots', requireLogin, (req, res) => {
     const pwCol = canSeePassword ? ', password' : '';
     db.query(`SELECT id, slot_code, name, section, owner, warehouse_id, aufgabe, location, created_at${pwCol} FROM storage_slots ORDER BY section, slot_code`, (err, results) => {
         if (err) {
-            return res.status(500).json({ error: err.message });
+            // Fallback ohne aufgabe (Spalte noch nicht migriert)
+            db.query(`SELECT id, slot_code, name, section, owner, warehouse_id, location, created_at${pwCol} FROM storage_slots ORDER BY section, slot_code`, (err2, results2) => {
+                if (err2) return res.status(500).json({ error: err2.message });
+                res.json(results2);
+            });
+            return;
         }
         res.json(results);
     });

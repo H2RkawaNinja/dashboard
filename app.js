@@ -1731,6 +1731,10 @@ async function loadWarehouse() {
             credentials: 'include'
         });
         const items = await response.json();
+        if (!Array.isArray(items)) {
+            console.error('Fehler: /api/warehouse gab kein Array zurück', items);
+            return;
+        }
         
         // Lade Lagerplätze und dann Artikel
         await loadStorageSlots();
@@ -1753,6 +1757,7 @@ async function loadStorageSlots() {
             credentials: 'include'
         });
         storageSlots = await response.json();
+        if (!Array.isArray(storageSlots)) storageSlots = [];
         
         // Gruppiere nach Section
         const slotsBySection = {};
@@ -3130,6 +3135,10 @@ async function loadProductsGrid() {
             credentials: 'include'
         });
         const products = await response.json();
+        if (!Array.isArray(products)) {
+            console.error('Fehler: /api/fence/templates gab kein Array zurück', products);
+            return;
+        }
         
         const grid = document.getElementById('products-grid');
         
