@@ -6325,18 +6325,37 @@ async function showGoalContributors(goalId) {
             const contributors = await response.json();
             const goal = treasuryGoals.find(g => g.id === goalId);
             
-            let html = `<h3>Einzahler für: ${goal.titel}</h3>`;
+            document.getElementById('contributors-modal-title').textContent = `Einzahler für: ${goal ? goal.titel : ''}`;
+            
+            let bodyHtml;
             if (contributors.length === 0) {
-                html += '<p>Noch keine Einzahlungen.</p>';
+                bodyHtml = '<p style="color: var(--text-secondary); text-align: center; padding: 1rem;">Noch keine Einzahlungen.</p>';
             } else {
-                html += '<ul class="contributors-list">';
+                // Gesamtsumme berechnen
+                const total = contributors.reduce((sum, c) => sum + parseFloat(c.amount), 0);
+                bodyHtml = `<ul class="contributors-list">`;
                 contributors.forEach(c => {
-                    html += `<li><strong>${c.member_name}</strong>: $ ${formatCurrency(c.amount)} ${c.kommentar ? `<em>(${c.kommentar})</em>` : ''}</li>`;
+                    const datum = c.datum ? new Date(c.datum).toLocaleDateString('de-DE') : '';
+                    bodyHtml += `
+                        <li>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong>${c.member_name}</strong>
+                                <span style="color: var(--success, #22c55e); font-weight:600;">$ ${formatCurrency(c.amount)}</span>
+                            </div>
+                            ${c.kommentar ? `<div style="margin-top:0.25rem;"><em>${c.kommentar}</em></div>` : ''}
+                            ${datum ? `<div style="margin-top:0.2rem; font-size:0.8rem; color: var(--text-secondary);">${datum}</div>` : ''}
+                        </li>`;
                 });
-                html += '</ul>';
+                bodyHtml += `</ul>
+                <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border, rgba(255,255,255,0.1)); display:flex; justify-content:space-between; font-weight:600;">
+                    <span>Gesamt</span>
+                    <span style="color: var(--success, #22c55e);">$ ${formatCurrency(total)}</span>
+                </div>`;
             }
             
-            alert(html.replace(/<[^>]*>/g, '')); // Einfacher Alert ohne HTML
+            document.getElementById('contributors-modal-body').innerHTML = bodyHtml;
+            document.getElementById('contributors-modal').style.display = 'block';
+            document.getElementById('modal-overlay').style.display = 'flex';
         }
     } catch (error) {
         console.error('Fehler:', error);

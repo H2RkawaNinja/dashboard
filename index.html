@@ -2606,6 +2606,22 @@
             </form>
         </div>
 
+        <!-- Einzahler Modal -->
+        <div id="contributors-modal" class="modal treasury-modal" style="display: none; max-width: 550px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-users"></i> <span id="contributors-modal-title">Einzahler</span></h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 1.25rem;">
+                <div id="contributors-modal-body">
+                    <!-- Einzahler werden hier geladen -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModals()">Schließen</button>
+            </div>
+        </div>
+
         <!-- Ziel Einzahlung Modal -->
         <div id="contribute-goal-modal" class="modal treasury-modal" style="display: none; max-width: 550px;">
             <div class="modal-header">
