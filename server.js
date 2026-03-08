@@ -1579,6 +1579,9 @@ app.delete('/api/fence/sales/:id', requireLogin, (req, res) => {
 // ========== LAGER ==========
 
 app.get('/api/warehouse', requireLogin, (req, res) => {
+    if (!req.session.canViewStorage && !req.session.canManageStorage && req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Keine Berechtigung' });
+    }
     db.query('SELECT * FROM warehouse ORDER BY category, item_name', (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -1691,6 +1694,9 @@ app.delete('/api/warehouse/:id', requireLogin, (req, res) => {
 // ========== LAGERPLÄTZE ==========
 
 app.get('/api/storage-slots', requireLogin, (req, res) => {
+    if (!req.session.canViewStorage && !req.session.canManageStorage && req.session.rank !== 'Techniker') {
+        return res.status(403).json({ error: 'Keine Berechtigung' });
+    }
     const canSeePassword = req.session.canManageStorage || req.session.canViewStoragePassword || req.session.rank === 'Techniker';
     const pwCol = canSeePassword ? ', password' : '';
     db.query(`SELECT id, slot_code, name, section, owner, warehouse_id, aufgabe, location, created_at${pwCol} FROM storage_slots ORDER BY section, slot_code`, (err, results) => {

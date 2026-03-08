@@ -164,6 +164,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.add('active');
         
         const page = item.getAttribute('data-page');
+        
+        // Zugangsprüfung
+        if ((page === 'warehouse' || page === 'storage') && !currentUser.can_view_storage && !currentUser.can_manage_storage && currentUser.rank !== 'Techniker') {
+            showToast('Keine Berechtigung zum Anzeigen des Lagers', 'error');
+            return;
+        }
+        
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(`${page}-page`).classList.add('active');
         
@@ -195,9 +202,11 @@ function loadPageData(page) {
             loadFenceData();
             break;
         case 'warehouse':
+            if (!currentUser || (!currentUser.can_view_storage && !currentUser.can_manage_storage && currentUser.rank !== 'Techniker')) return;
             loadWarehouse();
             break;
         case 'storage':
+            if (!currentUser || (!currentUser.can_view_storage && !currentUser.can_manage_storage && currentUser.rank !== 'Techniker')) return;
             loadStorageOverview();
             break;
         case 'treasury':
