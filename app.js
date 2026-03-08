@@ -2247,8 +2247,7 @@ async function editStorageSlot(slotId) {
     
     document.getElementById('storage-slot-modal-title').textContent = 'Lagerplatz bearbeiten';
     document.getElementById('storage-slot-id').value = slot.id;
-    document.getElementById('storage-slot-code').value = slot.slot_code;
-    document.getElementById('storage-slot-old-code').value = slot.slot_code;
+    document.getElementById('storage-slot-old-code').value = slot.slot_code || '';
     
     // Lade Mitglieder für Besitzer-Dropdown
     await populateOwnerDropdown();

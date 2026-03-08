@@ -2874,11 +2874,13 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
             connection.beginTransaction(err => {
                 if (err) { connection.release(); return res.status(500).json({ error: err.message }); }
 
-                const notesClause = notes != null ? ', notes = ?' : '';
-                const notesParams = notes != null ? [notes] : [];
+                const setParts = ['ist_betrag = ?', 'status = ?'];
+                const setParams = [newIst, newStatus];
+                if (newStatus === 'bezahlt') setParts.push('bezahlt_am = NOW()');
+                setParams.push(contribution_id);
                 connection.query(
-                    `UPDATE member_contributions SET ist_betrag = ?, status = ?, ${bezahltAmClause} updated_at = NOW() ${notesClause} WHERE id = ?`,
-                    [newIst, newStatus, ...notesParams, contribution_id],
+                    `UPDATE member_contributions SET ${setParts.join(', ')} WHERE id = ?`,
+                    setParams,
                     (err) => {
                         if (err) return connection.rollback(() => { connection.release(); res.status(500).json({ error: err.message }); });
 
