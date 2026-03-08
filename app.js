@@ -3008,7 +3008,7 @@ function updateCartDisplay() {
     // Checkout Modal Summen
     if (checkoutItemCount) checkoutItemCount.textContent = totalItems;
     if (checkoutTotalQuantity) checkoutTotalQuantity.textContent = totalQuantity;
-    if (checkoutTotalPrice) checkoutTotalPrice.textContent = totalPrice.toFixed(2);
+    if (checkoutTotalPrice) checkoutTotalPrice.value = totalPrice.toFixed(2);
     if (checkoutSubmitTotal) checkoutSubmitTotal.textContent = `$${totalPrice.toFixed(2)}`;
     
     // Page Summen
@@ -3017,6 +3017,12 @@ function updateCartDisplay() {
     if (pageCartTotal) pageCartTotal.textContent = totalPrice.toFixed(2);
     if (pageCartSummary) pageCartSummary.style.display = 'block';
 }
+function updateCheckoutSubmitBtn() {
+    const val = parseFloat(document.getElementById('checkout-total-price').value) || 0;
+    const btn = document.getElementById('checkout-submit-total');
+    if (btn) btn.textContent = `$${val.toFixed(2)}`;
+}
+
 function calculateQuickTotal() {
     const quantity = parseFloat(document.getElementById('quick-quantity').value) || 0;
     const price = parseFloat(document.getElementById('quick-unit-price').value) || 0;
@@ -3564,30 +3570,37 @@ if (cartCheckoutForm) {
         const sellerInfo = document.getElementById('checkout-seller-info').value;
         // Alle Ankäufe kommen automatisch ins Lager als UNSORTED
         const storedInWarehouse = true;
+
+        // Manueller Gesamtpreis – falls abweichend, proportional aufteilen
+        const calcTotal = shoppingCart.reduce((sum, item) => sum + item.total, 0);
+        const manualTotal = parseFloat(document.getElementById('checkout-total-price').value) || calcTotal;
+        const ratio = calcTotal > 0 ? manualTotal / calcTotal : 1;
         
         try {
             // Alle Artikel im Warenkorb als Ankäufe speichern
-            const promises = shoppingCart.map(item => 
-                fetch(`${API_URL}/fence/purchases`, {
+            const promises = shoppingCart.map(item => {
+                const adjustedTotal = item.total * ratio;
+                const adjustedUnitPrice = item.quantity > 0 ? adjustedTotal / item.quantity : item.unitPrice;
+                return fetch(`${API_URL}/fence/purchases`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify({
                         item_name: item.productName,
                         quantity: item.quantity,
-                        unit_price: item.unitPrice,
+                        unit_price: adjustedUnitPrice,
                         seller_info: sellerInfo,
                         stored_in_warehouse: storedInWarehouse
                     })
-                })
-            );
+                });
+            });
             
             const results = await Promise.all(promises);
             const allSuccessful = results.every(r => r.ok);
             
             if (allSuccessful) {
                 const totalItems = shoppingCart.length;
-                const totalPrice = shoppingCart.reduce((sum, item) => sum + item.total, 0);
+                const totalPrice = manualTotal;
                 
                 showToast(`${totalItems} Artikel(n) für $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`, 'success', 'Ankauf erfolgreich');
                 
