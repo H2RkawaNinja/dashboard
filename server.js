@@ -76,6 +76,20 @@ db.getConnection((err, connection) => {
     }
     console.log('Mit MySQL Datenbank verbunden');
     
+    // Migriere gang_transactions: notes-Spalte hinzufügen falls fehlt
+    connection.query("ALTER TABLE gang_transactions ADD COLUMN IF NOT EXISTS notes TEXT", (err) => {
+        if (err && err.code !== 'ER_DUP_FIELDNAME') {
+            // Fallback für MySQL < 8.0.3 ohne IF NOT EXISTS
+            connection.query("SHOW COLUMNS FROM gang_transactions LIKE 'notes'", (err2, cols) => {
+                if (!err2 && cols.length === 0) {
+                    connection.query('ALTER TABLE gang_transactions ADD COLUMN notes TEXT', () => {
+                        console.log('gang_transactions.notes Spalte hinzugefügt');
+                    });
+                }
+            });
+        }
+    });
+
     // Prüfe und initialisiere hero_inventory wenn leer
     connection.query('SELECT COUNT(*) as count FROM hero_inventory', (err, results) => {
         if (!err && results[0].count === 0) {
@@ -2635,7 +2649,7 @@ app.post('/api/treasury/balance/set', requireLogin, (req, res) => {
 app.get('/api/treasury/transactions', requireLogin, (req, res) => {
     const query = `
         SELECT 
-            gt.id, gt.type, gt.amount, gt.description, gt.ziel_id,
+            gt.id, gt.type, gt.amount, gt.description, gt.notes, gt.ziel_id,
             gt.transaction_date,
             m.full_name as member_name,
             rb.full_name as recorded_by_name
@@ -2655,7 +2669,7 @@ app.get('/api/treasury/transactions', requireLogin, (req, res) => {
 
 // Neue Transaktion hinzufügen
 app.post('/api/treasury/transactions', requireLogin, (req, res) => {
-    const { member_id, type, amount, description } = req.body;
+    const { member_id, type, amount, description, notes } = req.body;
     
     if (!type || !amount) {
         return res.status(400).json({ error: 'Typ und Betrag sind erforderlich' });
@@ -2663,11 +2677,11 @@ app.post('/api/treasury/transactions', requireLogin, (req, res) => {
     
     // Transaktion hinzufügen
     const insertQuery = `
-        INSERT INTO gang_transactions (member_id, type, amount, description, recorded_by)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO gang_transactions (member_id, type, amount, description, notes, recorded_by)
+        VALUES (?, ?, ?, ?, ?, ?)
     `;
     
-    db.query(insertQuery, [member_id || null, type, amount, description, req.session.userId], (err, result) => {
+    db.query(insertQuery, [member_id || null, type, amount, description, notes || null, req.session.userId], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }

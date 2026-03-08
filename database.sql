@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS gang_transactions (
     type ENUM('beitrag', 'einzahlung', 'auszahlung', 'ziel_einzahlung', 'korrektur') NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     description VARCHAR(500),
+    notes TEXT,
     ziel_id INT NULL,
     recorded_by INT,
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

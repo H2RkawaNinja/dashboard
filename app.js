@@ -5795,6 +5795,7 @@ function renderTransactions() {
                         </span>
                     </div>
                     <div class="transaction-description">${transaction.description || '-'}</div>
+                    ${transaction.notes ? `<div class="transaction-notes">${transaction.notes}</div>` : ''}
                     <div class="transaction-meta">
                         <span class="transaction-date">${formatTransactionDate(transaction.transaction_date)}</span>
                         ${transaction.member_name ? `<span class="transaction-member">von ${transaction.member_name}</span>` : ''}
