@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS members (
     can_manage_recipes BOOLEAN DEFAULT FALSE,
     can_view_storage BOOLEAN DEFAULT FALSE,
     can_manage_storage BOOLEAN DEFAULT FALSE,
+    can_view_storage_password BOOLEAN DEFAULT FALSE,
     can_view_treasury BOOLEAN DEFAULT FALSE,
     can_manage_treasury BOOLEAN DEFAULT FALSE,
     can_view_activity BOOLEAN DEFAULT FALSE,
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS storage_slots (
     owner VARCHAR(100),
     warehouse_id VARCHAR(50),
     password VARCHAR(255),
+    aufgabe VARCHAR(200),
     location ENUM('Paleto', 'Grapseed', 'Northside', 'Westside', 'Eastside', 'Mirror Park', 'Southside', 'Harmony') DEFAULT 'Paleto',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -202,6 +204,7 @@ CREATE TABLE IF NOT EXISTS rank_permissions (
     can_manage_recipes BOOLEAN DEFAULT FALSE,
     can_view_storage BOOLEAN DEFAULT FALSE,
     can_manage_storage BOOLEAN DEFAULT FALSE,
+    can_view_storage_password BOOLEAN DEFAULT FALSE,
     can_view_treasury BOOLEAN DEFAULT FALSE,
     can_manage_treasury BOOLEAN DEFAULT FALSE,
     can_view_activity BOOLEAN DEFAULT FALSE,
@@ -329,12 +332,16 @@ ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_recipes BOOLEAN DEFAULT FA
 ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_storage BOOLEAN DEFAULT FALSE AFTER can_manage_recipes;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_treasury BOOLEAN DEFAULT FALSE AFTER can_manage_storage;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS can_manage_treasury BOOLEAN DEFAULT FALSE AFTER can_view_treasury;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS can_view_storage_password BOOLEAN DEFAULT FALSE AFTER can_manage_storage;
+
+ALTER TABLE storage_slots ADD COLUMN IF NOT EXISTS aufgabe VARCHAR(200) AFTER warehouse_id;
 
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_fence BOOLEAN DEFAULT FALSE AFTER can_add_members;
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_recipes BOOLEAN DEFAULT FALSE AFTER can_manage_fence;
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_storage BOOLEAN DEFAULT FALSE AFTER can_manage_recipes;
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_treasury BOOLEAN DEFAULT FALSE AFTER can_manage_storage;
 ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_manage_treasury BOOLEAN DEFAULT FALSE AFTER can_view_treasury;
+ALTER TABLE rank_permissions ADD COLUMN IF NOT EXISTS can_view_storage_password BOOLEAN DEFAULT FALSE AFTER can_manage_storage;
 
 -- Bestehende Ränge mit neuen Rechten aktualisieren
 UPDATE rank_permissions SET can_view_fence = TRUE, can_view_recipes = TRUE, can_view_storage = TRUE, can_view_treasury = TRUE, can_manage_treasury = TRUE WHERE rank_name IN ('OG', 'Techniker');

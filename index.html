@@ -1069,6 +1069,12 @@
                 <input type="hidden" id="storage-slot-old-code">
                 
                 <div class="form-group">
+                    <label>Aufgabe / Bezeichnung</label>
+                    <input type="text" id="storage-slot-aufgabe" placeholder="z.B. Waffenlager, Autolager, Vorr\u00e4te..." maxlength="200">
+                    <small style="color: var(--text-secondary); font-size: 0.85rem;">Wof\u00fcr wird dieses Lager genutzt</small>
+                </div>
+                
+                <div class="form-group">
                     <label>Besitzer</label>
                     <select id="storage-slot-owner">
                         <option value="">-- Kein Besitzer --</option>
@@ -1938,6 +1944,19 @@
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-key perm-icon text-orange"></i>
+                                <div>
+                                    <span class="perm-name">Lager Passwort einsehen</span>
+                                    <span class="perm-desc">Kann Lager-PINs im \u00dcberblick sehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="new-member-can-storage-password">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="perm-group">
@@ -2162,6 +2181,19 @@
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="edit-member-can-storage">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="perm-item">
+                            <div class="perm-info">
+                                <i class="fas fa-key perm-icon text-orange"></i>
+                                <div>
+                                    <span class="perm-name">Lager Passwort einsehen</span>
+                                    <span class="perm-desc">Kann Lager-PINs im \u00dcberblick sehen</span>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-member-can-storage-password">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>

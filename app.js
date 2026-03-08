@@ -2078,6 +2078,9 @@ async function loadStorageOverview() {
         const allItems = await itemsResponse.json();
         const slots = await slotsResponse.json();
         
+        // Globales Array aktualisieren damit editStorageSlot() darauf zugreifen kann
+        storageSlots = slots;
+        
         // Nur fertig sortierte Artikel anzeigen
         const completedItems = allItems.filter(item => item.sorting_complete);
         
@@ -2135,8 +2138,10 @@ async function loadStorageOverview() {
                                     <div style="flex: 1;">
                                         <div class="slot-code">${slot.slot_code}</div>
                                         ${slot.name ? `<div class="slot-name">${slot.name}</div>` : ''}
+                                        ${slot.aufgabe ? `<div class="slot-owner" style="color: var(--accent); font-weight: 500;"><i class="fas fa-tasks"></i> ${slot.aufgabe}</div>` : ''}
                                         ${slot.owner ? `<div class="slot-owner"><i class="fas fa-user"></i> ${slot.owner}</div>` : ''}
                                         ${slot.location ? `<div class="slot-location"><i class="fas fa-map-marker-alt"></i> ${slot.location}</div>` : ''}
+                                        ${slot.password && (currentUser.can_view_storage_password || currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? `<div class="slot-owner" style="color: var(--text-secondary); font-size: 0.8rem;"><i class="fas fa-lock"></i> PIN: <span id="pw-${slot.id}" style="filter: blur(4px); cursor: pointer; user-select: none;" onclick="this.style.filter=this.style.filter?'':'blur(4px)'">${slot.password}</span></div>` : ''}
                                     </div>
                                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
                                         <div class="slot-info-badges" style="display: flex; gap: 0.5rem;">
@@ -2254,7 +2259,8 @@ async function editStorageSlot(slotId) {
     
     document.getElementById('storage-slot-owner').value = slot.owner || '';
     document.getElementById('storage-slot-warehouse-id').value = slot.warehouse_id || '';
-    document.getElementById('storage-slot-password').value = ''; // Passwort nicht anzeigen
+    document.getElementById('storage-slot-password').value = slot.password || '';
+    document.getElementById('storage-slot-aufgabe').value = slot.aufgabe || '';
     document.getElementById('storage-slot-location').value = slot.location || 'Paleto';
     
     document.getElementById('modal-overlay').style.display = 'flex';
@@ -2341,6 +2347,7 @@ if (storageSlotForm) {
         const warehouseId = document.getElementById('storage-slot-warehouse-id').value.trim();
         const owner = document.getElementById('storage-slot-owner').value.trim();
         const password = document.getElementById('storage-slot-password').value.trim();
+        const aufgabe = document.getElementById('storage-slot-aufgabe').value.trim();
         const location = document.getElementById('storage-slot-location').value;
         
         const data = {
@@ -2348,6 +2355,7 @@ if (storageSlotForm) {
             old_code: oldCode || null,
             owner: owner || null,
             password: password || null,
+            aufgabe: aufgabe || null,
             location: location
         };
         
@@ -2558,6 +2566,7 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
         can_manage_recipes: document.getElementById('new-member-can-recipes').checked,
         can_view_storage: document.getElementById('new-member-can-view-storage').checked,
         can_manage_storage: document.getElementById('new-member-can-storage').checked,
+        can_view_storage_password: document.getElementById('new-member-can-storage-password').checked,
         can_view_treasury: document.getElementById('new-member-can-view-treasury').checked,
         can_manage_treasury: document.getElementById('new-member-can-manage-treasury').checked,
         can_view_activity: document.getElementById('new-member-can-activity').checked,
@@ -2615,6 +2624,7 @@ async function editMember(id) {
         document.getElementById('edit-member-can-recipes').checked = member.can_manage_recipes;
         document.getElementById('edit-member-can-view-storage').checked = member.can_view_storage;
         document.getElementById('edit-member-can-storage').checked = member.can_manage_storage;
+        document.getElementById('edit-member-can-storage-password').checked = member.can_view_storage_password || false;
         document.getElementById('edit-member-can-view-treasury').checked = member.can_view_treasury;
         document.getElementById('edit-member-can-manage-treasury').checked = member.can_manage_treasury;
         document.getElementById('edit-member-can-activity').checked = member.can_view_activity;
@@ -2645,6 +2655,7 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
         can_manage_recipes: document.getElementById('edit-member-can-recipes').checked,
         can_view_storage: document.getElementById('edit-member-can-view-storage').checked,
         can_manage_storage: document.getElementById('edit-member-can-storage').checked,
+        can_view_storage_password: document.getElementById('edit-member-can-storage-password').checked,
         can_view_treasury: document.getElementById('edit-member-can-view-treasury').checked,
         can_manage_treasury: document.getElementById('edit-member-can-manage-treasury').checked,
         can_view_activity: document.getElementById('edit-member-can-activity').checked,
@@ -5267,7 +5278,7 @@ function hideMaintenanceBanner(module) {
 // RANG-BERECHTIGUNGEN & RECHTE-ÜBERSICHT
 // ========================================
 
-const PERM_KEYS = ['can_add_members', 'can_view_fence', 'can_manage_fence', 'can_view_recipes', 'can_manage_recipes', 'can_view_storage', 'can_manage_storage', 'can_view_treasury', 'can_manage_treasury', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
+const PERM_KEYS = ['can_add_members', 'can_view_fence', 'can_manage_fence', 'can_view_recipes', 'can_manage_recipes', 'can_view_storage', 'can_manage_storage', 'can_view_storage_password', 'can_view_treasury', 'can_manage_treasury', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
 const PERM_LABELS = {
     can_add_members: 'Mitglieder',
     can_view_fence: 'Hehler (Einsicht)',
@@ -5276,6 +5287,7 @@ const PERM_LABELS = {
     can_manage_recipes: 'Rezepte (Verwalten)',
     can_view_storage: 'Lager (Einsicht)',
     can_manage_storage: 'Lager (Verwalten)',
+    can_view_storage_password: 'Lager (Passwort sehen)',
     can_view_treasury: 'Gangkasse (Einsicht)',
     can_manage_treasury: 'Gangkasse (Verwalten)',
     can_view_activity: 'Aktivitäten',
@@ -5290,6 +5302,7 @@ const PERM_ICONS = {
     can_manage_recipes: 'fa-book',
     can_view_storage: 'fa-eye',
     can_manage_storage: 'fa-warehouse',
+    can_view_storage_password: 'fa-key',
     can_view_treasury: 'fa-piggy-bank',
     can_manage_treasury: 'fa-coins',
     can_view_activity: 'fa-clipboard-list',

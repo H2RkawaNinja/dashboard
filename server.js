@@ -117,6 +117,39 @@ db.getConnection((err, connection) => {
     migrateContributionCols('uebertrag_betrag', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
     migrateContributionCols('notes', 'TEXT');
 
+    // Migriere storage_slots: aufgabe-Spalte hinzufügen
+    const migrateSlotCol = (col, def) => {
+        connection.query(`ALTER TABLE storage_slots ADD COLUMN IF NOT EXISTS ${col} ${def}`, (err) => {
+            if (err && err.code !== 'ER_DUP_FIELDNAME') {
+                connection.query(`SHOW COLUMNS FROM storage_slots LIKE '${col}'`, (err2, cols) => {
+                    if (!err2 && cols.length === 0) {
+                        connection.query(`ALTER TABLE storage_slots ADD COLUMN ${col} ${def}`, () => {
+                            console.log(`storage_slots.${col} Spalte hinzugefügt`);
+                        });
+                    }
+                });
+            }
+        });
+    };
+    migrateSlotCol('aufgabe', 'VARCHAR(200)');
+
+    // Migriere members + rank_permissions: can_view_storage_password
+    const migratePermCol = (table, col, def) => {
+        connection.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${def}`, (err) => {
+            if (err && err.code !== 'ER_DUP_FIELDNAME') {
+                connection.query(`SHOW COLUMNS FROM ${table} LIKE '${col}'`, (err2, cols) => {
+                    if (!err2 && cols.length === 0) {
+                        connection.query(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`, () => {
+                            console.log(`${table}.${col} Spalte hinzugefügt`);
+                        });
+                    }
+                });
+            }
+        });
+    };
+    migratePermCol('members', 'can_view_storage_password', 'BOOLEAN DEFAULT FALSE');
+    migratePermCol('rank_permissions', 'can_view_storage_password', 'BOOLEAN DEFAULT FALSE');
+
     // Prüfe und initialisiere hero_inventory wenn leer
     connection.query('SELECT COUNT(*) as count FROM hero_inventory', (err, results) => {
         if (!err && results[0].count === 0) {
@@ -171,6 +204,7 @@ app.post('/api/auth/login', (req, res) => {
             req.session.canManageRecipes = user.can_manage_recipes;
             req.session.canViewStorage = user.can_view_storage;
             req.session.canManageStorage = user.can_manage_storage;
+            req.session.canViewStoragePassword = user.can_view_storage_password;
             req.session.canViewTreasury = user.can_view_treasury;
             req.session.canManageTreasury = user.can_manage_treasury;
             req.session.canViewActivity = user.can_view_activity;
@@ -213,6 +247,7 @@ app.post('/api/auth/login', (req, res) => {
                     can_manage_recipes: req.session.canManageRecipes,
                     can_view_storage: req.session.canViewStorage,
                     can_manage_storage: req.session.canManageStorage,
+                    can_view_storage_password: req.session.canViewStoragePassword || false,
                     can_view_treasury: req.session.canViewTreasury,
                     can_manage_treasury: req.session.canManageTreasury,
                     can_view_activity: req.session.canViewActivity,
@@ -234,7 +269,7 @@ app.post('/api/auth/logout', (req, res) => {
 // Session check
 app.get('/api/auth/session', (req, res) => {
     if (req.session.userId) {
-        db.query('SELECT id, username, full_name, rank, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?', 
+        db.query('SELECT id, username, full_name, rank, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_storage_password, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?', 
             [req.session.userId], (err, results) => {
             if (err || results.length === 0) {
                 return res.json({ logged_in: false });
@@ -250,6 +285,7 @@ app.get('/api/auth/session', (req, res) => {
                 user.can_manage_recipes = true;
                 user.can_view_storage = true;
                 user.can_manage_storage = true;
+                user.can_view_storage_password = true;
                 user.can_view_treasury = true;
                 user.can_manage_treasury = true;
                 user.can_view_activity = true;
@@ -264,6 +300,7 @@ app.get('/api/auth/session', (req, res) => {
                 req.session.canManageRecipes = true;
                 req.session.canViewStorage = true;
                 req.session.canManageStorage = true;
+                req.session.canViewStoragePassword = true;
                 req.session.canViewTreasury = true;
                 req.session.canManageTreasury = true;
                 req.session.canViewActivity = true;
@@ -278,6 +315,7 @@ app.get('/api/auth/session', (req, res) => {
                 req.session.canManageRecipes = user.can_manage_recipes;
                 req.session.canViewStorage = user.can_view_storage;
                 req.session.canManageStorage = user.can_manage_storage;
+                req.session.canViewStoragePassword = user.can_view_storage_password || false;
                 req.session.canViewTreasury = user.can_view_treasury;
                 req.session.canManageTreasury = user.can_manage_treasury;
                 req.session.canViewActivity = user.can_view_activity;
@@ -420,6 +458,7 @@ app.get('/api/members', requireLogin, (req, res) => {
             COALESCE(can_manage_recipes, FALSE) as can_manage_recipes,
             COALESCE(can_view_storage, FALSE) as can_view_storage,
             COALESCE(can_manage_storage, FALSE) as can_manage_storage,
+            COALESCE(can_view_storage_password, FALSE) as can_view_storage_password,
             COALESCE(can_view_treasury, FALSE) as can_view_treasury,
             COALESCE(can_manage_treasury, FALSE) as can_manage_treasury,
             COALESCE(can_view_activity, FALSE) as can_view_activity,
@@ -459,7 +498,7 @@ app.post('/api/members/add', requireLogin, (req, res) => {
         return res.status(403).json({ error: 'Keine Berechtigung zum Hinzufügen von Mitgliedern' });
     }
     
-    const { username, full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
+    const { username, full_name, rank, phone, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_storage_password, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
     
     // Prüfe ob Username bereits existiert
     db.query('SELECT id FROM members WHERE username = ?', [username], (err, results) => {
@@ -1644,7 +1683,9 @@ app.delete('/api/warehouse/:id', requireLogin, (req, res) => {
 // ========== LAGERPLÄTZE ==========
 
 app.get('/api/storage-slots', requireLogin, (req, res) => {
-    db.query('SELECT id, slot_code, name, section, owner, warehouse_id, location, created_at FROM storage_slots ORDER BY section, slot_code', (err, results) => {
+    const canSeePassword = req.session.canManageStorage || req.session.canViewStoragePassword || req.session.rank === 'Techniker';
+    const pwCol = canSeePassword ? ', password' : '';
+    db.query(`SELECT id, slot_code, name, section, owner, warehouse_id, aufgabe, location, created_at${pwCol} FROM storage_slots ORDER BY section, slot_code`, (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -1653,35 +1694,24 @@ app.get('/api/storage-slots', requireLogin, (req, res) => {
 });
 
 app.post('/api/storage-slots', requireLogin, async (req, res) => {
-    const { warehouse_id, owner, password, location } = req.body;
+    const { warehouse_id, owner, password, aufgabe, location } = req.body;
     
-    console.log('Received data:', { warehouse_id, owner, password: !!password, location });
+    console.log('Received data:', { warehouse_id, owner, password: !!password, aufgabe, location });
     
     try {
-        // Validiere, dass warehouse_id genau 8 Ziffern hat
         if (!warehouse_id || !/^[0-9]{8}$/.test(warehouse_id)) {
             return res.status(400).json({ error: 'Lager-ID muss genau 8 Ziffern enthalten' });
         }
-        
-        // Validiere, dass Passwort genau 4 Ziffern hat (wenn vorhanden)
         if (password && !/^[0-9]{4}$/.test(password)) {
             return res.status(400).json({ error: 'Passwort muss genau 4 Ziffern enthalten' });
         }
         
-        // Verwende warehouse_id auch als slot_code
         const slot_code = warehouse_id;
-        
         console.log('Using warehouse_id as slot_code:', slot_code);
         
-        // Hash das Passwort wenn vorhanden
-        let hashedPassword = null;
-        if (password) {
-            hashedPassword = await bcrypt.hash(password, 10);
-        }
-        
         db.query(
-            'INSERT INTO storage_slots (slot_code, name, section, owner, warehouse_id, password, location) VALUES (?, NULL, "Lager", ?, ?, ?, ?)',
-            [slot_code, owner || null, warehouse_id, hashedPassword, location || 'Paleto'],
+            'INSERT INTO storage_slots (slot_code, name, section, owner, warehouse_id, password, aufgabe, location) VALUES (?, NULL, "Lager", ?, ?, ?, ?, ?)',
+            [slot_code, owner || null, warehouse_id, password || null, aufgabe || null, location || 'Paleto'],
             (err, result) => {
                 if (err) {
                     console.error('Database error:', err);
@@ -1690,16 +1720,11 @@ app.post('/api/storage-slots', requireLogin, async (req, res) => {
                     }
                     return res.status(500).json({ error: err.message });
                 }
-                
-                // Aktivität loggen
                 db.query(
                     'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
                     [req.session.userId, 'warehouse', `Lager ${warehouse_id} (${location}) erstellt - Besitzer: ${owner || 'Keiner'}`],
-                    (err) => {
-                        if (err) console.error('Fehler beim Loggen der Aktivität:', err);
-                    }
+                    (err) => { if (err) console.error('Fehler beim Loggen der Aktivität:', err); }
                 );
-                
                 res.json({ success: true, slot_id: result.insertId });
             }
         );
@@ -1711,44 +1736,33 @@ app.post('/api/storage-slots', requireLogin, async (req, res) => {
 
 app.put('/api/storage-slots/:id', requireLogin, async (req, res) => {
     const { id } = req.params;
-    const { warehouse_id, old_code, owner, password, location } = req.body;
+    const { warehouse_id, old_code, owner, password, aufgabe, location } = req.body;
     
     try {
-        // Validiere, dass warehouse_id genau 8 Ziffern hat
         if (!warehouse_id || !/^[0-9]{8}$/.test(warehouse_id)) {
             return res.status(400).json({ error: 'Lager-ID muss genau 8 Ziffern enthalten' });
         }
-        
-        // Validiere, dass Passwort genau 4 Ziffern hat (wenn vorhanden)
         if (password && !/^[0-9]{4}$/.test(password)) {
             return res.status(400).json({ error: 'Passwort muss genau 4 Ziffern enthalten' });
         }
         
-        // Verwende warehouse_id auch als neuer slot_code
         const new_slot_code = warehouse_id;
         
-        // Wenn Code geändert wurde, aktualisiere auch Warehouse-Einträge
         if (old_code && new_slot_code !== old_code) {
             db.query(
                 'UPDATE warehouse SET storage_location = ? WHERE storage_location = ?',
                 [new_slot_code, old_code],
-                (err) => {
-                    if (err) console.error('Fehler beim Aktualisieren der Warehouse-Einträge:', err);
-                }
+                (err) => { if (err) console.error('Fehler beim Aktualisieren der Warehouse-Einträge:', err); }
             );
         }
         
-        // Hash das Passwort wenn vorhanden und geändert
-        let updateQuery;
-        let updateParams;
-        
+        let updateQuery, updateParams;
         if (password) {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            updateQuery = 'UPDATE storage_slots SET slot_code = ?, owner = ?, warehouse_id = ?, password = ?, location = ? WHERE id = ?';
-            updateParams = [new_slot_code, owner || null, warehouse_id, hashedPassword, location || 'Paleto', id];
+            updateQuery = 'UPDATE storage_slots SET slot_code = ?, owner = ?, warehouse_id = ?, password = ?, aufgabe = ?, location = ? WHERE id = ?';
+            updateParams = [new_slot_code, owner || null, warehouse_id, password, aufgabe || null, location || 'Paleto', id];
         } else {
-            updateQuery = 'UPDATE storage_slots SET slot_code = ?, owner = ?, warehouse_id = ?, location = ? WHERE id = ?';
-            updateParams = [new_slot_code, owner || null, warehouse_id, location || 'Paleto', id];
+            updateQuery = 'UPDATE storage_slots SET slot_code = ?, owner = ?, warehouse_id = ?, aufgabe = ?, location = ? WHERE id = ?';
+            updateParams = [new_slot_code, owner || null, warehouse_id, aufgabe || null, location || 'Paleto', id];
         }
         
         db.query(updateQuery, updateParams, (err) => {
@@ -1758,16 +1772,11 @@ app.put('/api/storage-slots/:id', requireLogin, async (req, res) => {
                 }
                 return res.status(500).json({ error: err.message });
             }
-            
-            // Aktivität loggen
             db.query(
                 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
                 [req.session.userId, 'warehouse', `Lager ${warehouse_id} (${location}) bearbeitet - Besitzer: ${owner || 'Keiner'}`],
-                (err) => {
-                    if (err) console.error('Fehler beim Loggen der Aktivität:', err);
-                }
+                (err) => { if (err) console.error('Fehler beim Loggen der Aktivität:', err); }
             );
-            
             res.json({ success: true, message: 'Lagerplatz aktualisiert' });
         });
     } catch (error) {
@@ -2474,10 +2483,10 @@ app.put('/api/rank-permissions/:rankName', requireLogin, (req, res) => {
     }
     
     const { rankName } = req.params;
-    const { can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
+    const { can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_storage_password, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system } = req.body;
     
-    const query = `INSERT INTO rank_permissions (rank_name, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+    const query = `INSERT INTO rank_permissions (rank_name, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_storage_password, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
         ON DUPLICATE KEY UPDATE 
             can_add_members = VALUES(can_add_members),
             can_view_fence = VALUES(can_view_fence),
@@ -2486,13 +2495,14 @@ app.put('/api/rank-permissions/:rankName', requireLogin, (req, res) => {
             can_manage_recipes = VALUES(can_manage_recipes),
             can_view_storage = VALUES(can_view_storage),
             can_manage_storage = VALUES(can_manage_storage),
+            can_view_storage_password = VALUES(can_view_storage_password),
             can_view_treasury = VALUES(can_view_treasury),
             can_manage_treasury = VALUES(can_manage_treasury),
             can_view_activity = VALUES(can_view_activity),
             can_view_stats = VALUES(can_view_stats),
             can_manage_system = VALUES(can_manage_system)`;
     
-    db.query(query, [rankName, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system], (err) => {
+    db.query(query, [rankName, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_storage_password || false, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system], (err) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -2527,12 +2537,12 @@ app.post('/api/rank-permissions/:rankName/apply', requireLogin, (req, res) => {
         // Auf alle aktiven Mitglieder mit diesem Rang anwenden
         const updateQuery = `UPDATE members SET 
             can_add_members = ?, can_view_fence = ?, can_manage_fence = ?, can_view_recipes = ?, can_manage_recipes = ?, 
-            can_view_storage = ?, can_manage_storage = ?, can_view_treasury = ?, can_manage_treasury = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?
+            can_view_storage = ?, can_manage_storage = ?, can_view_storage_password = ?, can_view_treasury = ?, can_manage_treasury = ?, can_view_activity = ?, can_view_stats = ?, can_manage_system = ?
             WHERE \`rank\` = ? AND is_active = TRUE`;
         
         db.query(updateQuery, [
             rp.can_add_members, rp.can_view_fence, rp.can_manage_fence, rp.can_view_recipes, rp.can_manage_recipes,
-            rp.can_view_storage, rp.can_manage_storage, rp.can_view_treasury, rp.can_manage_treasury, rp.can_view_activity, rp.can_view_stats, rp.can_manage_system,
+            rp.can_view_storage, rp.can_manage_storage, rp.can_view_storage_password || false, rp.can_view_treasury, rp.can_manage_treasury, rp.can_view_activity, rp.can_view_stats, rp.can_manage_system,
             rankName
         ], (err, result) => {
             if (err) {
@@ -2565,6 +2575,7 @@ app.get('/api/permissions-overview', requireLogin, (req, res) => {
         COALESCE(can_manage_recipes, FALSE) as can_manage_recipes,
         COALESCE(can_view_storage, FALSE) as can_view_storage,
         COALESCE(can_manage_storage, FALSE) as can_manage_storage,
+        COALESCE(can_view_storage_password, FALSE) as can_view_storage_password,
         COALESCE(can_view_treasury, FALSE) as can_view_treasury,
         COALESCE(can_manage_treasury, FALSE) as can_manage_treasury,
         COALESCE(can_view_activity, FALSE) as can_view_activity,
