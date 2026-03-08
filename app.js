@@ -2136,9 +2136,8 @@ async function loadStorageOverview() {
                             <div class="storage-slot-overview ${items.length === 0 ? 'empty' : ''}">
                                 <div class="slot-header">
                                     <div style="flex: 1;">
-                                        <div class="slot-code">${slot.slot_code}</div>
-                                        ${slot.name ? `<div class="slot-name">${slot.name}</div>` : ''}
-                                        ${slot.aufgabe ? `<div class="slot-owner" style="color: var(--accent); font-weight: 500;"><i class="fas fa-tasks"></i> ${slot.aufgabe}</div>` : ''}
+                                        <div class="slot-code">${slot.aufgabe || slot.slot_code}</div>
+                                        <div class="slot-name" style="color: var(--text-secondary); font-size: 0.8rem;"><i class="fas fa-tag"></i> ID: ${slot.slot_code}</div>
                                         ${slot.owner ? `<div class="slot-owner"><i class="fas fa-user"></i> ${slot.owner}</div>` : ''}
                                         ${slot.location ? `<div class="slot-location"><i class="fas fa-map-marker-alt"></i> ${slot.location}</div>` : ''}
                                         ${slot.password && (currentUser.can_view_storage_password || currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? `<div class="slot-owner" style="color: var(--text-secondary); font-size: 0.8rem;"><i class="fas fa-lock"></i> PIN: <span id="pw-${slot.id}" style="filter: blur(4px); cursor: pointer; user-select: none;" onclick="this.style.filter=this.style.filter?'':'blur(4px)'">${slot.password}</span></div>` : ''}
