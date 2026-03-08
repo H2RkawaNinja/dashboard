@@ -1782,9 +1782,9 @@ async function loadStorageSlots() {
                         <div class="storage-slot" data-location="${slot.slot_code}" data-slot-id="${slot.id}" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
                             <div class="slot-header">
                                 <div class="slot-label-area">
-                                    <span class="slot-label">${slot.slot_code}</span>
+                                    <span class="slot-label">${slot.aufgabe || slot.slot_code}</span>
+                                    <span style="color: var(--text-secondary); font-size: 0.75rem;"><i class="fas fa-tag"></i> ID: ${slot.slot_code}</span>
                                     ${slot.owner ? `<span style="color: var(--accent); font-size: 0.8rem; margin-top: 2px;"><i class="fas fa-user"></i> ${slot.owner}</span>` : ''}
-                                    ${slot.warehouse_id ? `<span style="color: var(--text-secondary); font-size: 0.75rem;"><i class="fas fa-tag"></i> ID: ${slot.warehouse_id}</span>` : ''}
                                     ${slot.location ? `<span style="color: var(--primary); font-size: 0.75rem;"><i class="fas fa-map-marker-alt"></i> ${slot.location}</span>` : ''}
                                 </div>
                                 <div class="slot-actions">
