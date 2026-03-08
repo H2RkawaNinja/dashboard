@@ -106,22 +106,6 @@ db.getConnection((err, connection) => {
     migrateContributionCols('locked', 'TINYINT(1) NOT NULL DEFAULT 0');
     migrateContributionCols('uebertrag_betrag', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
 
-    // Migriere fence_purchases: is_private-Spalte hinzufügen
-    const migrateFencePurchaseCols = (col, def) => {
-        connection.query(`ALTER TABLE fence_purchases ADD COLUMN IF NOT EXISTS ${col} ${def}`, (err) => {
-            if (err && err.code !== 'ER_DUP_FIELDNAME') {
-                connection.query(`SHOW COLUMNS FROM fence_purchases LIKE '${col}'`, (err2, cols) => {
-                    if (!err2 && cols.length === 0) {
-                        connection.query(`ALTER TABLE fence_purchases ADD COLUMN ${col} ${def}`, () => {
-                            console.log(`fence_purchases.${col} Spalte hinzugefügt`);
-                        });
-                    }
-                });
-            }
-        });
-    };
-    migrateFencePurchaseCols('is_private', 'TINYINT(1) NOT NULL DEFAULT 0');
-
     // Prüfe und initialisiere hero_inventory wenn leer
     connection.query('SELECT COUNT(*) as count FROM hero_inventory', (err, results) => {
         if (!err && results[0].count === 0) {
@@ -334,7 +318,7 @@ app.get('/api/stats/dashboard', requireLogin, (req, res) => {
             });
         }),
         new Promise((resolve) => {
-            db.query('SELECT COALESCE(SUM(total_price), 0) as total FROM fence_purchases WHERE DATE(purchase_date) = CURDATE() AND (is_private IS NULL OR is_private = 0)', (err, results) => {
+            db.query('SELECT COALESCE(SUM(total_price), 0) as total FROM fence_purchases WHERE DATE(purchase_date) = CURDATE()', (err, results) => {
                 if (!err && results.length > 0) stats.fence_pending = results[0].total;
                 resolve();
             });
@@ -357,7 +341,7 @@ app.get('/api/dashboard/stats', requireLogin, (req, res) => {
             (SELECT quantity FROM hero_inventory LIMIT 1) as hero_stock,
             (SELECT COUNT(*) FROM hero_distributions WHERE status = 'outstanding') as outstanding_distributions,
             (SELECT COALESCE(SUM(gang_share), 0) FROM hero_sales WHERE paid_to_gang = FALSE) as pending_payments,
-            (SELECT COALESCE(SUM(total_price), 0) FROM fence_purchases WHERE DATE(purchase_date) = CURDATE() AND (is_private IS NULL OR is_private = 0)) as fence_purchases_today,
+            (SELECT COALESCE(SUM(total_price), 0) FROM fence_purchases WHERE DATE(purchase_date) = CURDATE()) as fence_purchases_today,
             (SELECT COALESCE(SUM(total_value), 0) FROM warehouse) as warehouse_value
     `;
     
@@ -1132,21 +1116,19 @@ app.put('/api/hero/sales/:id/mark-paid', requireLogin, (req, res) => {
 
 // Ankauf eintragen
 app.post('/api/fence/purchases', requireLogin, (req, res) => {
-    const { item_name, quantity, unit_price, seller_info, stored_in_warehouse, notes, is_private } = req.body;
+    const { item_name, quantity, unit_price, seller_info, stored_in_warehouse, notes } = req.body;
     const total_price = quantity * unit_price;
-    // Private Ankäufe kommen nie ins Lager
-    const storeInWarehouse = is_private ? false : (stored_in_warehouse || false);
     
     db.query(
-        'INSERT INTO fence_purchases (member_id, item_name, quantity, unit_price, total_price, seller_info, stored_in_warehouse, notes, is_private) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [req.session.userId, item_name, quantity, unit_price, total_price, seller_info || null, storeInWarehouse, notes || null, is_private ? 1 : 0],
+        'INSERT INTO fence_purchases (member_id, item_name, quantity, unit_price, total_price, seller_info, stored_in_warehouse, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [req.session.userId, item_name, quantity, unit_price, total_price, seller_info || null, stored_in_warehouse || false, notes || null],
         (err, result) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
             
-            // Wenn ins Lager (und nicht privat), auch dort eintragen
-            if (storeInWarehouse) {
+            // Wenn ins Lager, auch dort eintragen
+            if (stored_in_warehouse) {
                 // Prüfe ob Item bereits im Lager existiert (mit storage_location UNSORTED oder ohne)
                 db.query(
                     'SELECT id, quantity, storage_location FROM warehouse WHERE item_name = ? AND category = ? AND (storage_location = "UNSORTED" OR storage_location IS NULL)',
@@ -1193,7 +1175,6 @@ app.get('/api/fence/purchases/summary', requireLogin, (req, res) => {
             COALESCE(SUM(quantity), 0) as total_items
         FROM fence_purchases
         WHERE DATE(purchase_date) = CURDATE()
-        AND (is_private IS NULL OR is_private = 0)
     `;
     
     const salesQuery = `

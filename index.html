@@ -330,7 +330,12 @@
                             <div class="card">
                                 <div class="card-header-flex">
                                     <h2><i class="fas fa-boxes"></i> Schnellankauf - Produkte</h2>
-                                    <input type="text" id="product-search" class="search-input" placeholder="🔍 Produkte durchsuchen..." oninput="filterProducts()">
+                                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                        <button class="btn-secondary" onclick="showPrivatePurchaseModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
+                                            <i class="fas fa-user-secret"></i> Privater Ankauf
+                                        </button>
+                                        <input type="text" id="product-search" class="search-input" placeholder="🔍 Produkte durchsuchen..." oninput="filterProducts()">
+                                    </div>
                                 </div>
                                 <div id="products-grid" class="products-grid">
                                     <!-- Produkte werden hier dynamisch geladen -->
@@ -1259,11 +1264,6 @@
                 </div>
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="fence-is-private" onchange="toggleFencePrivate(this)"> <span style="color: #f59e0b;"><i class="fas fa-user-secret"></i> Privater Ankauf</span> <small style="color: var(--text-secondary);">(kein Lager, keine Stats)</small>
-                    </label>
-                </div>
-                <div class="form-group" id="fence-warehouse-group">
-                    <label>
                         <input type="checkbox" id="fence-stored-warehouse"> Direkt ins Lager einlagern
                     </label>
                 </div>
@@ -1275,6 +1275,41 @@
                     <p><strong>Gesamtpreis: $<span id="fence-total-calc">0.00</span></strong></p>
                 </div>
                 <button type="submit" class="btn-primary">Ankauf eintragen</button>
+            </form>
+        </div>
+
+        <!-- Privater Ankauf Modal (wird NICHT gespeichert) -->
+        <div id="private-purchase-modal" class="modal" style="display: none;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                <h2><i class="fas fa-user-secret"></i> Privater Ankauf</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="private-purchase-form">
+                <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1rem; color: #f59e0b; font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> Privater Ankauf — wird <strong>nicht</strong> gespeichert, keine Stats, kein Lager
+                </div>
+                <div class="form-group">
+                    <label>Artikel</label>
+                    <input type="text" id="private-item-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Menge</label>
+                    <input type="number" id="private-quantity" required min="1" value="1" oninput="calculatePrivateTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Preis pro Stück ($)</label>
+                    <input type="number" id="private-unit-price" required min="0" step="0.01" oninput="calculatePrivateTotal()">
+                </div>
+                <div class="form-group">
+                    <label>Verkäufer Info (optional)</label>
+                    <input type="text" id="private-seller-info">
+                </div>
+                <div class="sale-calculation">
+                    <p><strong>Gesamtpreis: $<span id="private-total-calc">0.00</span></strong></p>
+                </div>
+                <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #f59e0b;">
+                    <i class="fas fa-check"></i> Bestätigen (ohne Speicherung)
+                </button>
             </form>
         </div>
 
@@ -1526,14 +1561,6 @@
                 <div class="form-group" style="margin-top: 1.5rem;">
                     <label>Verkäufer Info (optional)</label>
                     <input type="text" id="checkout-seller-info" placeholder="Name oder Details zum Verkäufer">
-                </div>
-
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" id="checkout-is-private">
-                        <span style="color: #f59e0b;"><i class="fas fa-user-secret"></i> Privater Ankauf</span>
-                        <small style="color: var(--text-secondary);">(kein Lager, keine Stats)</small>
-                    </label>
                 </div>
 
                 <div class="cart-total">

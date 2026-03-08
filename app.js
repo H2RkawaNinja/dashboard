@@ -1269,15 +1269,13 @@ async function loadFencePurchases() {
 document.getElementById('fence-purchase-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const isPrivate = document.getElementById('fence-is-private').checked;
     const data = {
         item_name: document.getElementById('fence-item-name').value,
         quantity: parseInt(document.getElementById('fence-quantity').value),
         unit_price: parseFloat(document.getElementById('fence-unit-price').value),
         seller_info: document.getElementById('fence-seller-info').value,
-        stored_in_warehouse: isPrivate ? false : document.getElementById('fence-stored-warehouse').checked,
-        notes: document.getElementById('fence-notes').value || null,
-        is_private: isPrivate
+        stored_in_warehouse: document.getElementById('fence-stored-warehouse').checked,
+        notes: document.getElementById('fence-notes').value || null
     };
     
     // Validierung
@@ -3011,18 +3009,32 @@ function changeQuickQty(delta) {
     calculateQuickTotal();
 }
 
-// Privater Ankauf Toggle — deaktiviert Lager-Checkbox wenn privat
-function toggleFencePrivate(checkbox) {
-    const warehouseGroup = document.getElementById('fence-warehouse-group');
-    const warehouseCheckbox = document.getElementById('fence-stored-warehouse');
-    if (checkbox.checked) {
-        warehouseCheckbox.checked = false;
-        warehouseGroup.style.opacity = '0.4';
-        warehouseGroup.style.pointerEvents = 'none';
-    } else {
-        warehouseGroup.style.opacity = '';
-        warehouseGroup.style.pointerEvents = '';
-    }
+// Privater Ankauf Modal öffnen (nichts wird gespeichert)
+function showPrivatePurchaseModal() {
+    const form = document.getElementById('private-purchase-form');
+    if (form) form.reset();
+    document.getElementById('private-total-calc').textContent = '0.00';
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('private-purchase-modal').style.display = 'block';
+}
+
+function calculatePrivateTotal() {
+    const qty = parseInt(document.getElementById('private-quantity').value) || 0;
+    const price = parseFloat(document.getElementById('private-unit-price').value) || 0;
+    document.getElementById('private-total-calc').textContent = (qty * price).toFixed(2);
+}
+
+const privatePurchaseForm = document.getElementById('private-purchase-form');
+if (privatePurchaseForm) {
+    privatePurchaseForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const itemName = document.getElementById('private-item-name').value;
+        const qty = document.getElementById('private-quantity').value;
+        const price = parseFloat(document.getElementById('private-unit-price').value) || 0;
+        const total = (parseInt(qty) * price).toFixed(2);
+        closeModals();
+        showToast(`Privater Ankauf: ${qty}x ${itemName} für $${total}`, 'success', 'Privater Ankauf');
+    });
 }
 
 // Quick Purchase Modal öffnen
@@ -3483,9 +3495,8 @@ if (cartCheckoutForm) {
         }
         
         const sellerInfo = document.getElementById('checkout-seller-info').value;
-        const isPrivate = document.getElementById('checkout-is-private').checked;
-        // Private Ankäufe kommen nicht ins Lager, reguläre automatisch
-        const storedInWarehouse = isPrivate ? false : true;
+        // Alle Ankäufe kommen automatisch ins Lager als UNSORTED
+        const storedInWarehouse = true;
         
         try {
             // Alle Artikel im Warenkorb als Ankäufe speichern
@@ -3499,8 +3510,7 @@ if (cartCheckoutForm) {
                         quantity: item.quantity,
                         unit_price: item.unitPrice,
                         seller_info: sellerInfo,
-                        stored_in_warehouse: storedInWarehouse,
-                        is_private: isPrivate
+                        stored_in_warehouse: storedInWarehouse
                     })
                 })
             );
@@ -3512,16 +3522,12 @@ if (cartCheckoutForm) {
                 const totalItems = shoppingCart.length;
                 const totalPrice = shoppingCart.reduce((sum, item) => sum + item.total, 0);
                 
-                const warehouseMsg = isPrivate 
-                    ? 'Privater Ankauf gespeichert (kein Lager, keine Stats)' 
-                    : `${totalItems} Artikel(n) für $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`;
-                showToast(warehouseMsg, 'success', 'Ankauf erfolgreich');
+                showToast(`${totalItems} Artikel(n) für $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`, 'success', 'Ankauf erfolgreich');
                 
                 // Warenkorb und Formular richtig zurücksetzen
                 shoppingCart = [];
                 document.getElementById('cart-checkout-form').reset();
                 document.getElementById('checkout-seller-info').value = '';
-                document.getElementById('checkout-is-private').checked = false;
                 
                 closeModals();
                 updateCartDisplay(); // Warenkorb-Anzeige sofort aktualisieren

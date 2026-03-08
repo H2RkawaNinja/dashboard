@@ -94,7 +94,6 @@ CREATE TABLE IF NOT EXISTS fence_purchases (
     purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     stored_in_warehouse BOOLEAN DEFAULT FALSE,
     notes TEXT,
-    is_private TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
 );
 
