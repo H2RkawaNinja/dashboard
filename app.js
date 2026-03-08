@@ -6332,26 +6332,47 @@ async function showGoalContributors(goalId) {
             if (contributors.length === 0) {
                 bodyHtml = '<p style="color: var(--text-secondary); text-align: center; padding: 1rem;">Noch keine Einzahlungen.</p>';
             } else {
-                // Gesamtsumme berechnen
-                const total = contributors.reduce((sum, c) => sum + parseFloat(c.amount), 0);
-                bodyHtml = `<ul class="contributors-list">`;
+                // Beträge nach Person gruppieren und summieren
+                const grouped = {};
                 contributors.forEach(c => {
-                    const datum = c.datum ? new Date(c.datum).toLocaleDateString('de-DE') : '';
+                    const key = c.member_name;
+                    if (!grouped[key]) {
+                        grouped[key] = { member_name: c.member_name, total: 0, einzahlungen: 0 };
+                    }
+                    grouped[key].total += parseFloat(c.amount);
+                    grouped[key].einzahlungen += 1;
+                });
+
+                const sorted = Object.values(grouped).sort((a, b) => b.total - a.total);
+                const total = sorted.reduce((sum, c) => sum + c.total, 0);
+                const count = sorted.length;
+
+                bodyHtml = `
+                <div class="contributors-summary-bar">
+                    <span><i class="fas fa-users"></i> ${count} Einzahler</span>
+                    <span class="contributors-total-badge">$ ${formatCurrency(total)}</span>
+                </div>
+                <ul class="contributors-list contributors-list-v2">`;
+
+                sorted.forEach((c, i) => {
+                    const pct = total > 0 ? (c.total / total * 100) : 0;
                     bodyHtml += `
-                        <li>
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <strong>${c.member_name}</strong>
-                                <span style="color: var(--success, #22c55e); font-weight:600;">$ ${formatCurrency(c.amount)}</span>
+                        <li class="contributor-row">
+                            <div class="contributor-rank">${i + 1}</div>
+                            <div class="contributor-info">
+                                <div class="contributor-name-row">
+                                    <span class="contributor-name">${c.member_name}</span>
+                                    <span class="contributor-amount">$ ${formatCurrency(c.total)}</span>
+                                </div>
+                                <div class="contributor-bar-wrap">
+                                    <div class="contributor-bar-fill" style="width:${pct.toFixed(1)}%"></div>
+                                </div>
+                                ${c.einzahlungen > 1 ? `<div class="contributor-sub">${c.einzahlungen} Einzahlungen</div>` : ''}
                             </div>
-                            ${c.kommentar ? `<div style="margin-top:0.25rem;"><em>${c.kommentar}</em></div>` : ''}
-                            ${datum ? `<div style="margin-top:0.2rem; font-size:0.8rem; color: var(--text-secondary);">${datum}</div>` : ''}
                         </li>`;
                 });
-                bodyHtml += `</ul>
-                <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border, rgba(255,255,255,0.1)); display:flex; justify-content:space-between; font-weight:600;">
-                    <span>Gesamt</span>
-                    <span style="color: var(--success, #22c55e);">$ ${formatCurrency(total)}</span>
-                </div>`;
+
+                bodyHtml += `</ul>`;
             }
             
             document.getElementById('contributors-modal-body').innerHTML = bodyHtml;
