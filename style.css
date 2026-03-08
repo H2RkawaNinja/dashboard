@@ -5394,6 +5394,58 @@ body {
     color: var(--success);
 }
 
+/* Locked contribution state */
+.contribution-item.locked {
+    opacity: 0.72;
+    border-left-color: #6b7280 !important;
+}
+
+.contribution-locked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #9ca3af;
+    background: rgba(107, 114, 128, 0.15);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    border-radius: 1rem;
+    padding: 0.15rem 0.55rem;
+    line-height: 1.4;
+}
+
+.contribution-status-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.uebertrag-row .label {
+    color: #f59e0b;
+    font-size: 0.8rem;
+}
+
+.uebertrag-row .amount.uebertrag {
+    color: #f59e0b;
+    font-size: 0.85rem;
+}
+
+.locked-notice {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin-top: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-style: italic;
+}
+
+.locked-notice i {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+
 /* Overview Tab */
 .treasury-overview-grid {
     display: grid;

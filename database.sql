@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS fence_purchases (
     purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     stored_in_warehouse BOOLEAN DEFAULT FALSE,
     notes TEXT,
+    is_private TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
 );
 
@@ -259,7 +260,9 @@ CREATE TABLE IF NOT EXISTS member_contributions (
     woche_ende DATE NOT NULL,
     soll_betrag DECIMAL(10, 2) NOT NULL,
     ist_betrag DECIMAL(10, 2) DEFAULT 0,
+    uebertrag_betrag DECIMAL(10, 2) NOT NULL DEFAULT 0,
     status ENUM('offen', 'teilweise', 'bezahlt') DEFAULT 'offen',
+    locked TINYINT(1) NOT NULL DEFAULT 0,
     bezahlt_am TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,

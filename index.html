@@ -1259,6 +1259,11 @@
                 </div>
                 <div class="form-group">
                     <label>
+                        <input type="checkbox" id="fence-is-private" onchange="toggleFencePrivate(this)"> <span style="color: #f59e0b;"><i class="fas fa-user-secret"></i> Privater Ankauf</span> <small style="color: var(--text-secondary);">(kein Lager, keine Stats)</small>
+                    </label>
+                </div>
+                <div class="form-group" id="fence-warehouse-group">
+                    <label>
                         <input type="checkbox" id="fence-stored-warehouse"> Direkt ins Lager einlagern
                     </label>
                 </div>
@@ -1521,6 +1526,14 @@
                 <div class="form-group" style="margin-top: 1.5rem;">
                     <label>Verkäufer Info (optional)</label>
                     <input type="text" id="checkout-seller-info" placeholder="Name oder Details zum Verkäufer">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="checkout-is-private">
+                        <span style="color: #f59e0b;"><i class="fas fa-user-secret"></i> Privater Ankauf</span>
+                        <small style="color: var(--text-secondary);">(kein Lager, keine Stats)</small>
+                    </label>
                 </div>
 
                 <div class="cart-total">

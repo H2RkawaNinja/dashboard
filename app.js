@@ -1269,13 +1269,15 @@ async function loadFencePurchases() {
 document.getElementById('fence-purchase-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const isPrivate = document.getElementById('fence-is-private').checked;
     const data = {
         item_name: document.getElementById('fence-item-name').value,
         quantity: parseInt(document.getElementById('fence-quantity').value),
         unit_price: parseFloat(document.getElementById('fence-unit-price').value),
         seller_info: document.getElementById('fence-seller-info').value,
-        stored_in_warehouse: document.getElementById('fence-stored-warehouse').checked,
-        notes: document.getElementById('fence-notes').value || null
+        stored_in_warehouse: isPrivate ? false : document.getElementById('fence-stored-warehouse').checked,
+        notes: document.getElementById('fence-notes').value || null,
+        is_private: isPrivate
     };
     
     // Validierung
@@ -3009,6 +3011,20 @@ function changeQuickQty(delta) {
     calculateQuickTotal();
 }
 
+// Privater Ankauf Toggle — deaktiviert Lager-Checkbox wenn privat
+function toggleFencePrivate(checkbox) {
+    const warehouseGroup = document.getElementById('fence-warehouse-group');
+    const warehouseCheckbox = document.getElementById('fence-stored-warehouse');
+    if (checkbox.checked) {
+        warehouseCheckbox.checked = false;
+        warehouseGroup.style.opacity = '0.4';
+        warehouseGroup.style.pointerEvents = 'none';
+    } else {
+        warehouseGroup.style.opacity = '';
+        warehouseGroup.style.pointerEvents = '';
+    }
+}
+
 // Quick Purchase Modal öffnen
 function showQuickPurchaseModal(productId, productName, productIcon, productCategory, suggestedPrice) {
     // Stelle sicher, dass alle Felder richtig zurückgesetzt sind
@@ -3467,8 +3483,9 @@ if (cartCheckoutForm) {
         }
         
         const sellerInfo = document.getElementById('checkout-seller-info').value;
-        // Alle Ankäufe kommen automatisch ins Lager als UNSORTED
-        const storedInWarehouse = true;
+        const isPrivate = document.getElementById('checkout-is-private').checked;
+        // Private Ankäufe kommen nicht ins Lager, reguläre automatisch
+        const storedInWarehouse = isPrivate ? false : true;
         
         try {
             // Alle Artikel im Warenkorb als Ankäufe speichern
@@ -3482,7 +3499,8 @@ if (cartCheckoutForm) {
                         quantity: item.quantity,
                         unit_price: item.unitPrice,
                         seller_info: sellerInfo,
-                        stored_in_warehouse: storedInWarehouse
+                        stored_in_warehouse: storedInWarehouse,
+                        is_private: isPrivate
                     })
                 })
             );
@@ -3494,12 +3512,16 @@ if (cartCheckoutForm) {
                 const totalItems = shoppingCart.length;
                 const totalPrice = shoppingCart.reduce((sum, item) => sum + item.total, 0);
                 
-                showToast(`${totalItems} Artikel(n) für $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`, 'success', 'Ankauf erfolgreich');
+                const warehouseMsg = isPrivate 
+                    ? 'Privater Ankauf gespeichert (kein Lager, keine Stats)' 
+                    : `${totalItems} Artikel(n) für $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`;
+                showToast(warehouseMsg, 'success', 'Ankauf erfolgreich');
                 
                 // Warenkorb und Formular richtig zurücksetzen
                 shoppingCart = [];
                 document.getElementById('cart-checkout-form').reset();
                 document.getElementById('checkout-seller-info').value = '';
+                document.getElementById('checkout-is-private').checked = false;
                 
                 closeModals();
                 updateCartDisplay(); // Warenkorb-Anzeige sofort aktualisieren
@@ -5973,17 +5995,23 @@ function renderContributions() {
         
         const istBetrag = parseFloat(contribution.ist_betrag) || 0;
         const hasPaid = istBetrag > 0;
+        const isLocked = !!contribution.locked;
+        const uebertrag = parseFloat(contribution.uebertrag_betrag) || 0;
+        const baseBetrag = contribution.soll_betrag - uebertrag;
         
         return `
-            <div class="contribution-item ${statusColor[contribution.status]}">
+            <div class="contribution-item ${statusColor[contribution.status]} ${isLocked ? 'locked' : ''}">
                 <div class="contribution-member">
                     <div class="member-info">
                         <span class="member-name">${contribution.member_name}</span>
                         <span class="member-rank">${contribution.rank || ''}</span>
                     </div>
-                    <div class="contribution-status">
-                        <i class="fas ${statusIcon[contribution.status]}"></i>
-                        <span>${getContributionStatusText(contribution.status)}</span>
+                    <div class="contribution-status-row">
+                        <div class="contribution-status">
+                            <i class="fas ${statusIcon[contribution.status]}"></i>
+                            <span>${getContributionStatusText(contribution.status)}</span>
+                        </div>
+                        ${isLocked ? '<span class="contribution-locked-badge"><i class="fas fa-lock"></i> Gesperrt</span>' : ''}
                     </div>
                     <div class="contribution-actions">
                         <button class="btn-delete btn-small ${hasPaid ? 'has-paid' : ''}" 
@@ -5998,6 +6026,12 @@ function renderContributions() {
                         <span class="label">Soll:</span>
                         <span class="amount">$ ${formatCurrency(contribution.soll_betrag)}</span>
                     </div>
+                    ${uebertrag > 0 ? `
+                    <div class="amount-row uebertrag-row">
+                        <span class="label"><i class="fas fa-arrow-right" style="font-size:0.75rem;"></i> davon Übertrag:</span>
+                        <span class="amount uebertrag">$ ${formatCurrency(uebertrag)}</span>
+                    </div>
+                    ` : ''}
                     <div class="amount-row">
                         <span class="label">Ist:</span>
                         <span class="amount paid">$ ${formatCurrency(contribution.ist_betrag || 0)}</span>
@@ -6017,6 +6051,9 @@ function renderContributions() {
                 </div>
                 ${contribution.bezahlt_am ? 
                     `<div class="payment-date">Bezahlt: ${formatDate(contribution.bezahlt_am)}</div>` : ''
+                }
+                ${isLocked && outstanding > 0 ? 
+                    `<div class="locked-notice"><i class="fas fa-info-circle"></i> $ ${formatCurrency(outstanding)} wurden in den nächsten Zeitraum übertragen</div>` : ''
                 }
             </div>
         `;
@@ -6842,7 +6879,8 @@ async function loadMemberContributions() {
             const allContributions = await response.json();
             const memberContributions = allContributions.filter(c => 
                 c.member_id == memberSelect.value && 
-                c.status === 'nicht_bezahlt'
+                !c.locked &&
+                (c.status === 'offen' || c.status === 'teilweise')
             );
             
             // Daten für spätere Verwendung speichern
@@ -6852,8 +6890,8 @@ async function loadMemberContributions() {
             memberContributions.forEach(contribution => {
                 const option = document.createElement('option');
                 option.value = contribution.id;
-                const outstanding = contribution.required_amount_usd - contribution.paid_amount_usd;
-                option.textContent = `${contribution.period_description} ($${formatCurrency(contribution.required_amount_usd)} ausstehend)`;
+                const outstanding = (parseFloat(contribution.soll_betrag) || 0) - (parseFloat(contribution.ist_betrag) || 0);
+                option.textContent = `${contribution.woche} ($${formatCurrency(outstanding)} offen)`;
                 periodSelect.appendChild(option);
             });
             
@@ -6877,8 +6915,8 @@ function updateContributionAmount() {
     
     const selectedContribution = currentMemberContributions.find(c => c.id == periodSelect.value);
     if (selectedContribution) {
-        // Vollständigen Betrag eintragen
-        amountField.value = selectedContribution.required_amount_usd.toFixed(2);
+        const outstanding = (parseFloat(selectedContribution.soll_betrag) || 0) - (parseFloat(selectedContribution.ist_betrag) || 0);
+        amountField.value = outstanding.toFixed(2);
     }
 }
 

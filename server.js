@@ -79,7 +79,6 @@ db.getConnection((err, connection) => {
     // Migriere gang_transactions: notes-Spalte hinzufügen falls fehlt
     connection.query("ALTER TABLE gang_transactions ADD COLUMN IF NOT EXISTS notes TEXT", (err) => {
         if (err && err.code !== 'ER_DUP_FIELDNAME') {
-            // Fallback für MySQL < 8.0.3 ohne IF NOT EXISTS
             connection.query("SHOW COLUMNS FROM gang_transactions LIKE 'notes'", (err2, cols) => {
                 if (!err2 && cols.length === 0) {
                     connection.query('ALTER TABLE gang_transactions ADD COLUMN notes TEXT', () => {
@@ -89,6 +88,39 @@ db.getConnection((err, connection) => {
             });
         }
     });
+
+    // Migriere member_contributions: locked + uebertrag_betrag-Spalten hinzufügen
+    const migrateContributionCols = (col, def) => {
+        connection.query(`ALTER TABLE member_contributions ADD COLUMN IF NOT EXISTS ${col} ${def}`, (err) => {
+            if (err && err.code !== 'ER_DUP_FIELDNAME') {
+                connection.query(`SHOW COLUMNS FROM member_contributions LIKE '${col}'`, (err2, cols) => {
+                    if (!err2 && cols.length === 0) {
+                        connection.query(`ALTER TABLE member_contributions ADD COLUMN ${col} ${def}`, () => {
+                            console.log(`member_contributions.${col} Spalte hinzugefügt`);
+                        });
+                    }
+                });
+            }
+        });
+    };
+    migrateContributionCols('locked', 'TINYINT(1) NOT NULL DEFAULT 0');
+    migrateContributionCols('uebertrag_betrag', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+
+    // Migriere fence_purchases: is_private-Spalte hinzufügen
+    const migrateFencePurchaseCols = (col, def) => {
+        connection.query(`ALTER TABLE fence_purchases ADD COLUMN IF NOT EXISTS ${col} ${def}`, (err) => {
+            if (err && err.code !== 'ER_DUP_FIELDNAME') {
+                connection.query(`SHOW COLUMNS FROM fence_purchases LIKE '${col}'`, (err2, cols) => {
+                    if (!err2 && cols.length === 0) {
+                        connection.query(`ALTER TABLE fence_purchases ADD COLUMN ${col} ${def}`, () => {
+                            console.log(`fence_purchases.${col} Spalte hinzugefügt`);
+                        });
+                    }
+                });
+            }
+        });
+    };
+    migrateFencePurchaseCols('is_private', 'TINYINT(1) NOT NULL DEFAULT 0');
 
     // Prüfe und initialisiere hero_inventory wenn leer
     connection.query('SELECT COUNT(*) as count FROM hero_inventory', (err, results) => {
@@ -302,7 +334,7 @@ app.get('/api/stats/dashboard', requireLogin, (req, res) => {
             });
         }),
         new Promise((resolve) => {
-            db.query('SELECT COALESCE(SUM(total_price), 0) as total FROM fence_purchases WHERE DATE(purchase_date) = CURDATE()', (err, results) => {
+            db.query('SELECT COALESCE(SUM(total_price), 0) as total FROM fence_purchases WHERE DATE(purchase_date) = CURDATE() AND (is_private IS NULL OR is_private = 0)', (err, results) => {
                 if (!err && results.length > 0) stats.fence_pending = results[0].total;
                 resolve();
             });
@@ -325,7 +357,7 @@ app.get('/api/dashboard/stats', requireLogin, (req, res) => {
             (SELECT quantity FROM hero_inventory LIMIT 1) as hero_stock,
             (SELECT COUNT(*) FROM hero_distributions WHERE status = 'outstanding') as outstanding_distributions,
             (SELECT COALESCE(SUM(gang_share), 0) FROM hero_sales WHERE paid_to_gang = FALSE) as pending_payments,
-            (SELECT COALESCE(SUM(total_price), 0) FROM fence_purchases WHERE DATE(purchase_date) = CURDATE()) as fence_purchases_today,
+            (SELECT COALESCE(SUM(total_price), 0) FROM fence_purchases WHERE DATE(purchase_date) = CURDATE() AND (is_private IS NULL OR is_private = 0)) as fence_purchases_today,
             (SELECT COALESCE(SUM(total_value), 0) FROM warehouse) as warehouse_value
     `;
     
@@ -1100,19 +1132,21 @@ app.put('/api/hero/sales/:id/mark-paid', requireLogin, (req, res) => {
 
 // Ankauf eintragen
 app.post('/api/fence/purchases', requireLogin, (req, res) => {
-    const { item_name, quantity, unit_price, seller_info, stored_in_warehouse, notes } = req.body;
+    const { item_name, quantity, unit_price, seller_info, stored_in_warehouse, notes, is_private } = req.body;
     const total_price = quantity * unit_price;
+    // Private Ankäufe kommen nie ins Lager
+    const storeInWarehouse = is_private ? false : (stored_in_warehouse || false);
     
     db.query(
-        'INSERT INTO fence_purchases (member_id, item_name, quantity, unit_price, total_price, seller_info, stored_in_warehouse, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [req.session.userId, item_name, quantity, unit_price, total_price, seller_info || null, stored_in_warehouse || false, notes || null],
+        'INSERT INTO fence_purchases (member_id, item_name, quantity, unit_price, total_price, seller_info, stored_in_warehouse, notes, is_private) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [req.session.userId, item_name, quantity, unit_price, total_price, seller_info || null, storeInWarehouse, notes || null, is_private ? 1 : 0],
         (err, result) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
             
-            // Wenn ins Lager, auch dort eintragen
-            if (stored_in_warehouse) {
+            // Wenn ins Lager (und nicht privat), auch dort eintragen
+            if (storeInWarehouse) {
                 // Prüfe ob Item bereits im Lager existiert (mit storage_location UNSORTED oder ohne)
                 db.query(
                     'SELECT id, quantity, storage_location FROM warehouse WHERE item_name = ? AND category = ? AND (storage_location = "UNSORTED" OR storage_location IS NULL)',
@@ -1159,6 +1193,7 @@ app.get('/api/fence/purchases/summary', requireLogin, (req, res) => {
             COALESCE(SUM(quantity), 0) as total_items
         FROM fence_purchases
         WHERE DATE(purchase_date) = CURDATE()
+        AND (is_private IS NULL OR is_private = 0)
     `;
     
     const salesQuery = `
@@ -2724,6 +2759,7 @@ app.get('/api/treasury/contributions', requireLogin, (req, res) => {
         SELECT 
             mc.id, mc.member_id, mc.woche, mc.woche_start, mc.woche_ende,
             mc.soll_betrag, mc.ist_betrag, mc.status, mc.bezahlt_am,
+            mc.locked, mc.uebertrag_betrag,
             m.full_name as member_name, m.rank
         FROM member_contributions mc
         JOIN members m ON mc.member_id = m.id
@@ -2809,146 +2845,82 @@ app.post('/api/treasury/contributions/set', requireLogin, (req, res) => {
 
 // Beitrag als bezahlt markieren
 app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
-    const { contribution_id, paid_amount, payment_date, notes } = req.body;
-    
-    if (!contribution_id || !paid_amount) {
+    const { contribution_id, paid_amount, notes } = req.body;
+
+    if (!contribution_id || paid_amount === undefined || paid_amount === null) {
         return res.status(400).json({ error: 'Beitrags-ID und Betrag sind erforderlich' });
     }
-    
-    // Prüfe ob Beitrag existiert
-    db.query(
-        'SELECT * FROM member_contributions WHERE id = ?',
-        [contribution_id],
-        (err, existingResults) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            
-            if (existingResults.length === 0) {
-                return res.status(404).json({ error: 'Beitrag nicht gefunden' });
-            }
-            
-            const contribution = existingResults[0];
-            const newPaidAmount = parseFloat(paid_amount);
-            let newStatus = 'nicht_bezahlt';
-            
-            // Prüfe ob der Betrag dem erforderlichen Betrag entspricht
-            if (Math.abs(newPaidAmount - contribution.required_amount_usd) < 0.01) {
-                newStatus = 'vollständig_bezahlt';
-            } else {
-                return res.status(400).json({ 
-                    error: `Bitte den kompletten Betrag von $${contribution.required_amount_usd.toFixed(2)} bezahlen` 
-                });
-            }
-            
-            console.log(`DEBUG - Beitrag aktualisieren:`);
-            console.log(`  - Contribution ID: ${contribution_id}`);
-            console.log(`  - Erforderlicher Betrag: ${contribution.required_amount_usd}`);
-            console.log(`  - Zahlbetrag: ${paid_amount}`);
-            console.log(`  - Status: ${newStatus}`);
-            
-            // Update Query definieren
-            const updateQuery = `
-                UPDATE member_contributions 
-                SET paid_amount_usd = ?, status = ?, payment_date = NOW(), notes = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            `;
-            
-            console.log(`DEBUG - Update Query:`, updateQuery);
-            console.log(`DEBUG - Update Parameters:`, [newPaidAmount, newStatus, notes, contribution_id]);
-            
-            // Update Beitrag und erstelle Treasury-Transaktion in einer Transaktion
-            db.getConnection((err, connection) => {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
-                }
-                
-                connection.beginTransaction(err => {
-                    if (err) {
-                        connection.release();
-                        return res.status(500).json({ error: err.message });
-                    }
-                    
-                    // Update Contribution Status
-                    console.log(`DEBUG - Executing UPDATE query with values:`, [newPaidAmount, newStatus, notes, contribution_id]);
-                    connection.query(updateQuery, [
-                        newPaidAmount, newStatus, notes, contribution_id
-                    ], (err, updateResult) => {
-                        if (err) {
-                            console.log(`DEBUG - UPDATE Fehler:`, err);
-                            return connection.rollback(() => {
-                                connection.release();
-                                res.status(500).json({ error: err.message });
-                            });
-                        }
-                        
-                        console.log(`DEBUG - UPDATE erfolgreich, affected rows:`, updateResult.affectedRows);
-                        
-                        // Treasury-Transaktion erstellen
-                        const insertTransactionQuery = `
-                            INSERT INTO gang_transactions 
-                            (member_id, type, amount_usd, currency, description, recorded_by) 
-                            VALUES (?, 'einzahlung', ?, 'USD', ?, ?)
-                        `;
-                        
-                        const description = `Beitragszahlung: ${contribution.period_description || 'Beitrag'}`;
-                        
-                        connection.query(insertTransactionQuery, [
-                            contribution.member_id, newPaidAmount, description, req.session.userId
-                        ], (err, transactionResult) => {
-                            if (err) {
-                                return connection.rollback(() => {
-                                    connection.release();
-                                    res.status(500).json({ error: err.message });
-                                });
-                            }
-                            
-                            // Treasury Balance aktualisieren (Beitragskasse)
-                            connection.query(
-                                'UPDATE gang_treasury SET current_balance = current_balance + ?, contributions_balance = contributions_balance + ?, last_updated = NOW() LIMIT 1',
-                                [parseFloat(newPaidAmount), parseFloat(newPaidAmount)],
-                                (err) => {
-                                    if (err) {
-                                        return connection.rollback(() => {
+
+    db.query('SELECT * FROM member_contributions WHERE id = ?', [contribution_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (rows.length === 0) return res.status(404).json({ error: 'Beitrag nicht gefunden' });
+
+        const contribution = rows[0];
+
+        if (contribution.locked) {
+            return res.status(403).json({ error: 'Dieser Zeitraum ist gesperrt. Beiträge können nicht mehr nachträglich verbucht werden.' });
+        }
+
+        if (contribution.status === 'bezahlt') {
+            return res.status(400).json({ error: 'Dieser Beitrag wurde bereits vollständig bezahlt.' });
+        }
+
+        const amount = parseFloat(paid_amount);
+        if (isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ error: 'Betrag muss größer als 0 sein' });
+        }
+
+        const currentIst = parseFloat(contribution.ist_betrag) || 0;
+        const soll = parseFloat(contribution.soll_betrag);
+        const newIst = currentIst + amount;
+        const newStatus = newIst >= soll ? 'bezahlt' : 'teilweise';
+        const bezahltAmClause = newStatus === 'bezahlt' ? 'bezahlt_am = NOW(),' : '';
+
+        db.getConnection((err, connection) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            connection.beginTransaction(err => {
+                if (err) { connection.release(); return res.status(500).json({ error: err.message }); }
+
+                connection.query(
+                    `UPDATE member_contributions SET ist_betrag = ?, status = ?, ${bezahltAmClause} notes = CASE WHEN ? IS NOT NULL THEN ? ELSE notes END WHERE id = ?`,
+                    [newIst, newStatus, notes || null, notes || null, contribution_id],
+                    (err) => {
+                        if (err) return connection.rollback(() => { connection.release(); res.status(500).json({ error: err.message }); });
+
+                        const desc = `Beitrag ${contribution.woche}: ${newStatus === 'bezahlt' ? 'vollständig bezahlt' : 'Teilzahlung ($' + amount.toFixed(2) + ')'}`;
+                        connection.query(
+                            `INSERT INTO gang_transactions (member_id, type, amount, description, recorded_by) VALUES (?, 'beitrag', ?, ?, ?)`,
+                            [contribution.member_id, amount, desc, req.session.userId],
+                            (err) => {
+                                if (err) return connection.rollback(() => { connection.release(); res.status(500).json({ error: err.message }); });
+
+                                connection.query(
+                                    'UPDATE gang_treasury SET current_balance = current_balance + ?, contributions_balance = contributions_balance + ?, last_updated = NOW() LIMIT 1',
+                                    [amount, amount],
+                                    (err) => {
+                                        if (err) return connection.rollback(() => { connection.release(); res.status(500).json({ error: err.message }); });
+
+                                        connection.commit(err => {
+                                            if (err) return connection.rollback(() => { connection.release(); res.status(500).json({ error: err.message }); });
                                             connection.release();
-                                            res.status(500).json({ error: err.message });
+
+                                            db.query(
+                                                'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                                                [req.session.userId, 'treasury_contribution_paid', `Beitrag $${amount} für Mitglied ${contribution.member_id} verbucht`]
+                                            );
+
+                                            res.json({ success: true, new_status: newStatus, new_ist_betrag: newIst });
                                         });
                                     }
-                                    
-                                    connection.commit(err => {
-                                        if (err) {
-                                            console.log(`DEBUG - COMMIT Fehler:`, err);
-                                            return connection.rollback(() => {
-                                                connection.release();
-                                                res.status(500).json({ error: err.message });
-                                            });
-                                        }
-                                        
-                                        console.log(`DEBUG - COMMIT erfolgreich. Final paid amount: ${newPaidAmount}, Status: ${newStatus}`);
-                                        connection.release();
-                                        
-                                        // Log activity
-                                        const logQuery = 'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)';
-                                        db.query(logQuery, [
-                                            req.session.userId, 
-                                            'treasury_contribution_paid', 
-                                            `Beitrag von $${newPaidAmount} für Mitglied ${contribution.member_id} verbucht`
-                                        ]);
-                                        
-                                        res.json({ 
-                                            success: true,
-                                            new_paid_amount: newPaidAmount,
-                                            new_status: newStatus,
-                                            transaction_id: transactionResult.insertId
-                                        });
-                                    });
-                                });
-                        });
-                    });
-                });
+                                );
+                            }
+                        );
+                    }
+                );
             });
-        }
-    );
+        });
+    });
 });
 
 // Treasury Statistiken
@@ -3323,47 +3295,78 @@ app.post('/api/treasury/contributions/create-period', requireLogin, (req, res) =
     
     // Alle aktiven Mitglieder abrufen
     db.query('SELECT id FROM members WHERE is_active = TRUE', (err, members) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+        if (err) return res.status(500).json({ error: err.message });
+        if (members.length === 0) return res.status(400).json({ error: 'Keine aktiven Mitglieder gefunden' });
         
-        if (members.length === 0) {
-            return res.status(400).json({ error: 'Keine aktiven Mitglieder gefunden' });
-        }
-        
-        // Perioden-Beschreibung erstellen
         const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
         const startStr = startDate.toLocaleDateString('de-DE', options);
         const endStr = endDate.toLocaleDateString('de-DE', options);
         const periodeDesc = `${startStr} - ${endStr}`;
         
-        // Beiträge für alle Mitglieder erstellen
-        const insertPromises = members.map(member => {
-            return new Promise((resolve, reject) => {
-                const query = `
-                    INSERT INTO member_contributions 
-                    (member_id, woche, woche_start, woche_ende, soll_betrag, status)
-                    VALUES (?, ?, ?, ?, ?, 'offen')
-                    ON DUPLICATE KEY UPDATE soll_betrag = VALUES(soll_betrag)
-                `;
+        // 1. Vorherige (aktuell unlocked) Periode sperren
+        db.query(
+            'UPDATE member_contributions SET locked = 1 WHERE locked = 0 AND woche_ende < ?',
+            [start_datum],
+            (lockErr) => {
+                if (lockErr) console.error('Lock-Fehler:', lockErr);
                 
-                db.query(query, [member.id, periodeDesc, start_datum, end_datum, standardBeitrag], (err, result) => {
-                    if (err) reject(err);
-                    else resolve(result);
-                });
-            });
-        });
-        
-        Promise.all(insertPromises)
-            .then(() => {
-                res.json({ 
-                    success: true, 
-                    message: `Zeitraum ${periodeDesc}: $${standardBeitrag.toFixed(2)} für ${members.length} Mitglieder angelegt` 
-                });
-            })
-            .catch(err => {
-                res.status(500).json({ error: err.message });
-            });
+                // 2. Ausstehende Beträge der gesperrten Periode je Mitglied ermitteln
+                db.query(
+                    `SELECT member_id, SUM(soll_betrag - COALESCE(ist_betrag, 0)) AS offen
+                     FROM member_contributions
+                     WHERE locked = 1 AND status != 'bezahlt' AND woche_ende < ?
+                     GROUP BY member_id`,
+                    [start_datum],
+                    (carryErr, carryRows) => {
+                        if (carryErr) console.error('Carryover-Fehler:', carryErr);
+                        
+                        const carryMap = {};
+                        (carryRows || []).forEach(r => {
+                            const offen = parseFloat(r.offen);
+                            if (offen > 0) carryMap[r.member_id] = offen;
+                        });
+                        
+                        // 3. Neue Periodeneinträge für alle Mitglieder erstellen
+                        const insertPromises = members.map(member => {
+                            const uebertrag = carryMap[member.id] || 0;
+                            const sollBetrag = standardBeitrag + uebertrag;
+                            
+                            return new Promise((resolve, reject) => {
+                                db.query(
+                                    `INSERT INTO member_contributions 
+                                     (member_id, woche, woche_start, woche_ende, soll_betrag, uebertrag_betrag, status)
+                                     VALUES (?, ?, ?, ?, ?, ?, 'offen')
+                                     ON DUPLICATE KEY UPDATE 
+                                     soll_betrag = VALUES(soll_betrag),
+                                     uebertrag_betrag = VALUES(uebertrag_betrag)`,
+                                    [member.id, periodeDesc, start_datum, end_datum, sollBetrag, uebertrag],
+                                    (err, result) => { if (err) reject(err); else resolve(result); }
+                                );
+                            });
+                        });
+                        
+                        Promise.all(insertPromises)
+                            .then(() => {
+                                const carryoverCount = Object.keys(carryMap).length;
+                                
+                                db.query(
+                                    'INSERT INTO activity_log (member_id, action_type, description) VALUES (?, ?, ?)',
+                                    [req.session.userId, 'treasury_period_created',
+                                     `Zeitraum ${periodeDesc}: $${standardBeitrag.toFixed(2)} für ${members.length} Mitglieder`
+                                     + (carryoverCount > 0 ? ` (${carryoverCount} Mitglieder mit Übertrag)` : '')]
+                                );
+                                
+                                res.json({
+                                    success: true,
+                                    message: `Zeitraum ${periodeDesc}: $${standardBeitrag.toFixed(2)} für ${members.length} Mitglieder angelegt`
+                                        + (carryoverCount > 0 ? `. ${carryoverCount} Mitglieder haben ausstehende Beträge übertragen bekommen.` : '')
+                                });
+                            })
+                            .catch(err => res.status(500).json({ error: err.message }));
+                    }
+                );
+            }
+        );
     });
 });
 
