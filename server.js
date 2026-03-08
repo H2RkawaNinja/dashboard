@@ -3351,6 +3351,14 @@ app.post('/api/treasury/contributions/create-period', requireLogin, (req, res) =
     });
 });
 
+// Ungültige URL-Encoding abfangen (z.B. Bot-Anfragen mit /%c0)
+app.use((err, req, res, next) => {
+    if (err instanceof URIError) {
+        return res.status(400).end();
+    }
+    next(err);
+});
+
 // Server starten
 app.listen(PORT, () => {
     console.log(`Server läuft auf Port ${PORT}`);
