@@ -2877,7 +2877,7 @@ function addToCart() {
         productCategory: productCategory || '',
         quantity: quantity,
         unitPrice: unitPrice,
-        total: quantity * unitPrice
+        total: parseFloat(document.getElementById('quick-total-input').value) || quantity * unitPrice
     };
     
     shoppingCart.push(cartItem);
@@ -3022,6 +3022,7 @@ function calculateQuickTotal() {
     const price = parseFloat(document.getElementById('quick-unit-price').value) || 0;
     const total = quantity * price;
     document.getElementById('quick-total-display').textContent = total.toFixed(2);
+    document.getElementById('quick-total-input').value = total.toFixed(2);
 }
 
 function changeQuickQty(delta) {
