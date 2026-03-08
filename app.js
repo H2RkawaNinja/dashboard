@@ -4420,6 +4420,41 @@ function displayRecipes(recipes) {
     `).join('');
 }
 
+function previewRecipeImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('recipe-image-preview');
+        if (preview) {
+            preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:160px; border-radius:0.5rem; object-fit:contain;">` ;
+            // Speichere Base64 für Upload
+            preview.dataset.imageData = e.target.result;
+            // URL-Feld leeren
+            const urlInput = document.getElementById('recipe-image-url');
+            if (urlInput) urlInput.value = '';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function loadRecipeImageFromUrl() {
+    const urlInput = document.getElementById('recipe-image-url');
+    const preview = document.getElementById('recipe-image-preview');
+    if (!urlInput || !preview) return;
+    const url = urlInput.value.trim();
+    if (url) {
+        preview.innerHTML = `<img src="${url}" style="max-width:100%; max-height:160px; border-radius:0.5rem; object-fit:contain;" onerror="this.parentElement.innerHTML='<i class=\"fas fa-exclamation-triangle\" style=\"color:#ef4444\"></i><span>Bild nicht ladbar</span>'">` ;
+        preview.dataset.imageData = '';
+        // Datei-Input leeren
+        const fileInput = document.getElementById('recipe-image');
+        if (fileInput) fileInput.value = '';
+    } else {
+        preview.innerHTML = '<i class="fas fa-cloud-upload-alt"></i><span>Bild hierher ziehen</span><small>oder klicken zum Auswählen</small>';
+        preview.dataset.imageData = '';
+    }
+}
+
 function showAddRecipeModal() {
     document.getElementById('recipe-modal-title').textContent = 'Neues Rezept';
     document.getElementById('recipe-form').reset();
