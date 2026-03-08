@@ -262,6 +262,7 @@ CREATE TABLE IF NOT EXISTS member_contributions (
     uebertrag_betrag DECIMAL(10, 2) NOT NULL DEFAULT 0,
     status ENUM('offen', 'teilweise', 'bezahlt') DEFAULT 'offen',
     locked TINYINT(1) NOT NULL DEFAULT 0,
+    notes TEXT,
     bezahlt_am TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,

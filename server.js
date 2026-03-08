@@ -115,6 +115,7 @@ db.getConnection((err, connection) => {
     };
     migrateContributionCols('locked', 'TINYINT(1) NOT NULL DEFAULT 0');
     migrateContributionCols('uebertrag_betrag', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+    migrateContributionCols('notes', 'TEXT');
 
     // Prüfe und initialisiere hero_inventory wenn leer
     connection.query('SELECT COUNT(*) as count FROM hero_inventory', (err, results) => {
@@ -2873,9 +2874,11 @@ app.post('/api/treasury/contributions/mark-paid', requireLogin, (req, res) => {
             connection.beginTransaction(err => {
                 if (err) { connection.release(); return res.status(500).json({ error: err.message }); }
 
+                const notesClause = notes != null ? ', notes = ?' : '';
+                const notesParams = notes != null ? [notes] : [];
                 connection.query(
-                    `UPDATE member_contributions SET ist_betrag = ?, status = ?, ${bezahltAmClause} notes = CASE WHEN ? IS NOT NULL THEN ? ELSE notes END WHERE id = ?`,
-                    [newIst, newStatus, notes || null, notes || null, contribution_id],
+                    `UPDATE member_contributions SET ist_betrag = ?, status = ?, ${bezahltAmClause} updated_at = NOW() ${notesClause} WHERE id = ?`,
+                    [newIst, newStatus, ...notesParams, contribution_id],
                     (err) => {
                         if (err) return connection.rollback(() => { connection.release(); res.status(500).json({ error: err.message }); });
 
