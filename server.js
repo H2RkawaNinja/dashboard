@@ -204,7 +204,7 @@ app.post('/api/auth/login', (req, res) => {
             req.session.canManageRecipes = user.can_manage_recipes;
             req.session.canViewStorage = user.can_view_storage;
             req.session.canManageStorage = user.can_manage_storage;
-            req.session.canViewStoragePassword = user.can_view_storage_password;
+            req.session.canViewStoragePassword = user.can_view_storage_password || false;
             req.session.canViewTreasury = user.can_view_treasury;
             req.session.canManageTreasury = user.can_manage_treasury;
             req.session.canViewActivity = user.can_view_activity;
@@ -220,6 +220,7 @@ app.post('/api/auth/login', (req, res) => {
                 req.session.canManageRecipes = true;
                 req.session.canViewStorage = true;
                 req.session.canManageStorage = true;
+                req.session.canViewStoragePassword = true;
                 req.session.canViewTreasury = true;
                 req.session.canManageTreasury = true;
                 req.session.canViewActivity = true;
@@ -269,8 +270,15 @@ app.post('/api/auth/logout', (req, res) => {
 // Session check
 app.get('/api/auth/session', (req, res) => {
     if (req.session.userId) {
-        db.query('SELECT id, username, full_name, rank, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage, can_view_storage_password, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?', 
-            [req.session.userId], (err, results) => {
+        const sessionQuery = (withPw, cb) => {
+            const pwCol = withPw ? ', can_view_storage_password' : '';
+            db.query(`SELECT id, username, full_name, rank, can_add_members, can_view_fence, can_manage_fence, can_view_recipes, can_manage_recipes, can_view_storage, can_manage_storage${pwCol}, can_view_treasury, can_manage_treasury, can_view_activity, can_view_stats, can_manage_system FROM members WHERE id = ?`,
+                [req.session.userId], (err, results) => {
+                    if (err && withPw) return sessionQuery(false, cb); // Fallback ohne pw-Spalte
+                    cb(err, results);
+                });
+        };
+        sessionQuery(true, (err, results) => {
             if (err || results.length === 0) {
                 return res.json({ logged_in: false });
             }
