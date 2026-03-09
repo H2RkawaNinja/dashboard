@@ -465,10 +465,42 @@ function renderNotesTable(rows) {
     notesRowCounter = 0;
     if (rows.length === 0) {
         tbody.innerHTML = `<tr class="notes-empty-row"><td colspan="5">Noch keine Einträge – klicke auf <strong>+ Zeile</strong> um zu starten.</td></tr>`;
-        return;
+    } else {
+        tbody.innerHTML = rows.map((row, i) => buildNotesRow(i + 1, row.thema || '', row.details || '', row.priority || '')).join('');
+        notesRowCounter = rows.length;
     }
-    tbody.innerHTML = rows.map((row, i) => buildNotesRow(i + 1, row.thema || '', row.details || '', row.priority || '')).join('');
-    notesRowCounter = rows.length;
+    initNotesKeyboard();
+}
+
+function initNotesKeyboard() {
+    const table = document.querySelector('.notes-sheet-table');
+    if (!table || table._kbInit) return;
+    table._kbInit = true;
+    table.addEventListener('keydown', function(e) {
+        const cell = e.target;
+        if (!cell.classList.contains('notes-cell')) return;
+        const tr = cell.closest('tr');
+        const tbody = tr.closest('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr:not(.notes-empty-row)'));
+        const rowIdx = rows.indexOf(tr);
+        const cells = Array.from(tr.querySelectorAll('.notes-cell'));
+        const cellIdx = cells.indexOf(cell);
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (!e.shiftKey) {
+                if (cellIdx < cells.length - 1) cells[cellIdx + 1].focus();
+                else if (rowIdx < rows.length - 1) rows[rowIdx + 1].querySelectorAll('.notes-cell')[0]?.focus();
+            } else {
+                if (cellIdx > 0) cells[cellIdx - 1].focus();
+                else if (rowIdx > 0) { const pc = rows[rowIdx - 1].querySelectorAll('.notes-cell'); pc[pc.length - 1]?.focus(); }
+            }
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (rowIdx < rows.length - 1) rows[rowIdx + 1].querySelectorAll('.notes-cell')[cellIdx]?.focus();
+        } else if (e.key === 'Escape') {
+            cell.blur();
+        }
+    });
 }
 
 function buildNotesRow(num, thema, details, priority) {
@@ -2129,7 +2161,7 @@ async function loadStorageOverview() {
                                                     <div class="storage-item-quantity">${item.quantity}x</div>
                                                     <div class="storage-item-value">$${parseFloat(item.unit_value).toFixed(2)}</div>
                                                 </div>
-                                                <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                                                <div style="display:flex; flex-direction:row; gap:0.3rem; align-items:center;">
                                                     ${currentUser && currentUser.can_manage_storage ? `<button class="btn-icon-small" onclick="editWarehouseItemQuantity(${item.id}, '${item.item_name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${item.quantity}, ${parseFloat(item.unit_value)})" title="Anzahl bearbeiten"><i class="fas fa-edit"></i></button>` : ''}
                                                     <button class="storage-item-delete" onclick="deleteWarehouseItem(${item.id}, '${item.item_name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Artikel löschen"><i class="fas fa-trash"></i></button>
                                                 </div>
