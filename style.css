@@ -3427,6 +3427,34 @@ body {
     box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
 }
 
+.recipe-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.btn-produce-recipe {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-produce-recipe:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
 /* Responsive Anpassungen für Rezeptkarten */
 @media (max-width: 640px) {
     .recipes-grid-new {

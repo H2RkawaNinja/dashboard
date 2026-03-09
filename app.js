@@ -4523,6 +4523,10 @@ function displayRecipes(recipes) {
                 <button class="btn-view-recipe" onclick="viewRecipeDetails(${recipe.id})">
                     <i class="fas fa-eye"></i> Details anzeigen
                 </button>
+                ${currentUser && currentUser.can_manage_storage ? `
+                <button class="btn-produce-recipe" onclick="showProduceModal(${recipe.id}, '${(recipe.output_item || recipe.recipe_name).replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${recipe.category.replace(/'/g, "\\'")}'  , ${recipe.output_quantity || 1})" title="Produziert einlagern">
+                    <i class="fas fa-industry"></i> Produziert
+                </button>` : ''}
             </div>
         </div>
     `).join('');
@@ -4877,6 +4881,69 @@ async function deleteRecipe(id, name) {
 
 // Variable für aktuellen Kategorie-Filter
 let currentRecipeCategory = '';
+
+// ========== PRODUZIERT EINLAGERN ==========
+
+let produceRunsOutputQty = 1;
+
+function showProduceModal(recipeId, itemName, category, outputQuantity) {
+    produceRunsOutputQty = outputQuantity || 1;
+    document.getElementById('produce-recipe-id').value = recipeId;
+    document.getElementById('produce-item-name').value = itemName;
+    document.getElementById('produce-category').value = category;
+    document.getElementById('produce-runs').value = 1;
+    document.getElementById('produce-quantity').value = produceRunsOutputQty;
+    document.getElementById('produce-unit-value').value = 0;
+
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('produce-modal').style.display = 'block';
+}
+
+function updateProducedQuantity() {
+    const runs = parseInt(document.getElementById('produce-runs').value) || 1;
+    document.getElementById('produce-quantity').value = runs * produceRunsOutputQty;
+}
+
+document.getElementById('produce-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const itemName = document.getElementById('produce-item-name').value.trim();
+    const category = document.getElementById('produce-category').value;
+    const quantity = parseInt(document.getElementById('produce-quantity').value);
+    const unitValue = parseFloat(document.getElementById('produce-unit-value').value) || 0;
+
+    if (!itemName || quantity < 1) {
+        showToast('Bitte alle Felder ausfüllen', 'warning');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/warehouse`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                item_name: itemName,
+                category: category,
+                quantity: quantity,
+                unit_value: unitValue,
+                location: 'UNSORTED'
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            showToast(`${quantity}x ${itemName} wurde zum Sortierbereich hinzugefügt`, 'success');
+            closeModals();
+        } else {
+            showToast(result.error || 'Fehler beim Einlagern', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+});
 
 function setRecipeCategory(btn, category) {
     // Alle Buttons deaktivieren
