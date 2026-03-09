@@ -173,85 +173,31 @@
                 </div>
 
                 <div class="card notes-card">
-                    <h2>Notizen & Informationen</h2>
-                    <div class="notes-section">
-                        <!-- Edit Mode Toggle -->
-                        <div class="notes-header">
-                            <button id="edit-notes-btn" class="btn-secondary edit-toggle">
-                                <i class="fas fa-edit"></i> Bearbeiten
+                    <div class="notes-table-topbar">
+                        <h2><i class="fas fa-table"></i> Notizen & Informationen</h2>
+                        <div style="display:flex; gap:0.6rem; align-items:center;">
+                            <button class="btn-primary btn-sm" onclick="addNotesRow()">
+                                <i class="fas fa-plus"></i> Zeile
                             </button>
-                            <button id="view-notes-btn" class="btn-secondary edit-toggle" style="display: none;">
-                                <i class="fas fa-eye"></i> Ansicht
-                            </button>
-                        </div>
-                        
-                        <!-- Rich Text Toolbar (hidden by default) -->
-                        <div class="notes-toolbar" id="notes-toolbar" style="display: none;">
-                            <div class="toolbar-group">
-                                <button type="button" class="toolbar-btn" data-command="bold" title="Fett">
-                                    <i class="fas fa-bold"></i>
-                                </button>
-                                <button type="button" class="toolbar-btn" data-command="italic" title="Kursiv">
-                                    <i class="fas fa-italic"></i>
-                                </button>
-                                <button type="button" class="toolbar-btn" data-command="underline" title="Unterstreichen">
-                                    <i class="fas fa-underline"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="toolbar-group">
-                                <select class="toolbar-select" id="font-size" title="Textgröße">
-                                    <option value="12px">Klein</option>
-                                    <option value="14px" selected>Normal</option>
-                                    <option value="16px">Groß</option>
-                                    <option value="18px">Größer</option>
-                                    <option value="24px">Sehr groß</option>
-                                    <option value="32px">Riesig</option>
-                                </select>
-                            </div>
-                            
-                            <div class="toolbar-group">
-                                <button type="button" class="toolbar-btn color-btn" data-color="#ffffff" title="Weiß" style="background: #ffffff;"></button>
-                                <button type="button" class="toolbar-btn color-btn" data-color="#10b981" title="Grün" style="background: #10b981;"></button>
-                                <button type="button" class="toolbar-btn color-btn" data-color="#3b82f6" title="Blau" style="background: #3b82f6;"></button>
-                                <button type="button" class="toolbar-btn color-btn" data-color="#f59e0b" title="Gelb" style="background: #f59e0b;"></button>
-                                <button type="button" class="toolbar-btn color-btn" data-color="#ef4444" title="Rot" style="background: #ef4444;"></button>
-                                <button type="button" class="toolbar-btn color-btn" data-color="#8b5cf6" title="Lila" style="background: #8b5cf6;"></button>
-                            </div>
-                            
-                            <div class="toolbar-group">
-                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="transparent" title="Kein Hintergrund">
-                                    <i class="fas fa-fill-drip"></i>
-                                </button>
-                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="#10b981" title="Grüner Hintergrund" style="background: #10b981;"></button>
-                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="#f59e0b" title="Gelber Hintergrund" style="background: #f59e0b;"></button>
-                                <button type="button" class="toolbar-btn bg-color-btn" data-bg-color="#ef4444" title="Roter Hintergrund" style="background: #ef4444;"></button>
-                            </div>
-                            
-                            <div class="toolbar-group">
-                                <button type="button" class="toolbar-btn" data-command="removeFormat" title="Formatierung entfernen">
-                                    <i class="fas fa-eraser"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Rich Text Editor -->
-                        <div 
-                            id="overview-notes" 
-                            class="rich-text-editor view-mode"
-                            contenteditable="false"
-                            placeholder="Hier können wichtige Informationen, Notizen oder Ankündigungen für alle Mitglieder eingetragen werden..."
-                        ></div>
-                        
-                        <div class="notes-actions" id="edit-actions" style="display: none;">
-                            <button id="save-notes-btn" class="btn-primary">
-                                <i class="fas fa-save"></i> Speichern & Fertig
-                            </button>
-                            <button id="clear-notes-btn" class="btn-secondary">
-                                <i class="fas fa-trash"></i> Leeren
+                            <button id="save-notes-btn" class="btn-primary btn-sm" onclick="saveOverviewNotes()">
+                                <i class="fas fa-save"></i> Speichern
                             </button>
                             <span id="notes-status" class="notes-status"></span>
                         </div>
+                    </div>
+                    <div class="notes-table-wrapper">
+                        <table class="notes-sheet-table">
+                            <thead>
+                                <tr>
+                                    <th class="notes-col-num">#</th>
+                                    <th class="notes-col-thema">Thema</th>
+                                    <th class="notes-col-details">Details</th>
+                                    <th class="notes-col-prio">Priorität</th>
+                                    <th class="notes-col-del"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="notes-table-body"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -2460,15 +2406,15 @@
         </div>
 
         <!-- Recipe Details Modal -->
-        <div id="recipe-detail-modal" class="modal" style="display: none; max-width: 600px;">
+        <div id="recipe-detail-modal" class="modal recipe-detail-modal-new" style="display: none;">
             <div class="modal-header">
-                <h2 id="recipe-detail-title">Rezept Details</h2>
+                <h2 id="recipe-detail-title" style="font-size:1.3rem;">Rezept Details</h2>
                 <button class="close-modal" onclick="closeModals()">&times;</button>
             </div>
             <div id="recipe-detail-content" class="recipe-detail-content">
                 <!-- Content wird dynamisch gefüllt -->
             </div>
-            <div class="modal-footer" style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <div class="modal-footer" style="display: flex; gap: 1rem; margin-top: 1rem;">
                 <button class="btn-secondary" onclick="closeModals()" style="flex: 1;">
                     <i class="fas fa-times"></i> Schließen
                 </button>
@@ -2476,6 +2422,34 @@
                     <i class="fas fa-edit"></i> Bearbeiten
                 </button>
             </div>
+        </div>
+
+        <!-- Lager Anzahl bearbeiten Modal -->
+        <div id="edit-wh-qty-modal" class="modal" style="display:none; max-width:360px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Anzahl anpassen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="edit-wh-qty-form">
+                <input type="hidden" id="edit-wh-qty-id">
+                <p id="edit-wh-qty-name" style="font-weight:600; font-size:1rem; margin-bottom:1rem; color:var(--primary);"></p>
+                <div class="form-group">
+                    <label for="edit-wh-qty-input">Neue Anzahl</label>
+                    <input type="number" id="edit-wh-qty-input" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-wh-qty-value">Stückwert ($)</label>
+                    <input type="number" id="edit-wh-qty-value" step="0.01" min="0" value="0">
+                </div>
+                <div class="modal-footer" style="display:flex; gap:1rem; margin-top:1.5rem;">
+                    <button type="button" class="btn-secondary" onclick="closeModals()" style="flex:1;">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </button>
+                    <button type="submit" class="btn-primary" style="flex:1;">
+                        <i class="fas fa-save"></i> Speichern
+                    </button>
+                </div>
+            </form>
         </div>
 
         <!-- Produziert Einlagern Modal -->

@@ -435,177 +435,119 @@ async function loadDashboardTreasuryStats() {
 
 // ========== ÜBERSICHTS-NOTIZEN ==========
 
+// ========== NOTIZEN TABELLE ==========
+
+let notesRowCounter = 0;
+
 async function loadOverviewNotes() {
     try {
         const response = await fetch(`${API_URL}/stats/overview-notes`, {
             credentials: 'include'
         });
         const data = await response.json();
-        
-        const notesEditor = document.getElementById('overview-notes');
-        if (notesEditor) {
-            notesEditor.innerHTML = data.notes || '';
+        let rows = [];
+        try {
+            rows = data.notes ? JSON.parse(data.notes) : [];
+        } catch(e) {
+            // Alte Freitext-Daten: als eine Zeile übernehmen
+            if (data.notes) rows = [{ thema: 'Notizen', details: data.notes.replace(/<[^>]+>/g, ''), priority: '' }];
         }
+        renderNotesTable(rows);
     } catch (error) {
-        console.error('Fehler beim Laden der Übersichts-Notizen:', error);
+        console.error('Fehler beim Laden der Notizen:', error);
+        renderNotesTable([]);
     }
 }
 
+function renderNotesTable(rows) {
+    const tbody = document.getElementById('notes-table-body');
+    if (!tbody) return;
+    notesRowCounter = 0;
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr class="notes-empty-row"><td colspan="5">Noch keine Einträge – klicke auf <strong>+ Zeile</strong> um zu starten.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = rows.map((row, i) => buildNotesRow(i + 1, row.thema || '', row.details || '', row.priority || '')).join('');
+    notesRowCounter = rows.length;
+}
+
+function buildNotesRow(num, thema, details, priority) {
+    const id = notesRowCounter++;
+    const priorities = [
+        { val: '',        label: '—' },
+        { val: 'hoch',    label: '🔴 Hoch' },
+        { val: 'mittel',  label: '🟡 Mittel' },
+        { val: 'niedrig', label: '🟢 Niedrig' },
+    ];
+    const opts = priorities.map(p => `<option value="${p.val}" ${priority === p.val ? 'selected' : ''}>${p.label}</option>`).join('');
+    return `
+        <tr data-row-id="${id}">
+            <td class="notes-col-num">${num}</td>
+            <td><div class="notes-cell" contenteditable="true" spellcheck="false">${thema}</div></td>
+            <td><div class="notes-cell notes-cell-details" contenteditable="true" spellcheck="false">${details}</div></td>
+            <td><select class="notes-priority-select">${opts}</select></td>
+            <td><button class="btn-icon-small btn-delete" onclick="deleteNotesRow(this)" title="Zeile löschen"><i class="fas fa-trash"></i></button></td>
+        </tr>`;
+}
+
+function addNotesRow() {
+    const tbody = document.getElementById('notes-table-body');
+    if (!tbody) return;
+    const emptyRow = tbody.querySelector('.notes-empty-row');
+    if (emptyRow) emptyRow.remove();
+    const rowCount = tbody.querySelectorAll('tr').length + 1;
+    tbody.insertAdjacentHTML('beforeend', buildNotesRow(rowCount, '', '', ''));
+    // Focus auf Thema-Zelle der neuen Zeile
+    const lastCell = tbody.lastElementChild?.querySelector('.notes-cell');
+    if (lastCell) lastCell.focus();
+}
+
+function deleteNotesRow(btn) {
+    const tr = btn.closest('tr');
+    if (tr) {
+        tr.remove();
+        // Nummern neu vergeben
+        document.querySelectorAll('#notes-table-body tr:not(.notes-empty-row)').forEach((row, i) => {
+            row.querySelector('.notes-col-num').textContent = i + 1;
+        });
+    }
+}
+
+function collectNotesRows() {
+    const rows = [];
+    document.querySelectorAll('#notes-table-body tr:not(.notes-empty-row)').forEach(tr => {
+        const cells = tr.querySelectorAll('.notes-cell');
+        const priority = tr.querySelector('.notes-priority-select')?.value || '';
+        rows.push({
+            thema:    cells[0]?.innerText.trim() || '',
+            details:  cells[1]?.innerText.trim() || '',
+            priority: priority
+        });
+    });
+    return rows;
+}
+
 async function saveOverviewNotes() {
-    const notesEditor = document.getElementById('overview-notes');
     const statusSpan = document.getElementById('notes-status');
-    
-    if (!notesEditor || !statusSpan) return;
-    
-    const notes = notesEditor.innerHTML;
-    
+    const notes = JSON.stringify(collectNotesRows());
+    if (statusSpan) { statusSpan.textContent = 'Speichere...'; statusSpan.className = 'notes-status saving'; }
     try {
-        statusSpan.textContent = 'Speichere...';
-        statusSpan.className = 'notes-status saving';
-        
         const response = await fetch(`${API_URL}/stats/overview-notes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ notes })
         });
-        
         const data = await response.json();
-        
         if (data.success) {
-            statusSpan.textContent = 'Gespeichert!';
-            statusSpan.className = 'notes-status saved';
-            
-            // Zurück zur Ansicht nach dem Speichern
-            setTimeout(() => {
-                statusSpan.textContent = '';
-                statusSpan.className = 'notes-status';
-                exitEditMode();
-            }, 2000);
-        } else {
-            throw new Error(data.error);
-        }
+            if (statusSpan) { statusSpan.textContent = 'Gespeichert!'; statusSpan.className = 'notes-status saved'; }
+            setTimeout(() => { if (statusSpan) { statusSpan.textContent = ''; statusSpan.className = 'notes-status'; } }, 2000);
+        } else { throw new Error(data.error); }
     } catch (error) {
-        console.error('Fehler beim Speichern der Notizen:', error);
-        statusSpan.textContent = 'Speichern fehlgeschlagen!';
-        statusSpan.className = 'notes-status error';
-        setTimeout(() => {
-            statusSpan.textContent = '';
-            statusSpan.className = 'notes-status';
-        }, 3000);
+        console.error('Fehler beim Speichern:', error);
+        if (statusSpan) { statusSpan.textContent = 'Fehler!'; statusSpan.className = 'notes-status error'; }
+        setTimeout(() => { if (statusSpan) { statusSpan.textContent = ''; statusSpan.className = 'notes-status'; } }, 3000);
     }
-}
-
-function clearOverviewNotes() {
-    const notesEditor = document.getElementById('overview-notes');
-    if (notesEditor && confirm('Notizen wirklich leeren?')) {
-        notesEditor.innerHTML = '';
-        saveOverviewNotes();
-    }
-}
-
-// Edit Mode Management
-function enterEditMode() {
-    const toolbar = document.getElementById('notes-toolbar');
-    const editor = document.getElementById('overview-notes');
-    const editActions = document.getElementById('edit-actions');
-    const editBtn = document.getElementById('edit-notes-btn');
-    const viewBtn = document.getElementById('view-notes-btn');
-    
-    // Zeige Toolbar und Aktionen
-    if (toolbar) toolbar.style.display = 'flex';
-    if (editActions) editActions.style.display = 'flex';
-    
-    // Editor editierbar machen
-    if (editor) {
-        editor.contentEditable = 'true';
-        editor.classList.remove('view-mode');
-        editor.classList.add('edit-mode');
-        editor.focus();
-    }
-    
-    // Toggle Buttons
-    if (editBtn) editBtn.style.display = 'none';
-    if (viewBtn) viewBtn.style.display = 'inline-flex';
-}
-
-function exitEditMode() {
-    const toolbar = document.getElementById('notes-toolbar');
-    const editor = document.getElementById('overview-notes');
-    const editActions = document.getElementById('edit-actions');
-    const editBtn = document.getElementById('edit-notes-btn');
-    const viewBtn = document.getElementById('view-notes-btn');
-    
-    // Verstecke Toolbar und Aktionen
-    if (toolbar) toolbar.style.display = 'none';
-    if (editActions) editActions.style.display = 'none';
-    
-    // Editor nicht editierbar machen
-    if (editor) {
-        editor.contentEditable = 'false';
-        editor.classList.remove('edit-mode');
-        editor.classList.add('view-mode');
-        editor.blur();
-    }
-    
-    // Toggle Buttons
-    if (editBtn) editBtn.style.display = 'inline-flex';
-    if (viewBtn) viewBtn.style.display = 'none';
-}
-
-// Rich Text Editor Funktionen
-function execCommand(command, value = null) {
-    document.execCommand(command, false, value);
-    updateToolbarState();
-}
-
-function updateToolbarState() {
-    const commands = ['bold', 'italic', 'underline'];
-    commands.forEach(cmd => {
-        const btn = document.querySelector(`[data-command="${cmd}"]`);
-        if (btn) {
-            btn.classList.toggle('active', document.queryCommandState(cmd));
-        }
-    });
-}
-
-function applyColor(color) {
-    execCommand('foreColor', color);
-}
-
-function applyBackgroundColor(color) {
-    if (color === 'transparent') {
-        execCommand('backColor', 'transparent');
-        execCommand('hiliteColor', 'transparent');
-    } else {
-        execCommand('backColor', color);
-    }
-}
-
-function applyFontSize(size) {
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const span = document.createElement('span');
-        span.style.fontSize = size;
-        
-        try {
-            range.surroundContents(span);
-        } catch (e) {
-            // Fallback: span um den Inhalt wickeln
-            span.appendChild(range.extractContents());
-            range.insertNode(span);
-        }
-        
-        selection.removeAllRanges();
-        const newRange = document.createRange();
-        newRange.selectNodeContents(span);
-        selection.addRange(newRange);
-    }
-}
-
-// ========== RICH TEXT HELPER ==========
-// (Notizen Rich-Text-Editor Funktionen sind oben definiert)
 
 // ========== MITGLIEDER ==========
 
@@ -2186,9 +2128,10 @@ async function loadStorageOverview() {
                                                     <div class="storage-item-quantity">${item.quantity}x</div>
                                                     <div class="storage-item-value">$${parseFloat(item.unit_value).toFixed(2)}</div>
                                                 </div>
-                                                <button class="storage-item-delete" onclick="deleteWarehouseItem(${item.id}, '${item.item_name}')" title="Artikel löschen">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                                                    ${currentUser && currentUser.can_manage_storage ? `<button class="btn-icon-small" onclick="editWarehouseItemQuantity(${item.id}, '${item.item_name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${item.quantity}, ${parseFloat(item.unit_value)})" title="Anzahl bearbeiten"><i class="fas fa-edit"></i></button>` : ''}
+                                                    <button class="storage-item-delete" onclick="deleteWarehouseItem(${item.id}, '${item.item_name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Artikel löschen"><i class="fas fa-trash"></i></button>
+                                                </div>
                                             </div>
                                         `).join('')}
                                     </div>
@@ -2205,6 +2148,42 @@ async function loadStorageOverview() {
         showToast('Fehler beim Laden der Lager-Übersicht', 'error');
     }
 }
+
+function editWarehouseItemQuantity(id, name, currentQty, currentValue) {
+    document.getElementById('edit-wh-qty-id').value = id;
+    document.getElementById('edit-wh-qty-name').textContent = name;
+    document.getElementById('edit-wh-qty-input').value = currentQty;
+    document.getElementById('edit-wh-qty-value').value = currentValue;
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('edit-wh-qty-modal').style.display = 'block';
+    setTimeout(() => document.getElementById('edit-wh-qty-input').select(), 50);
+}
+
+document.getElementById('edit-wh-qty-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id       = document.getElementById('edit-wh-qty-id').value;
+    const quantity = parseInt(document.getElementById('edit-wh-qty-input').value);
+    const unitVal  = parseFloat(document.getElementById('edit-wh-qty-value').value) || 0;
+    try {
+        const res = await fetch(`${API_URL}/warehouse/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ quantity, unit_value: unitVal })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Anzahl aktualisiert', 'success');
+            closeModals();
+            loadStorageOverview();
+            loadWarehouse();
+        } else {
+            showToast(data.error || 'Fehler beim Aktualisieren', 'error');
+        }
+    } catch (err) {
+        showToast('Verbindungsfehler', 'error');
+    }
+});
 
 function toggleWarehouseView() {
     const gridView = document.getElementById('storage-grid-view');
@@ -4680,83 +4659,70 @@ async function viewRecipeDetails(id) {
         const response = await fetch(`${API_URL}/recipes/${id}`, {
             credentials: 'include'
         });
-        
-        if (!response.ok) {
-            throw new Error('Fehler beim Laden des Rezepts');
-        }
-        
+        if (!response.ok) throw new Error('Fehler beim Laden des Rezepts');
         const recipe = await response.json();
-        
-        // Kategorie-Icons
-        const categoryIcons = {
-            'Waffen': 'fa-gun',
-            'Drogen': 'fa-pills',
-            'Ausrüstung': 'fa-toolbox',
-            'Fahrzeuge': 'fa-car',
-            'Sonstiges': 'fa-box'
-        };
-        const categoryIcon = categoryIcons[recipe.category] || 'fa-box';
-        
-        // Zutaten-Liste erstellen
-        const ingredientsList = recipe.ingredients.map(ing => 
-            `<div class="ingredient-item">
-                <span class="ingredient-name-display">${ing.ingredient_name}</span>
-                <span class="ingredient-qty">${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}</span>
-            </div>`
-        ).join('');
-        
-        // Content erstellen (ohne Bild)
+
+        const categoryIcons = { 'Waffen': 'fa-gun', 'Drogen': 'fa-pills', 'Ausüstung': 'fa-toolbox', 'Fahrzeuge': 'fa-car', 'Sonstiges': 'fa-box' };
+        const categoryColors = { 'Waffen': '#ef4444', 'Drogen': '#8b5cf6', 'Ausrüstung': '#3b82f6', 'Fahrzeuge': '#f59e0b', 'Sonstiges': '#6b7280' };
+        const icon  = categoryIcons[recipe.category]  || 'fa-box';
+        const color = categoryColors[recipe.category] || '#6b7280';
+
+        const ingredientsList = recipe.ingredients.length > 0
+            ? recipe.ingredients.map((ing, i) => `
+                <div class="rd-ingredient">
+                    <span class="rd-ingredient-num">${i + 1}</span>
+                    <span class="rd-ingredient-name">${ing.ingredient_name}</span>
+                    <span class="rd-ingredient-qty">${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}</span>
+                </div>`).join('')
+            : '<p style="color:var(--text-secondary); font-style:italic;">Keine Zutaten angegeben</p>';
+
         const content = `
-            <div class="recipe-detail-header">
-                <div class="recipe-detail-info">
-                    <div class="recipe-detail-category">
-                        <i class="fas ${categoryIcon}"></i> ${recipe.category}
+            <div class="rd-hero" style="background: linear-gradient(135deg, ${color}22, ${color}08); border-left: 4px solid ${color};">
+                <div class="rd-hero-icon" style="background:${color}22; color:${color};">
+                    <i class="fas ${icon}"></i>
+                </div>
+                <div class="rd-hero-info">
+                    <span class="rd-category-badge" style="background:${color};">${recipe.category}</span>
+                    <div class="rd-meta">
+                        ${recipe.crafting_time > 0 ? `<div class="rd-meta-item"><i class="fas fa-clock"></i> ${recipe.crafting_time} Min</div>` : ''}
+                        ${recipe.output_quantity > 1 ? `<div class="rd-meta-item"><i class="fas fa-layer-group"></i> ${recipe.output_quantity}x Output</div>` : ''}
+                        <div class="rd-meta-item"><i class="fas fa-list"></i> ${recipe.ingredients.length} Zutaten</div>
                     </div>
-                    ${recipe.crafting_time > 0 ? 
-                        `<div class="recipe-detail-time"><i class="fas fa-clock"></i> ${recipe.crafting_time} Minuten</div>` : ''
-                    }
                 </div>
             </div>
-            
-            ${recipe.description ? `
-                <div class="recipe-detail-section">
-                    <h4><i class="fas fa-info-circle"></i> Beschreibung</h4>
-                    <p>${recipe.description}</p>
-                </div>
-            ` : ''}
-            
+
             ${recipe.output_item ? `
-                <div class="recipe-detail-section recipe-detail-output">
-                    <h4><i class="fas fa-arrow-right"></i> Ergebnis</h4>
-                    <div class="output-display">
-                        <span class="output-item">${recipe.output_item}</span>
-                        <span class="output-quantity">x${recipe.output_quantity || 1}</span>
-                    </div>
+            <div class="rd-output-banner">
+                <div style="display:flex; align-items:center; gap:0.5rem; color:var(--text-secondary); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">
+                    <i class="fas fa-arrow-right" style="color:var(--primary);"></i> Ergibt
                 </div>
-            ` : ''}
-            
-            <div class="recipe-detail-section">
-                <h4><i class="fas fa-list"></i> Benötigte Zutaten</h4>
-                <div class="ingredients-list">
-                    ${ingredientsList}
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-top:0.4rem;">
+                    <span style="font-size:1.1rem; font-weight:700; color:var(--text-primary);">${recipe.output_item}</span>
+                    <span style="background:var(--primary); color:white; padding:0.2rem 0.65rem; border-radius:1rem; font-size:0.85rem; font-weight:600;">x${recipe.output_quantity || 1}</span>
                 </div>
+            </div>` : ''}
+
+            <div class="rd-columns">
+                <div class="rd-col">
+                    <div class="rd-section-title"><i class="fas fa-list"></i> Zutaten</div>
+                    <div class="rd-ingredients">${ingredientsList}</div>
+                </div>
+                ${recipe.description || recipe.notes ? `
+                <div class="rd-col">
+                    ${recipe.description ? `
+                    <div class="rd-section-title"><i class="fas fa-info-circle"></i> Beschreibung</div>
+                    <p class="rd-text">${recipe.description}</p>` : ''}
+                    ${recipe.notes ? `
+                    <div class="rd-section-title" style="margin-top:${recipe.description ? '1rem' : '0'};"><i class="fas fa-sticky-note"></i> Notizen</div>
+                    <p class="rd-text rd-notes">${recipe.notes}</p>` : ''}
+                </div>` : ''}
             </div>
-            
-            ${recipe.notes ? `
-                <div class="recipe-detail-section recipe-detail-notes">
-                    <h4><i class="fas fa-sticky-note"></i> Notizen</h4>
-                    <p>${recipe.notes}</p>
-                </div>
-            ` : ''}
         `;
-        
+
         document.getElementById('recipe-detail-title').textContent = recipe.recipe_name;
         document.getElementById('recipe-detail-content').innerHTML = content;
-        document.getElementById('recipe-detail-edit-btn').onclick = () => {
-            closeModals();
-            showEditRecipeModal(id);
-        };
-        
+        document.getElementById('recipe-detail-edit-btn').onclick = () => { closeModals(); showEditRecipeModal(id); };
+
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('recipe-detail-modal').style.display = 'block';
     } catch (error) {
@@ -5606,157 +5572,15 @@ document.getElementById('edit-member-rank')?.addEventListener('change', function
 // EVENT LISTENERS
 // ========================================
 
-// Event Listener für Rich Text Editor
-document.addEventListener('DOMContentLoaded', function() {
-    // Edit Mode Buttons
-    const editBtn = document.getElementById('edit-notes-btn');
-    const viewBtn = document.getElementById('view-notes-btn');
-    const saveNotesBtn = document.getElementById('save-notes-btn');
-    const clearNotesBtn = document.getElementById('clear-notes-btn');
-    
-    if (editBtn) {
-        editBtn.addEventListener('click', enterEditMode);
-    }
-    
-    if (viewBtn) {
-        viewBtn.addEventListener('click', exitEditMode);
-    }
-    
-    if (saveNotesBtn) {
-        saveNotesBtn.addEventListener('click', saveOverviewNotes);
-    }
-    
-    if (clearNotesBtn) {
-        clearNotesBtn.addEventListener('click', clearOverviewNotes);
-    }
-    
-    // Auto-Save für Notizen im Edit-Mode (nach 5 Sekunden ohne Eingabe)
-    const notesEditor = document.getElementById('overview-notes');
-    if (notesEditor) {
-        let saveTimeout;
-        let isEditMode = false;
-        
-        notesEditor.addEventListener('input', function() {
-            if (notesEditor.contentEditable === 'true') {
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(() => {
-                    // Auto-save aber nicht zurück zur Ansicht
-                    const saveFunc = async () => {
-                        const statusSpan = document.getElementById('notes-status');
-                        const notes = notesEditor.innerHTML;
-                        
-                        try {
-                            const response = await fetch(`${API_URL}/stats/overview-notes`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({ notes })
-                            });
-                            
-                            const data = await response.json();
-                            if (data.success && statusSpan) {
-                                statusSpan.textContent = 'Auto-gespeichert';
-                                statusSpan.className = 'notes-status saved';
-                                setTimeout(() => {
-                                    statusSpan.textContent = '';
-                                    statusSpan.className = 'notes-status';
-                                }, 2000);
-                            }
-                        } catch (error) {
-                            console.error('Auto-Save Fehler:', error);
-                        }
-                    };
-                    saveFunc();
-                }, 5000);
-                updateToolbarState();
-            }
-        });
-        
-        // Cursor Position ändern - Toolbar Status aktualisieren
-        notesEditor.addEventListener('keyup', function() {
-            if (notesEditor.contentEditable === 'true') {
-                updateToolbarState();
-            }
-        });
-        
-        notesEditor.addEventListener('mouseup', function() {
-            if (notesEditor.contentEditable === 'true') {
-                updateToolbarState();
-            }
-        });
-        
-        // Doppelklick zum Bearbeiten
-        notesEditor.addEventListener('dblclick', function() {
-            if (notesEditor.contentEditable === 'false') {
-                enterEditMode();
-            }
-        });
-    }
-    
-    // Toolbar Event Listeners (nur im Edit-Mode)
-    document.addEventListener('click', function(e) {
-        // Prüfe ob im Edit-Mode
-        if (!notesEditor || notesEditor.contentEditable === 'false') return;
-        
-        // Format Buttons
-        if (e.target.closest('[data-command]')) {
+// Ctrl+S speichert die Notizen-Tabelle
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        const tbody = document.getElementById('notes-table-body');
+        if (tbody) {
             e.preventDefault();
-            const btn = e.target.closest('[data-command]');
-            const command = btn.dataset.command;
-            execCommand(command);
+            saveOverviewNotes();
         }
-        
-        // Color Buttons
-        if (e.target.closest('.color-btn')) {
-            e.preventDefault();
-            const color = e.target.closest('.color-btn').dataset.color;
-            applyColor(color);
-        }
-        
-        // Background Color Buttons
-        if (e.target.closest('.bg-color-btn')) {
-            e.preventDefault();
-            const bgColor = e.target.closest('.bg-color-btn').dataset.bgColor;
-            applyBackgroundColor(bgColor);
-        }
-    });
-    
-    // Font Size Selector
-    const fontSizeSelect = document.getElementById('font-size');
-    if (fontSizeSelect) {
-        fontSizeSelect.addEventListener('change', function() {
-            if (notesEditor && notesEditor.contentEditable === 'true') {
-                const size = this.value;
-                applyFontSize(size);
-            }
-        });
     }
-    
-    // Shortcuts (nur im Edit-Mode)
-    document.addEventListener('keydown', function(e) {
-        if (!notesEditor || notesEditor.contentEditable === 'false') return;
-        
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'b') {
-                e.preventDefault();
-                execCommand('bold');
-            } else if (e.key === 'i') {
-                e.preventDefault();
-                execCommand('italic');
-            } else if (e.key === 'u') {
-                e.preventDefault();
-                execCommand('underline');
-            } else if (e.key === 's') {
-                e.preventDefault();
-                saveOverviewNotes();
-            }
-        }
-        
-        // ESC zum Beenden des Edit-Modes
-        if (e.key === 'Escape') {
-            exitEditMode();
-        }
-    });
 });
 
 // ========== TREASURY FUNCTIONS ==========
