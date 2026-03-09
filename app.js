@@ -91,14 +91,14 @@ function showDashboard() {
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
     const addMemberBtn = document.getElementById('add-member-btn');
     if (addMemberBtn) {
-        addMemberBtn.style.display = (currentUser.can_add_members || currentUser.rank === 'Techniker') ? 'inline-flex' : 'none';
+        addMemberBtn.style.display = currentUser.can_add_members ? 'inline-flex' : 'none';
     }
     
     // Hehler-Ankauf-Button zeigen/verstecken
     const fenceBuyButton = document.querySelector('#fence-page .page-header .btn-primary');
     const fenceNoPermBanner = document.getElementById('fence-no-permission');
     if (fenceBuyButton && fenceNoPermBanner) {
-        const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
+        const canManageFence = currentUser.can_manage_fence;
         fenceBuyButton.style.display = canManageFence ? 'inline-flex' : 'none';
         fenceNoPermBanner.style.display = canManageFence ? 'none' : 'block';
     }
@@ -106,7 +106,7 @@ function showDashboard() {
     // Hehler-Produktverwaltung Button zeigen/verstecken
     const newProductButton = document.querySelector('#fence-manage-tab .btn-primary');
     if (newProductButton) {
-        const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
+        const canManageFence = currentUser.can_manage_fence;
         newProductButton.style.display = canManageFence ? 'inline-flex' : 'none';
     }
     
@@ -166,7 +166,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         const page = item.getAttribute('data-page');
         
         // Zugangsprüfung
-        if ((page === 'warehouse' || page === 'storage') && !currentUser.can_view_storage && !currentUser.can_manage_storage && currentUser.rank !== 'Techniker') {
+        if ((page === 'warehouse' || page === 'storage') && !currentUser.can_view_storage && !currentUser.can_manage_storage) {
             showToast('Keine Berechtigung zum Anzeigen des Lagers', 'error');
             return;
         }
@@ -202,11 +202,11 @@ function loadPageData(page) {
             loadFenceData();
             break;
         case 'warehouse':
-            if (!currentUser || (!currentUser.can_view_storage && !currentUser.can_manage_storage && currentUser.rank !== 'Techniker')) return;
+            if (!currentUser || (!currentUser.can_view_storage && !currentUser.can_manage_storage)) return;
             loadWarehouse();
             break;
         case 'storage':
-            if (!currentUser || (!currentUser.can_view_storage && !currentUser.can_manage_storage && currentUser.rank !== 'Techniker')) return;
+            if (!currentUser || (!currentUser.can_view_storage && !currentUser.can_manage_storage)) return;
             loadStorageOverview();
             break;
         case 'treasury':
@@ -244,37 +244,37 @@ function updateNavigationAccess() {
     // Hehler Navigation (sichtbar wenn Einsicht ODER Verwalten)
     const fenceNav = document.querySelector('[data-page="fence"]');
     if (fenceNav) {
-        fenceNav.style.display = (currentUser.can_view_fence || currentUser.can_manage_fence || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        fenceNav.style.display = (currentUser.can_view_fence || currentUser.can_manage_fence) ? 'flex' : 'none';
     }
     
     // Rezepte Navigation (sichtbar wenn Einsicht ODER Verwalten)
     const recipesNav = document.querySelector('[data-page="recipes"]');
     if (recipesNav) {
-        recipesNav.style.display = (currentUser.can_view_recipes || currentUser.can_manage_recipes || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        recipesNav.style.display = (currentUser.can_view_recipes || currentUser.can_manage_recipes) ? 'flex' : 'none';
     }
     
     // Lager Navigation (sichtbar wenn Einsicht ODER Verwalten)
-    const storageNav = document.querySelector('[data-page="storage-overview"]');
+    const storageNav = document.querySelector('[data-page="storage"]');
     if (storageNav) {
-        storageNav.style.display = (currentUser.can_view_storage || currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        storageNav.style.display = (currentUser.can_view_storage || currentUser.can_manage_storage) ? 'flex' : 'none';
     }
     
     // Gangkasse Navigation (sichtbar wenn Einsicht ODER Verwalten)
     const treasuryNav = document.querySelector('[data-page="treasury"]');
     if (treasuryNav) {
-        treasuryNav.style.display = (currentUser.can_view_treasury || currentUser.can_manage_treasury || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        treasuryNav.style.display = (currentUser.can_view_treasury || currentUser.can_manage_treasury) ? 'flex' : 'none';
     }
     
     // Aktivitäten Navigation
     const activityNav = document.querySelector('[data-page="activity"]');
     if (activityNav) {
-        activityNav.style.display = (currentUser.can_view_activity || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        activityNav.style.display = currentUser.can_view_activity ? 'flex' : 'none';
     }
     
     // System/Wartung Navigation
     const maintenanceNav = document.querySelector('[data-page="maintenance"]');
     if (maintenanceNav) {
-        maintenanceNav.style.display = (currentUser.can_manage_system || currentUser.rank === 'Techniker') ? 'flex' : 'none';
+        maintenanceNav.style.display = currentUser.can_manage_system ? 'flex' : 'none';
     }
     
     // Hehler: Bearbeitungselemente verstecken wenn nur Einsicht
@@ -293,7 +293,7 @@ function updateNavigationAccess() {
 // Hehler: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
 function updateFenceEditAccess() {
     if (!currentUser) return;
-    const canManage = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
+    const canManage = currentUser.can_manage_fence;
     
     // Alle Fence-Bearbeitungs-Buttons verstecken/anzeigen
     document.querySelectorAll('.fence-manage-only').forEach(el => {
@@ -304,7 +304,7 @@ function updateFenceEditAccess() {
 // Gangkasse: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
 function updateTreasuryEditAccess() {
     if (!currentUser) return;
-    const canManage = currentUser.can_manage_treasury || currentUser.rank === 'Techniker';
+    const canManage = currentUser.can_manage_treasury;
     
     // Alle Treasury-Bearbeitungs-Buttons verstecken/anzeigen
     document.querySelectorAll('.treasury-manage-only').forEach(el => {
@@ -315,7 +315,7 @@ function updateTreasuryEditAccess() {
 // Rezepte: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
 function updateRecipesEditAccess() {
     if (!currentUser) return;
-    const canManage = currentUser.can_manage_recipes || currentUser.rank === 'Techniker';
+    const canManage = currentUser.can_manage_recipes;
     
     document.querySelectorAll('.recipes-manage-only').forEach(el => {
         el.style.display = canManage ? '' : 'none';
@@ -325,7 +325,7 @@ function updateRecipesEditAccess() {
 // Lager: Verberge Bearbeitungs-Buttons wenn User nur Einsicht hat
 function updateStorageEditAccess() {
     if (!currentUser) return;
-    const canManage = currentUser.can_manage_storage || currentUser.rank === 'Techniker';
+    const canManage = currentUser.can_manage_storage;
     
     document.querySelectorAll('.storage-manage-only').forEach(el => {
         el.style.display = canManage ? '' : 'none';
@@ -631,8 +631,8 @@ async function loadMembers() {
         const tbody = document.getElementById('members-table');
         if (!tbody) return;
         
-        const canEdit = currentUser && (currentUser.can_add_members || currentUser.rank === 'Techniker');
-        const canViewPasswords = currentUser && currentUser.rank === 'Techniker';
+        const canEdit = currentUser && currentUser.can_add_members;
+        const canViewPasswords = currentUser && currentUser.can_manage_system;
         
         if (members.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: var(--text-secondary);">Keine Mitglieder gefunden</td></tr>';
@@ -2154,7 +2154,7 @@ async function loadStorageOverview() {
                                         <div class="slot-name" style="color: var(--text-secondary); font-size: 0.8rem;"><i class="fas fa-tag"></i> ID: ${slot.slot_code}</div>
                                         ${slot.owner ? `<div class="slot-owner"><i class="fas fa-user"></i> ${slot.owner}</div>` : ''}
                                         ${slot.location ? `<div class="slot-location"><i class="fas fa-map-marker-alt"></i> ${slot.location}</div>` : ''}
-                                        ${slot.password && (currentUser.can_view_storage_password || currentUser.can_manage_storage || currentUser.rank === 'Techniker') ? `<div class="slot-owner" style="color: var(--text-secondary); font-size: 0.8rem;"><i class="fas fa-lock"></i> PIN: <span id="pw-${slot.id}" style="filter: blur(4px); cursor: pointer; user-select: none;" onclick="this.style.filter=this.style.filter?'':'blur(4px)'">${slot.password}</span></div>` : ''}
+                                        ${slot.password && (currentUser.can_view_storage_password || currentUser.can_manage_storage) ? `<div class="slot-owner" style="color: var(--text-secondary); font-size: 0.8rem;"><i class="fas fa-lock"></i> PIN: <span id="pw-${slot.id}" style="filter: blur(4px); cursor: pointer; user-select: none;" onclick="this.style.filter=this.style.filter?'':'blur(4px)'">${slot.password}</span></div>` : ''}
                                     </div>
                                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
                                         <div class="slot-info-badges" style="display: flex; gap: 0.5rem;">
@@ -2842,7 +2842,7 @@ function switchFenceTab(tabName) {
         if (currentUser) {
             const newProductButton = document.querySelector('#fence-manage-tab .btn-primary');
             if (newProductButton) {
-                const canManageFence = currentUser.can_manage_fence || currentUser.rank === 'Techniker';
+                const canManageFence = currentUser.can_manage_fence;
                 newProductButton.style.display = canManageFence ? 'inline-flex' : 'none';
             }
         }
@@ -4946,13 +4946,12 @@ function switchSettingsTab(btn, tabName) {
     if (tabName === 'dashboard-stats') loadDashboardStatSettings();
 }
 
-// Wartungsseite für Techniker anzeigen/verstecken
+// Wartungsseite für System-Admins anzeigen/verstecken
 function updateMaintenanceAccess() {
     const maintenanceNav = document.getElementById('maintenance-nav');
-    const userRank = sessionStorage.getItem('userRank');
     
     if (maintenanceNav) {
-        maintenanceNav.style.display = userRank === 'Techniker' ? 'block' : 'none';
+        maintenanceNav.style.display = (currentUser && currentUser.can_manage_system) ? 'flex' : 'none';
     }
 }
 
@@ -5240,9 +5239,8 @@ function showMaintenanceBanner(module, reason) {
             page.insertBefore(banner, page.firstChild);
         }
         
-        // Alle interaktiven Elemente deaktivieren (außer für Techniker)
-        const userRank = sessionStorage.getItem('userRank');
-        if (userRank !== 'Techniker') {
+        // Alle interaktiven Elemente deaktivieren (außer für System-Admins)
+        if (!currentUser || !currentUser.can_manage_system) {
             const buttons = page.querySelectorAll('button, input, select, textarea');
             buttons.forEach(btn => {
                 btn.disabled = true;

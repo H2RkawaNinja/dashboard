@@ -3,9 +3,468 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Passwort einrichten - Gang Management</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <title>Passwort einrichten – BST</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.25);
+            --secondary: #10b981;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark-bg: #0a0f1e;
+            --dark-card: #111827;
+            --dark-card-elevated: #1a2236;
+            --border: #1e2d45;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--dark-bg);
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .setup-box {
+            background: var(--dark-card-elevated);
+            border: 1px solid var(--border);
+            border-radius: 1.25rem;
+            padding: 2.5rem;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.06);
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .setup-icon-ring {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.25rem;
+            background: linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(16,185,129,0.1) 100%);
+            border: 2px solid rgba(139,92,246,0.35);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .setup-icon-ring i {
+            font-size: 2.25rem;
+            color: var(--primary);
+            filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));
+        }
+
+        .setup-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.4rem;
+        }
+
+        .setup-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .member-info-card {
+            background: rgba(139,92,246,0.07);
+            border: 1px solid rgba(139,92,246,0.2);
+            border-left: 3px solid var(--primary);
+            padding: 1.25rem 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .member-info-card h3 {
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .member-info-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.35rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .member-info-row i {
+            width: 16px;
+            color: var(--primary);
+            opacity: 0.7;
+            font-size: 0.8rem;
+        }
+
+        .member-info-row span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .form-group input::placeholder {
+            color: #3d4f6a;
+        }
+
+        .password-hints {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 0.875rem 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .hint-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .hint-item i {
+            color: var(--secondary);
+            font-size: 0.75rem;
+        }
+
+        .btn-setup {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(139,92,246,0.35);
+        }
+
+        .btn-setup:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 6px 24px rgba(139,92,246,0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: rgba(139,92,246,0.12);
+            border: 1px solid rgba(139,92,246,0.25);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-top: 1.5rem;
+        }
+
+        .btn-link:hover {
+            background: rgba(139,92,246,0.2);
+            border-color: rgba(139,92,246,0.4);
+        }
+
+        .error-message {
+            padding: 0.75rem 1rem;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 0.5rem;
+            color: #f87171;
+            font-size: 0.875rem;
+            margin-top: 0.75rem;
+            display: none;
+        }
+
+        .error-message.show { display: block; }
+
+        .status-panel {
+            text-align: center;
+            padding: 1.5rem 0;
+        }
+
+        .status-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+            font-size: 2rem;
+        }
+
+        .status-icon.loading {
+            background: rgba(139,92,246,0.1);
+            border: 2px solid rgba(139,92,246,0.3);
+            color: var(--primary);
+        }
+
+        .status-icon.error-icon {
+            background: rgba(239,68,68,0.1);
+            border: 2px solid rgba(239,68,68,0.3);
+            color: #f87171;
+        }
+
+        .status-icon.success-icon {
+            background: rgba(16,185,129,0.1);
+            border: 2px solid rgba(16,185,129,0.3);
+            color: var(--success);
+        }
+
+        .status-panel h2 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-panel p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-box">
+        <!-- Form -->
+        <div id="setup-form-container">
+            <div class="setup-header">
+                <div class="setup-icon-ring">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h1>Willkommen!</h1>
+                <p>Richte dein Passwort ein, um zu starten</p>
+            </div>
+
+            <!-- Member Info (hidden until token validated) -->
+            <div id="member-info-display" style="display: none;">
+                <div class="member-info-card">
+                    <h3><i class="fas fa-id-card"></i> Dein Account</h3>
+                    <div class="member-info-row">
+                        <i class="fas fa-user"></i>
+                        Name: <span id="member-name"></span>
+                    </div>
+                    <div class="member-info-row">
+                        <i class="fas fa-at"></i>
+                        Login: <span id="member-username"></span>
+                    </div>
+                    <div class="member-info-row">
+                        <i class="fas fa-star"></i>
+                        Rang: <span id="member-rank"></span>
+                    </div>
+                </div>
+
+                <form id="password-setup-form">
+                    <div class="form-group">
+                        <label><i class="fas fa-lock" style="color: var(--primary); margin-right: 0.35rem;"></i>Neues Passwort</label>
+                        <input type="password" id="new-password" placeholder="Mindestens 6 Zeichen" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock-open" style="color: var(--primary); margin-right: 0.35rem;"></i>Passwort bestätigen</label>
+                        <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="6">
+                    </div>
+
+                    <div class="password-hints">
+                        <div class="hint-item"><i class="fas fa-check"></i> Min. 6 Zeichen</div>
+                        <div class="hint-item"><i class="fas fa-check"></i> Gut merkbar</div>
+                        <div class="hint-item"><i class="fas fa-check"></i> Sicher aufbewahren</div>
+                    </div>
+
+                    <div class="error-message" id="setup-error"></div>
+
+                    <button type="submit" class="btn-setup">
+                        <i class="fas fa-lock"></i> Passwort einrichten
+                    </button>
+                </form>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading-display" class="status-panel">
+                <div class="status-icon loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <h2>Überprüfe Token...</h2>
+                <p>Bitte einen Moment warten</p>
+            </div>
+
+            <!-- Error -->
+            <div id="error-display" style="display: none;">
+                <div class="status-panel">
+                    <div class="status-icon error-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h2>Ungültiger Link</h2>
+                    <p id="error-message">Der Link ist abgelaufen oder ungültig.</p>
+                    <a href="index.html" class="btn-link">
+                        <i class="fas fa-home"></i> Zur Startseite
+                    </a>
+                </div>
+            </div>
+
+            <!-- Success -->
+            <div id="success-display" style="display: none;">
+                <div class="status-panel">
+                    <div class="status-icon success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h2>Passwort eingerichtet!</h2>
+                    <p>Du kannst dich jetzt anmelden.</p>
+                    <a href="index.html" class="btn-link">
+                        <i class="fas fa-sign-in-alt"></i> Zum Login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin + '/api';
+
+        async function clearSession() {
+            try {
+                await fetch(`${API_URL}/auth/clear-session`, { method: 'POST' });
+            } catch (e) {}
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        if (!token) {
+            showError('Kein Token gefunden. Bitte nutze den Einladungslink.');
+        } else {
+            clearSession().then(() => validateToken(token));
+        }
+
+        async function validateToken(token) {
+            try {
+                const response = await fetch(`${API_URL}/members/validate-token/${token}`);
+                const data = await response.json();
+                document.getElementById('loading-display').style.display = 'none';
+                if (data.valid) {
+                    document.getElementById('member-info-display').style.display = 'block';
+                    document.getElementById('member-name').textContent = data.member.full_name;
+                    document.getElementById('member-username').textContent = data.member.username;
+                    document.getElementById('member-rank').textContent = data.member.rank;
+                } else {
+                    showError(data.error || 'Ungültiger oder abgelaufener Token');
+                }
+            } catch (e) {
+                document.getElementById('loading-display').style.display = 'none';
+                showError('Fehler beim Überprüfen des Tokens');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading-display').style.display = 'none';
+            document.getElementById('member-info-display').style.display = 'none';
+            document.getElementById('error-display').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        document.getElementById('password-setup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorEl = document.getElementById('setup-error');
+            errorEl.classList.remove('show');
+
+            if (password !== confirmPassword) {
+                errorEl.textContent = 'Passwörter stimmen nicht überein.';
+                errorEl.classList.add('show');
+                return;
+            }
+            if (password.length < 6) {
+                errorEl.textContent = 'Passwort muss mindestens 6 Zeichen lang sein.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/members/setup-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, password })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('member-info-display').style.display = 'none';
+                    document.getElementById('success-display').style.display = 'block';
+                } else {
+                    errorEl.textContent = data.error || 'Fehler beim Einrichten des Passworts.';
+                    errorEl.classList.add('show');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Verbindungsfehler. Bitte erneut versuchen.';
+                errorEl.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>
     <style>
         .setup-container {
             min-height: 100vh;
