@@ -4884,24 +4884,15 @@ let currentRecipeCategory = '';
 
 // ========== PRODUZIERT EINLAGERN ==========
 
-let produceRunsOutputQty = 1;
-
 function showProduceModal(recipeId, itemName, category, outputQuantity) {
-    produceRunsOutputQty = outputQuantity || 1;
     document.getElementById('produce-recipe-id').value = recipeId;
     document.getElementById('produce-item-name').value = itemName;
     document.getElementById('produce-category').value = category;
-    document.getElementById('produce-runs').value = 1;
-    document.getElementById('produce-quantity').value = produceRunsOutputQty;
-    document.getElementById('produce-unit-value').value = 0;
+    document.getElementById('produce-quantity').value = 1;
+    document.getElementById('produce-item-label').textContent = itemName;
 
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('produce-modal').style.display = 'block';
-}
-
-function updateProducedQuantity() {
-    const runs = parseInt(document.getElementById('produce-runs').value) || 1;
-    document.getElementById('produce-quantity').value = runs * produceRunsOutputQty;
 }
 
 document.getElementById('produce-form').addEventListener('submit', async (e) => {
@@ -4910,10 +4901,9 @@ document.getElementById('produce-form').addEventListener('submit', async (e) => 
     const itemName = document.getElementById('produce-item-name').value.trim();
     const category = document.getElementById('produce-category').value;
     const quantity = parseInt(document.getElementById('produce-quantity').value);
-    const unitValue = parseFloat(document.getElementById('produce-unit-value').value) || 0;
 
     if (!itemName || quantity < 1) {
-        showToast('Bitte alle Felder ausfüllen', 'warning');
+        showToast('Bitte eine gültige Menge eingeben', 'warning');
         return;
     }
 
@@ -4926,7 +4916,7 @@ document.getElementById('produce-form').addEventListener('submit', async (e) => 
                 item_name: itemName,
                 category: category,
                 quantity: quantity,
-                unit_value: unitValue,
+                unit_value: 0,
                 location: 'UNSORTED'
             })
         });
