@@ -548,6 +548,7 @@ async function saveOverviewNotes() {
         if (statusSpan) { statusSpan.textContent = 'Fehler!'; statusSpan.className = 'notes-status error'; }
         setTimeout(() => { if (statusSpan) { statusSpan.textContent = ''; statusSpan.className = 'notes-status'; } }, 3000);
     }
+}
 
 // ========== MITGLIEDER ==========
 
