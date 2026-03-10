@@ -1092,12 +1092,12 @@
         <div class="dealer-popup-body">
             <p class="dealer-popup-desc" id="dealer-popup-desc"></p>
         </div>
-        <div class="dealer-popup-footer" id="dealer-popup-admin-footer" style="display:none;">
-            <button class="btn-icon-small" id="dealer-popup-edit-btn" onclick="showDealerEditModal()" title="Bearbeiten">
-                <i class="fas fa-edit"></i> Bearbeiten
+        <div class="dealer-popup-footer" id="dealer-popup-admin-footer">
+            <button class="dealer-popup-btn dealer-popup-btn-edit" id="dealer-popup-edit-btn" onclick="showDealerEditModal()">
+                <i class="fas fa-pen"></i> Bearbeiten
             </button>
-            <button class="btn-icon-small" style="background:rgba(239,68,68,0.2); margin-left:auto;" id="dealer-popup-delete-btn" onclick="confirmDeleteDealerSpot()" title="Löschen">
-                <i class="fas fa-trash" style="color:#ef4444;"></i>
+            <button class="dealer-popup-btn dealer-popup-btn-delete" id="dealer-popup-delete-btn" onclick="confirmDeleteDealerSpot()">
+                <i class="fas fa-trash"></i> Löschen
             </button>
         </div>
     </div>
