@@ -744,13 +744,7 @@ function notesUpdateCellStyles() {
 }
 
 function notesOnCellClick(e) {
-    const cell = e.currentTarget;
-    if (e.shiftKey && notesSelectedCell) {
-        notesSelRange = { r1: notesSelectedCell.r, c1: notesSelectedCell.c, r2: +cell.dataset.r, c2: +cell.dataset.c };
-        notesUpdateCellStyles();
-    } else {
-        notesSelectCell(cell);
-    }
+    notesSelectCell(e.currentTarget);
 }
 
 function notesOnCellDblClick(e) {
