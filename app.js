@@ -7763,8 +7763,8 @@ function renderDealerSpots(filter) {
         ? visible.filter(s => s.name.toLowerCase().includes(query) || (s.description || '').toLowerCase().includes(query))
         : visible;
 
-    // Draw pins for ALL spots always
-    dealerSpotsData.forEach(spot => pinsLayer.appendChild(createDealerPin(spot)));
+    // Draw pins — only for visible (filtered) spots
+    filtered.forEach(spot => pinsLayer.appendChild(createDealerPin(spot)));
 
     if (dealerSpotsData.length === 0) {
         listEl.innerHTML = `<div class="empty-state">
