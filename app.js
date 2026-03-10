@@ -435,11 +435,22 @@ async function loadDashboardTreasuryStats() {
 
 // ========== ÜBERSICHTS-NOTIZEN ==========
 
-// ========== NOTIZEN MULTI-SHEET ==========
+// ========== NOTIZEN SPREADSHEET ==========
 
-let notesData = { sheets: [{ name: 'Tabelle 1', rows: [] }] };
+const NOTES_COLS = 6;   // Anzahl Datenspalten (A–F)
+const NOTES_ROWS = 30;  // Startzeilen pro Sheet
+
+let notesData = { sheets: [{ name: 'Tabelle 1', cols: NOTES_COLS, data: [] }] };
 let activeSheetIdx = 0;
-let notesRowCounter = 0;
+let notesSelectedCell = null; // { row, col }
+
+// Hilfsfunktion: Spaltenbuchstabe A, B, C, ... Z, AA, AB ...
+function colLetter(n) {
+    let s = '';
+    n++;
+    while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+    return s;
+}
 
 async function loadOverviewNotes() {
     try {
@@ -448,191 +459,265 @@ async function loadOverviewNotes() {
         try {
             const parsed = data.notes ? JSON.parse(data.notes) : null;
             if (parsed && parsed.sheets) {
+                // Migriere alte Sheets die noch keine cols-Struktur haben
+                parsed.sheets.forEach(s => {
+                    if (!s.data) {
+                        s.data = (s.rows || []).map(r => {
+                            const cols = r.cols || [r.thema || '', r.details || '', r.priority || ''];
+                            return cols;
+                        });
+                        s.cols = NOTES_COLS;
+                        delete s.rows;
+                    }
+                });
                 notesData = parsed;
-            } else if (Array.isArray(parsed)) {
-                notesData = { sheets: [{ name: 'Tabelle 1', rows: parsed }] };
             } else if (data.notes) {
-                notesData = { sheets: [{ name: 'Tabelle 1', rows: [{ thema: 'Notizen', details: data.notes.replace(/<[^>]+>/g, ''), priority: '' }] }] };
+                notesData = { sheets: [{ name: 'Tabelle 1', cols: NOTES_COLS, data: [[data.notes.replace(/<[^>]+>/g,''), '', '', '', '', '']] }] };
             } else {
-                notesData = { sheets: [{ name: 'Tabelle 1', rows: [] }] };
+                notesData = { sheets: [{ name: 'Tabelle 1', cols: NOTES_COLS, data: [] }] };
             }
         } catch(e) {
-            notesData = { sheets: [{ name: 'Tabelle 1', rows: [] }] };
+            notesData = { sheets: [{ name: 'Tabelle 1', cols: NOTES_COLS, data: [] }] };
         }
         activeSheetIdx = 0;
-        renderSheetTabs();
-        renderNotesTable(notesData.sheets[activeSheetIdx].rows);
+        notesRender();
     } catch (error) {
         console.error('Fehler beim Laden der Notizen:', error);
-        renderSheetTabs();
-        renderNotesTable([]);
+        notesRender();
     }
 }
 
-function renderSheetTabs() {
+function notesCurrentSheet() {
+    return notesData.sheets[activeSheetIdx];
+}
+
+function notesGetCell(r, c) {
+    const sheet = notesCurrentSheet();
+    return (sheet.data[r] && sheet.data[r][c] != null) ? sheet.data[r][c] : '';
+}
+
+function notesSetCell(r, c, val) {
+    const sheet = notesCurrentSheet();
+    while (sheet.data.length <= r) sheet.data.push([]);
+    while (sheet.data[r].length <= c) sheet.data[r].push('');
+    sheet.data[r][c] = val;
+}
+
+function notesRowCount() {
+    const sheet = notesCurrentSheet();
+    return Math.max(NOTES_ROWS, sheet.data.length + 5);
+}
+
+function notesColCount() {
+    return notesCurrentSheet().cols || NOTES_COLS;
+}
+
+// ---- Render ----
+function notesRender() {
+    notesRenderTabs();
+    notesRenderGrid();
+}
+
+function notesRenderTabs() {
     const container = document.getElementById('notes-sheet-tabs');
     if (!container) return;
     container.innerHTML = notesData.sheets.map((sheet, i) => `
-        <div class="notes-sheet-tab ${i === activeSheetIdx ? 'active' : ''}" data-idx="${i}">
-            <span class="notes-tab-label" onclick="switchNotesSheet(${i})" ondblclick="renameNotesSheet(${i})">${sheet.name}</span>
-            ${notesData.sheets.length > 1 ? `<button class="notes-tab-close" onclick="deleteNotesSheet(${i})" title="Sheet löschen"><i class="fas fa-times"></i></button>` : ''}
+        <div class="nst-tab ${i === activeSheetIdx ? 'active' : ''}" data-idx="${i}">
+            <span class="nst-label" onclick="notesSwitchSheet(${i})" ondblclick="notesRenameSheet(${i})">${sheet.name}</span>
+            ${notesData.sheets.length > 1 ? `<span class="nst-close" onclick="notesDeleteSheet(${i})">×</span>` : ''}
         </div>
     `).join('');
 }
 
-function switchNotesSheet(idx) {
-    if (idx === activeSheetIdx) return;
-    notesData.sheets[activeSheetIdx].rows = collectNotesRows();
-    activeSheetIdx = idx;
-    renderSheetTabs();
-    renderNotesTable(notesData.sheets[activeSheetIdx].rows);
+function notesRenderGrid() {
+    const wrap = document.getElementById('notes-grid-wrap');
+    if (!wrap) return;
+    const rows = notesRowCount();
+    const cols = notesColCount();
+
+    // Spalten-Header (A, B, C...)
+    let colHeader = '<div class="nsg-corner"></div>';
+    for (let c = 0; c < cols; c++) {
+        colHeader += `<div class="nsg-col-head" data-col="${c}">${colLetter(c)}</div>`;
+    }
+
+    // Zeilen
+    let rowsHtml = '';
+    for (let r = 0; r < rows; r++) {
+        rowsHtml += `<div class="nsg-row-num">${r + 1}</div>`;
+        for (let c = 0; c < cols; c++) {
+            const val = notesGetCell(r, c);
+            rowsHtml += `<div class="nsg-cell" data-r="${r}" data-c="${c}" tabindex="0" contenteditable="false" spellcheck="false">${val ? escapeHtml(val) : ''}</div>`;
+        }
+    }
+
+    wrap.innerHTML = `
+        <div class="nsg-col-header" style="grid-template-columns: 46px repeat(${cols}, minmax(100px,1fr))">
+            ${colHeader}
+        </div>
+        <div class="nsg-body" style="grid-template-columns: 46px repeat(${cols}, minmax(100px,1fr))">
+            ${rowsHtml}
+        </div>
+    `;
+
+    // Events
+    wrap.querySelectorAll('.nsg-cell').forEach(cell => {
+        cell.addEventListener('click', notesOnCellClick);
+        cell.addEventListener('keydown', notesOnCellKey);
+        cell.addEventListener('blur', notesOnCellBlur);
+        cell.addEventListener('dblclick', notesOnCellDblClick);
+    });
 }
 
-function addNotesSheet() {
-    notesData.sheets[activeSheetIdx].rows = collectNotesRows();
-    const newIdx = notesData.sheets.length;
-    notesData.sheets.push({ name: `Tabelle ${newIdx + 1}`, rows: [] });
-    activeSheetIdx = newIdx;
-    renderSheetTabs();
-    renderNotesTable([]);
+function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function deleteNotesSheet(idx) {
-    if (notesData.sheets.length <= 1) return;
-    notesData.sheets.splice(idx, 1);
-    activeSheetIdx = Math.max(0, Math.min(activeSheetIdx, notesData.sheets.length - 1));
-    renderSheetTabs();
-    renderNotesTable(notesData.sheets[activeSheetIdx].rows);
+function notesOnCellClick(e) {
+    const cell = e.currentTarget;
+    notesSelectCell(cell);
 }
 
-function renameNotesSheet(idx) {
-    const tab = document.querySelector(`.notes-sheet-tab[data-idx="${idx}"] .notes-tab-label`);
-    if (!tab) return;
-    const currentName = notesData.sheets[idx].name;
-    tab.contentEditable = 'true';
-    tab.focus();
+function notesOnCellDblClick(e) {
+    const cell = e.currentTarget;
+    notesEditCell(cell);
+}
+
+function notesSelectCell(cell) {
+    // Vorherige Selektion aufheben
+    document.querySelectorAll('.nsg-cell.selected').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.nsg-col-head.sel, .nsg-row-num.sel').forEach(c => c.classList.remove('sel'));
+    cell.classList.add('selected');
+    cell.focus();
+    notesSelectedCell = { r: +cell.dataset.r, c: +cell.dataset.c };
+    // Spalten+Zeilen Header markieren
+    const wrap = document.getElementById('notes-grid-wrap');
+    if (wrap) {
+        const colHead = wrap.querySelector(`.nsg-col-head[data-col="${cell.dataset.c}"]`);
+        if (colHead) colHead.classList.add('sel');
+    }
+    // Formelleiste aktualisieren
+    const bar = document.getElementById('notes-formula-bar');
+    if (bar) bar.value = notesGetCell(+cell.dataset.r, +cell.dataset.c);
+}
+
+function notesEditCell(cell) {
+    if (cell.contentEditable === 'true') return;
+    cell.contentEditable = 'true';
+    cell.classList.add('editing');
+    cell.focus();
+    // Cursor ans Ende
     const range = document.createRange();
-    range.selectNodeContents(tab);
+    range.selectNodeContents(cell);
+    range.collapse(false);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
-    function finish() {
-        tab.contentEditable = 'false';
-        const newName = tab.innerText.trim() || currentName;
-        notesData.sheets[idx].name = newName;
-        tab.innerText = newName;
-        tab.removeEventListener('blur', finish);
-        tab.removeEventListener('keydown', onKey);
-    }
-    function onKey(e) {
-        if (e.key === 'Enter') { e.preventDefault(); finish(); }
-        if (e.key === 'Escape') { tab.innerText = currentName; finish(); }
-    }
-    tab.addEventListener('blur', finish);
-    tab.addEventListener('keydown', onKey);
 }
 
-function renderNotesTable(rows) {
-    const tbody = document.getElementById('notes-table-body');
-    if (!tbody) return;
-    notesRowCounter = 0;
-    if (rows.length === 0) {
-        tbody.innerHTML = `<tr class="notes-empty-row"><td colspan="5">Noch keine Einträge – klicke auf <strong>+ Zeile</strong> um zu starten.</td></tr>`;
-    } else {
-        tbody.innerHTML = rows.map((row, i) => {
-            // Migration: altes Format {thema, details, priority} → cols
-            const cols = row.cols || [row.thema || '', row.details || '', row.priority || ''];
-            return buildNotesRow(i + 1, cols);
-        }).join('');
-        notesRowCounter = rows.length;
+function notesOnCellBlur(e) {
+    const cell = e.currentTarget;
+    if (cell.contentEditable === 'true') {
+        const r = +cell.dataset.r, c = +cell.dataset.c;
+        const val = cell.innerText.trim();
+        notesSetCell(r, c, val);
+        cell.contentEditable = 'false';
+        cell.classList.remove('editing');
+        cell.innerHTML = val ? escapeHtml(val) : '';
+        const bar = document.getElementById('notes-formula-bar');
+        if (bar && notesSelectedCell && notesSelectedCell.r === r && notesSelectedCell.c === c) bar.value = val;
     }
-    initNotesKeyboard();
 }
 
-function initNotesKeyboard() {
-    const table = document.querySelector('.notes-sheet-table');
-    if (!table || table._kbInit) return;
-    table._kbInit = true;
-    table.addEventListener('keydown', function(e) {
-        const cell = e.target;
-        if (!cell.classList.contains('notes-cell')) return;
-        const tr = cell.closest('tr');
-        const tbody = tr.closest('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr:not(.notes-empty-row)'));
-        const rowIdx = rows.indexOf(tr);
-        const cells = Array.from(tr.querySelectorAll('.notes-cell'));
-        const cellIdx = cells.indexOf(cell);
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            if (!e.shiftKey) {
-                if (cellIdx < cells.length - 1) cells[cellIdx + 1].focus();
-                else if (rowIdx < rows.length - 1) rows[rowIdx + 1].querySelectorAll('.notes-cell')[0]?.focus();
-            } else {
-                if (cellIdx > 0) cells[cellIdx - 1].focus();
-                else if (rowIdx > 0) { const pc = rows[rowIdx - 1].querySelectorAll('.notes-cell'); pc[pc.length - 1]?.focus(); }
-            }
-        } else if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (rowIdx < rows.length - 1) rows[rowIdx + 1].querySelectorAll('.notes-cell')[cellIdx]?.focus();
-        } else if (e.key === 'Escape') {
-            cell.blur();
+function notesOnCellKey(e) {
+    const cell = e.currentTarget;
+    const isEditing = cell.contentEditable === 'true';
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    const cols = notesColCount();
+
+    if (!isEditing) {
+        if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); notesEditCell(cell); return; }
+        if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); notesSetCell(r,c,''); cell.innerHTML=''; const b=document.getElementById('notes-formula-bar'); if(b) b.value=''; return; }
+        if (e.key === 'ArrowRight' || e.key === 'Tab') { e.preventDefault(); notesMoveTo(r, c + 1); return; }
+        if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) { e.preventDefault(); notesMoveTo(r, c - 1); return; }
+        if (e.key === 'ArrowDown') { e.preventDefault(); notesMoveTo(r + 1, c); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); notesMoveTo(r - 1, c); return; }
+        // Direkt tippen startet Bearbeitung
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+            notesSetCell(r, c, '');
+            cell.innerHTML = '';
+            notesEditCell(cell);
         }
-    });
-}
-
-function buildNotesRow(num, cols) {
-    const id = notesRowCounter++;
-    const [a, b, c] = cols || ['', '', ''];
-    return `
-        <tr data-row-id="${id}">
-            <td class="notes-col-num">${num}</td>
-            <td class="notes-col-a"><div class="notes-cell" contenteditable="true" spellcheck="false">${a}</div></td>
-            <td class="notes-col-b"><div class="notes-cell" contenteditable="true" spellcheck="false">${b}</div></td>
-            <td class="notes-col-c"><div class="notes-cell" contenteditable="true" spellcheck="false">${c}</div></td>
-            <td class="notes-col-del"><button class="notes-del-btn" onclick="deleteNotesRow(this)" title="Zeile löschen"><i class="fas fa-times"></i></button></td>
-        </tr>`;
-}
-
-function addNotesRow() {
-    const tbody = document.getElementById('notes-table-body');
-    if (!tbody) return;
-    const emptyRow = tbody.querySelector('.notes-empty-row');
-    if (emptyRow) emptyRow.remove();
-    const rowCount = tbody.querySelectorAll('tr').length + 1;
-    tbody.insertAdjacentHTML('beforeend', buildNotesRow(rowCount, ['', '', '']));
-    const lastCell = tbody.lastElementChild?.querySelector('.notes-cell');
-    if (lastCell) lastCell.focus();
-}
-
-function deleteNotesRow(btn) {
-    const tr = btn.closest('tr');
-    if (tr) {
-        tr.remove();
-        // Nummern neu vergeben
-        document.querySelectorAll('#notes-table-body tr:not(.notes-empty-row)').forEach((row, i) => {
-            row.querySelector('.notes-col-num').textContent = i + 1;
-        });
+    } else {
+        if (e.key === 'Escape') { e.preventDefault(); cell.innerHTML = escapeHtml(notesGetCell(r,c)); cell.contentEditable='false'; cell.classList.remove('editing'); cell.focus(); return; }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); cell.blur(); notesMoveTo(r + 1, c); return; }
+        if (e.key === 'Tab') { e.preventDefault(); cell.blur(); notesMoveTo(r, c + (e.shiftKey ? -1 : 1)); return; }
     }
 }
 
-function collectNotesRows() {
-    const rows = [];
-    document.querySelectorAll('#notes-table-body tr:not(.notes-empty-row)').forEach(tr => {
-        const cells = tr.querySelectorAll('.notes-cell');
-        rows.push({
-            cols: [
-                cells[0]?.innerText.trim() || '',
-                cells[1]?.innerText.trim() || '',
-                cells[2]?.innerText.trim() || ''
-            ]
-        });
-    });
-    return rows;
+function notesMoveTo(r, c) {
+    const rows = notesRowCount(), cols = notesColCount();
+    r = Math.max(0, Math.min(rows - 1, r));
+    c = Math.max(0, Math.min(cols - 1, c));
+    const wrap = document.getElementById('notes-grid-wrap');
+    if (!wrap) return;
+    const target = wrap.querySelector(`.nsg-cell[data-r="${r}"][data-c="${c}"]`);
+    if (target) { notesSelectCell(target); target.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
 }
 
+// Formelleiste Eingabe
+function notesFormulaInput(val) {
+    if (!notesSelectedCell) return;
+    const { r, c } = notesSelectedCell;
+    notesSetCell(r, c, val);
+    const wrap = document.getElementById('notes-grid-wrap');
+    if (!wrap) return;
+    const cell = wrap.querySelector(`.nsg-cell[data-r="${r}"][data-c="${c}"]`);
+    if (cell) cell.innerHTML = val ? escapeHtml(val) : '';
+}
+
+// ---- Sheets ----
+function notesSwitchSheet(idx) {
+    if (idx === activeSheetIdx) return;
+    activeSheetIdx = idx;
+    notesRender();
+}
+
+function addNotesSheet() {
+    const newIdx = notesData.sheets.length;
+    notesData.sheets.push({ name: `Tabelle ${newIdx + 1}`, cols: NOTES_COLS, data: [] });
+    activeSheetIdx = newIdx;
+    notesRender();
+}
+
+function notesDeleteSheet(idx) {
+    if (notesData.sheets.length <= 1) return;
+    notesData.sheets.splice(idx, 1);
+    activeSheetIdx = Math.max(0, Math.min(activeSheetIdx, notesData.sheets.length - 1));
+    notesRender();
+}
+
+function notesRenameSheet(idx) {
+    const tab = document.querySelector(`.nst-tab[data-idx="${idx}"] .nst-label`);
+    if (!tab) return;
+    const cur = notesData.sheets[idx].name;
+    tab.contentEditable = 'true'; tab.focus();
+    const rng = document.createRange(); rng.selectNodeContents(tab);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rng);
+    const done = () => { tab.contentEditable='false'; notesData.sheets[idx].name = tab.innerText.trim()||cur; tab.removeEventListener('blur',done); tab.removeEventListener('keydown',onk); };
+    const onk = (e) => { if(e.key==='Enter'){e.preventDefault();done();} if(e.key==='Escape'){tab.innerText=cur;done();} };
+    tab.addEventListener('blur', done); tab.addEventListener('keydown', onk);
+}
+
+// Zeile hinzufügen (Button "+ Zeile")
+function addNotesRow() {
+    const sheet = notesCurrentSheet();
+    sheet.data.push(Array(sheet.cols || NOTES_COLS).fill(''));
+    notesRenderGrid();
+}
+
+// ---- Save ----
 async function saveOverviewNotes() {
-    // Aktuelles Sheet speichern bevor wir senden
-    notesData.sheets[activeSheetIdx].rows = collectNotesRows();
     const statusSpan = document.getElementById('notes-status');
     const notes = JSON.stringify(notesData);
     if (statusSpan) { statusSpan.textContent = 'Speichere...'; statusSpan.className = 'notes-status saving'; }
@@ -654,6 +739,10 @@ async function saveOverviewNotes() {
         setTimeout(() => { if (statusSpan) { statusSpan.textContent = ''; statusSpan.className = 'notes-status'; } }, 3000);
     }
 }
+
+// Legacy-Stubs (werden nicht mehr gebraucht, aber falls irgendwo referenziert)
+function renderNotesTable() {}
+function collectNotesRows() { return []; }
 
 // ========== MITGLIEDER ==========
 

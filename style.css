@@ -4766,72 +4766,232 @@ body {
     }
 }
 
-/* ---- Notes Spreadsheet (Google Sheets / Excel Style) ---- */
-.notes-card {
-    min-height: 200px;
+/* ============================================================
+   NOTIZEN SPREADSHEET — komplett neu
+   ============================================================ */
 
+.notes-card {
+    padding: 0 !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-.notes-table-topbar {
+/* --- Topbar --- */
+.notes-topbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    justify-content: space-between;
+    padding: 0.7rem 1rem;
+    background: var(--dark-card);
+    border-bottom: 1px solid var(--border);
     gap: 0.75rem;
     flex-wrap: wrap;
+    flex-shrink: 0;
 }
-
-.notes-table-topbar h2 {
+.notes-topbar h2 {
     margin: 0;
-    font-size: 1.15rem;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+.notes-topbar-right {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Formelleiste */
+.notes-formula-wrap {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #fff;
+    height: 28px;
+}
+.notes-formula-label {
+    padding: 0 8px;
+    background: #f1f3f4;
+    color: #666;
+    font-size: 0.78rem;
+    font-style: italic;
+    border-right: 1px solid #ccc;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+.notes-formula-bar {
+    border: none;
+    outline: none;
+    padding: 0 8px;
+    font-size: 0.84rem;
+    color: #1a1a1a;
+    width: 220px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #fff;
+    height: 100%;
 }
 
 .btn-sm {
-    padding: 0.4rem 0.85rem;
-    font-size: 0.8rem;
-    border-radius: 0.4rem;
+    padding: 0.38rem 0.8rem;
+    font-size: 0.79rem;
+    border-radius: 0.35rem;
 }
 
-/* Sheet tab bar (Google Sheets bottom) */
-.notes-sheet-tabbar {
+/* --- Outer grid container --- */
+.nsg-outer {
+    overflow: auto;
+    flex: 1;
+    min-height: 320px;
+    max-height: 460px;
+    background: #fff;
+}
+
+.nsg-wrap {
+    display: flex;
+    flex-direction: column;
+    min-width: max-content;
+}
+
+/* --- Column header row --- */
+.nsg-col-header {
+    display: grid;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #f1f3f4;
+    border-bottom: 2px solid #b0b0b0;
+}
+
+.nsg-corner {
+    width: 46px;
+    height: 24px;
+    background: #f1f3f4;
+    border-right: 2px solid #b0b0b0;
+    border-bottom: 0;
+}
+
+.nsg-col-head {
+    height: 24px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #444;
+    border-right: 1px solid #d0d0d0;
+    user-select: none;
     background: #f1f3f4;
-    border-top: 1px solid #c8c8c8;
-    border-left: 2px solid #999;
-    border-right: 2px solid #999;
-    border-bottom: 2px solid #999;
-    border-radius: 0 0 3px 3px;
-    padding: 0 4px;
-    height: 34px;
-    gap: 0;
-    overflow: hidden;
+    cursor: default;
+}
+.nsg-col-head:last-child { border-right: none; }
+.nsg-col-head.sel {
+    background: #d2e3fc;
+    color: #1a73e8;
 }
 
-.notes-add-sheet-btn {
-    background: none;
-    border: none;
-    color: #5f6368;
-    width: 28px;
+/* --- Body grid --- */
+.nsg-body {
+    display: grid;
+}
+
+.nsg-row-num {
+    width: 46px;
     height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
+    color: #666;
+    background: #f1f3f4;
+    border-right: 2px solid #b0b0b0;
+    border-bottom: 1px solid #e0e0e0;
+    user-select: none;
+    cursor: default;
     flex-shrink: 0;
-    transition: background 0.15s;
 }
-.notes-add-sheet-btn:hover {
-    background: #dadce0;
+
+.nsg-cell {
+    height: 26px;
+    min-width: 100px;
+    padding: 0 6px;
+    border-right: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e8e8e8;
+    font-size: 0.84rem;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1a1a1a;
+    background: #fff;
+    outline: none;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: cell;
+    display: flex;
+    align-items: center;
+    line-height: 1;
+}
+.nsg-cell:last-child { border-right: none; }
+
+.nsg-cell:nth-child(even of .nsg-row-num ~ .nsg-cell) { background: #fafafa; }
+
+.nsg-cell.selected {
+    background: #e8f0fe !important;
+    box-shadow: inset 0 0 0 2px #1a73e8;
+    z-index: 2;
+    position: relative;
+}
+
+.nsg-cell.editing {
+    background: #fff !important;
+    box-shadow: inset 0 0 0 2px #1a73e8;
+    white-space: pre;
+    overflow: visible;
+    cursor: text;
+    z-index: 3;
+    position: relative;
     color: #1a1a1a;
 }
 
-.notes-sheet-tabs {
+/* Alternate row shading */
+.nsg-body > .nsg-row-num:nth-child(even),
+.nsg-body > .nsg-cell:nth-child(even of [data-r]) { background: #fafafa; }
+
+/* --- Sheet tabbar --- */
+.nst-tabbar {
+    display: flex;
+    align-items: center;
+    background: #f1f3f4;
+    border-top: 1px solid #c8c8c8;
+    height: 33px;
+    padding: 0 4px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.nst-add-btn {
+    background: none;
+    border: none;
+    color: #5f6368;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.nst-add-btn:hover { background: #dadce0; }
+
+.nst-tabs {
     display: flex;
     align-items: flex-end;
     gap: 2px;
@@ -4841,268 +5001,53 @@ body {
     height: 100%;
     padding: 4px 0 0 4px;
 }
-.notes-sheet-tabs::-webkit-scrollbar { display: none; }
+.nst-tabs::-webkit-scrollbar { display: none; }
 
-.notes-sheet-tab {
+.nst-tab {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 12px;
+    gap: 5px;
+    padding: 3px 12px;
     background: #e2e3e5;
     border: 1px solid #c8c8c8;
     border-bottom: none;
     border-radius: 3px 3px 0 0;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: #5f6368;
     white-space: nowrap;
-    min-width: 80px;
-    transition: background 0.1s;
+    min-width: 70px;
+    height: 26px;
     user-select: none;
-    height: 28px;
+    transition: background 0.1s;
 }
-.notes-sheet-tab:hover {
-    background: #d2d5d8;
-}
-.notes-sheet-tab.active {
+.nst-tab:hover { background: #d2d5d8; }
+.nst-tab.active {
     background: #fff;
     color: #1a73e8;
     font-weight: 600;
-    border-color: #c8c8c8;
     border-bottom: 2px solid #fff;
-    z-index: 1;
 }
 
-.notes-tab-label {
-    flex: 1;
-    outline: none;
-    cursor: pointer;
-}
-.notes-tab-label[contenteditable='true'] {
-    cursor: text;
-    background: #fff;
-    padding: 1px 3px;
-    border-radius: 2px;
-}
+.nst-label { flex: 1; outline: none; cursor: pointer; }
+.nst-label[contenteditable='true'] { cursor: text; background: #fff; padding: 1px 3px; border-radius: 2px; }
 
-.notes-tab-close {
-    background: none;
-    border: none;
-    color: #999;
-    cursor: pointer;
-    font-size: 0.68rem;
-    padding: 1px 2px;
-    line-height: 1;
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-}
-.notes-tab-close:hover {
-    background: #c5c7ca;
-    color: #333;
-}
-
-/* Spreadsheet outer frame */
-.notes-table-wrapper {
-    overflow: auto;
-    max-height: 520px;
-    border: 2px solid #999;
-    border-radius: 3px;
-    background: #fff;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.35);
-}
-
-/* Table grid */
-.notes-sheet-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.86rem;
-    background: #fff;
-    color: #1a1a1a;
-    font-family: 'Segoe UI', Arial, sans-serif;
-}
-
-/* Sticky header row */
-.notes-sheet-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.notes-sheet-table thead tr {
-    background: #f1f3f4;
-}
-
-.notes-sheet-table th {
-    padding: 5px 8px;
-    text-align: left;
-    font-weight: 600;
-    color: #3c4043;
-    font-size: 0.76rem;
-    text-transform: none;
-    letter-spacing: 0;
-    border-right: 1px solid #c8c8c8;
-    border-bottom: 2px solid #b0b0b0;
-    white-space: nowrap;
-    user-select: none;
-    height: 26px;
-}
-
-.notes-sheet-table th:last-child { border-right: none; }
-
-/* Body cells */
-.notes-sheet-table td {
-    padding: 0;
-    border-right: 1px solid #e0e0e0;
-    border-bottom: 1px solid #e8e8e8;
-    vertical-align: middle;
-    background: #fff;
-    height: 30px;
-}
-
-.notes-sheet-table td:last-child { border-right: none; }
-.notes-sheet-table tbody tr:last-child td { border-bottom: none; }
-
-/* Row hover */
-.notes-sheet-table tbody tr:hover td {
-    background: #f8f9fa;
-}
-.notes-sheet-table tbody tr:hover .notes-col-num {
-    background: #e2e3e5 !important;
-}
-
-/* Selected cell highlight */
-.notes-sheet-table td:focus-within {
-    background: #e8f0fe !important;
-    box-shadow: inset 0 0 0 2px #1a73e8;
-    position: relative;
-    z-index: 2;
-}
-
-/* Row number column — like Excel left edge */
-.notes-col-num {
-    width: 38px;
-    text-align: center;
-    background: #f1f3f4 !important;
-    color: #777;
-    font-size: 0.74rem;
-    user-select: none;
-    border-right: 2px solid #b0b0b0 !important;
-    cursor: default;
-}
-
-.notes-col-a { width: 28%; }
-.notes-col-b { }
-.notes-col-c { width: 22%; }
-.notes-col-del {
-    width: 32px;
-    text-align: center;
-    background: #f1f3f4 !important;
-    border-left: 2px solid #b0b0b0 !important;
-}
-
-.notes-sheet-table th.notes-col-a,
-.notes-sheet-table th.notes-col-b,
-.notes-sheet-table th.notes-col-c {
-    text-align: center;
-    font-weight: 700;
-    color: #3c4043;
-    font-size: 0.82rem;
-}
-
-.notes-del-btn {
-    background: none;
-    border: none;
-    color: #ccc;
-    cursor: pointer;
-    font-size: 0.70rem;
-    padding: 2px 5px;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-.notes-del-btn:hover {
-    background: #fde8e8;
-    color: #c0392b;
-}
-
-/* Editable cell content */
-.notes-cell {
-    display: block;
-    width: 100%;
-    min-height: 30px;
-    padding: 4px 7px;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: #1a1a1a;
-    font-size: 0.86rem;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    line-height: 1.5;
-    white-space: nowrap;
-    overflow: hidden;
-    cursor: cell;
-}
-
-.notes-cell:focus {
-    cursor: text;
-    white-space: pre-wrap;
-    overflow: visible;
-    background: transparent;
-}
-
-.notes-cell-details { /* inherits notes-cell */ }
-
-/* Priority select */
-.notes-priority-select {
-    width: 100%;
-    height: 30px;
-    padding: 3px 6px;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    color: #1a1a1a;
-    font-size: 0.82rem;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-.notes-priority-select:focus {
-    outline: none;
-    background: #e8f0fe;
-    box-shadow: inset 0 0 0 2px #1a73e8;
-}
-
-/* Prio badges inside select cell */
-.notes-prio-badge {
-    display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    white-space: nowrap;
-}
-.notes-prio-badge.hoch    { background: #fde8e8; color: #c0392b; }
-.notes-prio-badge.mittel  { background: #fef9e0; color: #b7950b; }
-.notes-prio-badge.niedrig { background: #eafaf1; color: #1e8449; }
-.notes-prio-badge.none    { color: #aaa; }
-
-/* Empty row */
-.notes-empty-row td {
-    text-align: center;
-    padding: 2.5rem 1rem;
-    color: #999;
+.nst-close {
     font-size: 0.9rem;
-    background: #fafafa;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+    border-radius: 2px;
 }
+.nst-close:hover { background: #c5c7ca; color: #333; }
 
-/* Status label */
+/* Status */
 .notes-status {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-secondary);
-    transition: color 0.3s ease;
+    transition: color 0.3s;
+    white-space: nowrap;
 }
 .notes-status.saving { color: var(--warning); }
 .notes-status.saved  { color: var(--success); }

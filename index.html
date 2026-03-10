@@ -173,37 +173,24 @@
                 </div>
 
                 <div class="card notes-card">
-                    <div class="notes-table-topbar">
+                    <div class="notes-topbar">
                         <h2><i class="fas fa-table"></i> Notizen & Informationen</h2>
-                        <div style="display:flex; gap:0.6rem; align-items:center;">
-                            <button class="btn-primary btn-sm" onclick="addNotesRow()">
-                                <i class="fas fa-plus"></i> Zeile
-                            </button>
-                            <button id="save-notes-btn" class="btn-primary btn-sm" onclick="saveOverviewNotes()">
-                                <i class="fas fa-save"></i> Speichern
-                            </button>
+                        <div class="notes-topbar-right">
+                            <div class="notes-formula-wrap">
+                                <span class="notes-formula-label">fx</span>
+                                <input id="notes-formula-bar" class="notes-formula-bar" type="text" placeholder="" oninput="notesFormulaInput(this.value)" autocomplete="off" spellcheck="false" />
+                            </div>
+                            <button class="btn-primary btn-sm" onclick="addNotesRow()"><i class="fas fa-plus"></i> Zeile</button>
+                            <button class="btn-primary btn-sm" onclick="saveOverviewNotes()"><i class="fas fa-save"></i> Speichern</button>
                             <span id="notes-status" class="notes-status"></span>
                         </div>
                     </div>
-                    <div class="notes-table-wrapper">
-                        <table class="notes-sheet-table">
-                            <thead>
-                                <tr>
-                                    <th class="notes-col-num"></th>
-                                    <th class="notes-col-a">A</th>
-                                    <th class="notes-col-b">B</th>
-                                    <th class="notes-col-c">C</th>
-                                    <th class="notes-col-del"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="notes-table-body"></tbody>
-                        </table>
+                    <div class="nsg-outer">
+                        <div id="notes-grid-wrap" class="nsg-wrap"></div>
                     </div>
-                    <div class="notes-sheet-tabbar">
-                        <button class="notes-add-sheet-btn" onclick="addNotesSheet()" title="Neues Sheet">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                        <div id="notes-sheet-tabs" class="notes-sheet-tabs"></div>
+                    <div class="nst-tabbar">
+                        <button class="nst-add-btn" onclick="addNotesSheet()" title="Neues Sheet"><i class="fas fa-plus"></i></button>
+                        <div id="notes-sheet-tabs" class="nst-tabs"></div>
                     </div>
                 </div>
             </div>
