@@ -4795,6 +4795,113 @@ body {
     border-radius: 0.4rem;
 }
 
+/* Sheet tab bar (Google Sheets bottom) */
+.notes-sheet-tabbar {
+    display: flex;
+    align-items: center;
+    background: #f1f3f4;
+    border-top: 1px solid #c8c8c8;
+    border-left: 2px solid #999;
+    border-right: 2px solid #999;
+    border-bottom: 2px solid #999;
+    border-radius: 0 0 3px 3px;
+    padding: 0 4px;
+    height: 34px;
+    gap: 0;
+    overflow: hidden;
+}
+
+.notes-add-sheet-btn {
+    background: none;
+    border: none;
+    color: #5f6368;
+    width: 28px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.notes-add-sheet-btn:hover {
+    background: #dadce0;
+    color: #1a1a1a;
+}
+
+.notes-sheet-tabs {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+    height: 100%;
+    padding: 4px 0 0 4px;
+}
+.notes-sheet-tabs::-webkit-scrollbar { display: none; }
+
+.notes-sheet-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: #e2e3e5;
+    border: 1px solid #c8c8c8;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #5f6368;
+    white-space: nowrap;
+    min-width: 80px;
+    transition: background 0.1s;
+    user-select: none;
+    height: 28px;
+}
+.notes-sheet-tab:hover {
+    background: #d2d5d8;
+}
+.notes-sheet-tab.active {
+    background: #fff;
+    color: #1a73e8;
+    font-weight: 600;
+    border-color: #c8c8c8;
+    border-bottom: 2px solid #fff;
+    z-index: 1;
+}
+
+.notes-tab-label {
+    flex: 1;
+    outline: none;
+    cursor: pointer;
+}
+.notes-tab-label[contenteditable='true'] {
+    cursor: text;
+    background: #fff;
+    padding: 1px 3px;
+    border-radius: 2px;
+}
+
+.notes-tab-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 0.68rem;
+    padding: 1px 2px;
+    line-height: 1;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+}
+.notes-tab-close:hover {
+    background: #c5c7ca;
+    color: #333;
+}
+
 /* Spreadsheet outer frame */
 .notes-table-wrapper {
     overflow: auto;

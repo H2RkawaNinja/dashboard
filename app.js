@@ -435,28 +435,101 @@ async function loadDashboardTreasuryStats() {
 
 // ========== ÜBERSICHTS-NOTIZEN ==========
 
-// ========== NOTIZEN TABELLE ==========
+// ========== NOTIZEN MULTI-SHEET ==========
 
+let notesData = { sheets: [{ name: 'Tabelle 1', rows: [] }] };
+let activeSheetIdx = 0;
 let notesRowCounter = 0;
 
 async function loadOverviewNotes() {
     try {
-        const response = await fetch(`${API_URL}/stats/overview-notes`, {
-            credentials: 'include'
-        });
+        const response = await fetch(`${API_URL}/stats/overview-notes`, { credentials: 'include' });
         const data = await response.json();
-        let rows = [];
         try {
-            rows = data.notes ? JSON.parse(data.notes) : [];
+            const parsed = data.notes ? JSON.parse(data.notes) : null;
+            if (parsed && parsed.sheets) {
+                notesData = parsed;
+            } else if (Array.isArray(parsed)) {
+                notesData = { sheets: [{ name: 'Tabelle 1', rows: parsed }] };
+            } else if (data.notes) {
+                notesData = { sheets: [{ name: 'Tabelle 1', rows: [{ thema: 'Notizen', details: data.notes.replace(/<[^>]+>/g, ''), priority: '' }] }] };
+            } else {
+                notesData = { sheets: [{ name: 'Tabelle 1', rows: [] }] };
+            }
         } catch(e) {
-            // Alte Freitext-Daten: als eine Zeile übernehmen
-            if (data.notes) rows = [{ thema: 'Notizen', details: data.notes.replace(/<[^>]+>/g, ''), priority: '' }];
+            notesData = { sheets: [{ name: 'Tabelle 1', rows: [] }] };
         }
-        renderNotesTable(rows);
+        activeSheetIdx = 0;
+        renderSheetTabs();
+        renderNotesTable(notesData.sheets[activeSheetIdx].rows);
     } catch (error) {
         console.error('Fehler beim Laden der Notizen:', error);
+        renderSheetTabs();
         renderNotesTable([]);
     }
+}
+
+function renderSheetTabs() {
+    const container = document.getElementById('notes-sheet-tabs');
+    if (!container) return;
+    container.innerHTML = notesData.sheets.map((sheet, i) => `
+        <div class="notes-sheet-tab ${i === activeSheetIdx ? 'active' : ''}" data-idx="${i}">
+            <span class="notes-tab-label" onclick="switchNotesSheet(${i})" ondblclick="renameNotesSheet(${i})">${sheet.name}</span>
+            ${notesData.sheets.length > 1 ? `<button class="notes-tab-close" onclick="deleteNotesSheet(${i})" title="Sheet löschen"><i class="fas fa-times"></i></button>` : ''}
+        </div>
+    `).join('');
+}
+
+function switchNotesSheet(idx) {
+    if (idx === activeSheetIdx) return;
+    notesData.sheets[activeSheetIdx].rows = collectNotesRows();
+    activeSheetIdx = idx;
+    renderSheetTabs();
+    renderNotesTable(notesData.sheets[activeSheetIdx].rows);
+}
+
+function addNotesSheet() {
+    notesData.sheets[activeSheetIdx].rows = collectNotesRows();
+    const newIdx = notesData.sheets.length;
+    notesData.sheets.push({ name: `Tabelle ${newIdx + 1}`, rows: [] });
+    activeSheetIdx = newIdx;
+    renderSheetTabs();
+    renderNotesTable([]);
+}
+
+function deleteNotesSheet(idx) {
+    if (notesData.sheets.length <= 1) return;
+    notesData.sheets.splice(idx, 1);
+    activeSheetIdx = Math.max(0, Math.min(activeSheetIdx, notesData.sheets.length - 1));
+    renderSheetTabs();
+    renderNotesTable(notesData.sheets[activeSheetIdx].rows);
+}
+
+function renameNotesSheet(idx) {
+    const tab = document.querySelector(`.notes-sheet-tab[data-idx="${idx}"] .notes-tab-label`);
+    if (!tab) return;
+    const currentName = notesData.sheets[idx].name;
+    tab.contentEditable = 'true';
+    tab.focus();
+    const range = document.createRange();
+    range.selectNodeContents(tab);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    function finish() {
+        tab.contentEditable = 'false';
+        const newName = tab.innerText.trim() || currentName;
+        notesData.sheets[idx].name = newName;
+        tab.innerText = newName;
+        tab.removeEventListener('blur', finish);
+        tab.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) {
+        if (e.key === 'Enter') { e.preventDefault(); finish(); }
+        if (e.key === 'Escape') { tab.innerText = currentName; finish(); }
+    }
+    tab.addEventListener('blur', finish);
+    tab.addEventListener('keydown', onKey);
 }
 
 function renderNotesTable(rows) {
@@ -560,8 +633,10 @@ function collectNotesRows() {
 }
 
 async function saveOverviewNotes() {
+    // Aktuelles Sheet speichern bevor wir senden
+    notesData.sheets[activeSheetIdx].rows = collectNotesRows();
     const statusSpan = document.getElementById('notes-status');
-    const notes = JSON.stringify(collectNotesRows());
+    const notes = JSON.stringify(notesData);
     if (statusSpan) { statusSpan.textContent = 'Speichere...'; statusSpan.className = 'notes-status saving'; }
     try {
         const response = await fetch(`${API_URL}/stats/overview-notes`, {
