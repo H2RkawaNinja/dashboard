@@ -75,7 +75,7 @@
                     <i class="fas fa-user-secret"></i><span>Intel-Sammlung</span>
                 </a>
                 <a href="#" class="nav-item" data-page="dealers">
-                    <i class="fas fa-map-marked-alt"></i><span>Dealer-Karte</span>
+                    <i class="fas fa-map-marked-alt"></i><span>Gebietskarte</span>
                 </a>
                 <a href="#" class="nav-item" data-page="activity">
                     <i class="fas fa-clipboard-list"></i><span>Aktivitäten</span>
@@ -1029,7 +1029,10 @@
             <div id="dealers-page" class="page">
                 <div class="dealer-map-header">
                     <div class="dealer-map-stats">
-                        <span class="dealer-stat-badge dealer-stat-total"><i class="fas fa-map-pin"></i> <span id="dealer-stat-total">0</span> Dealer</span>
+                        <span class="dealer-stat-badge dealer-stat-total"><i class="fas fa-map-pin"></i> <span id="dealer-stat-total">0</span> Gesamt</span>
+                        <span class="dealer-stat-badge dealer-stat-dealer"><i class="fas fa-pills"></i> <span id="dealer-stat-dealer">0</span> Dealer</span>
+                        <span class="dealer-stat-badge dealer-stat-gang"><i class="fas fa-skull"></i> <span id="dealer-stat-gang">0</span> Gangs</span>
+                        <span class="dealer-stat-badge dealer-stat-gewerbe"><i class="fas fa-store"></i> <span id="dealer-stat-gewerbe">0</span> Gewerbe</span>
                     </div>
                     <div class="dealer-map-controls">
                         <div class="dealer-zoom-controls">
@@ -1039,9 +1042,17 @@
                             <button class="dealer-zoom-btn" onclick="dealerZoomReset()" title="Zurücksetzen"><i class="fas fa-compress-arrows-alt"></i></button>
                         </div>
                         <button class="btn-primary" id="dealer-place-btn" onclick="toggleDealerPlaceMode()">
-                            <i class="fas fa-map-pin"></i> Dealer hinzufügen
+                            <i class="fas fa-map-pin"></i> Spot hinzufügen
                         </button>
                     </div>
+                </div>
+
+                <!-- Kategorie-Filter -->
+                <div class="dealer-cat-filter">
+                    <button class="dealer-cat-btn active" data-cat="all" onclick="setDealerCatFilter('all')"><i class="fas fa-globe"></i> Alle</button>
+                    <button class="dealer-cat-btn" data-cat="dealer" onclick="setDealerCatFilter('dealer')"><i class="fas fa-pills"></i> Dealer</button>
+                    <button class="dealer-cat-btn" data-cat="gang" onclick="setDealerCatFilter('gang')"><i class="fas fa-skull"></i> Gangs</button>
+                    <button class="dealer-cat-btn" data-cat="gewerbe" onclick="setDealerCatFilter('gewerbe')"><i class="fas fa-store"></i> Gewerbe</button>
                 </div>
 
                 <div class="dealer-layout">
@@ -1065,13 +1076,13 @@
                     <!-- Sidebar -->
                     <div class="dealer-sidebar">
                         <div class="card dealer-sidebar-card">
-                            <h3 style="margin-bottom:1rem;"><i class="fas fa-list-ul"></i> Dealer-Spots</h3>
-                            <input type="text" id="dealer-search-input" class="search-input" placeholder="🔍 Dealer suchen..." oninput="filterDealerList()" style="margin-bottom:0.75rem;">
+                            <h3 style="margin-bottom:1rem;"><i class="fas fa-list-ul"></i> Spots</h3>
+                            <input type="text" id="dealer-search-input" class="search-input" placeholder="🔍 Spot suchen..." oninput="filterDealerList()" style="margin-bottom:0.75rem;">
                             <div id="dealer-spots-list" class="dealer-spots-list">
                                 <div class="empty-state" id="dealer-empty-state">
                                     <i class="fas fa-map-pin"></i>
-                                    <p>Noch keine Dealer eingetragen</p>
-                                    <small>Klicke auf "Dealer hinzufügen" und dann auf die Karte</small>
+                                    <p>Noch keine Spots eingetragen</p>
+                                    <small>Klicke auf "Spot hinzufügen" und dann auf die Karte</small>
                                 </div>
                             </div>
                         </div>
@@ -1087,6 +1098,7 @@
         <div class="dealer-popup-header">
             <div class="dealer-popup-color" id="dealer-popup-color"></div>
             <h4 id="dealer-popup-name"></h4>
+            <span class="dealer-popup-cat-badge" id="dealer-popup-cat-badge"></span>
             <button class="dealer-popup-close" onclick="closeDealerPopup()"><i class="fas fa-times"></i></button>
         </div>
         <div class="dealer-popup-body">
@@ -1166,13 +1178,21 @@
         <!-- Neuer Dealer-Spot Modal -->
         <div id="dealer-new-spot-modal" class="modal" style="display: none; max-width: 420px;">
             <div class="modal-header">
-                <h2><i class="fas fa-map-pin"></i> Neuer Dealer-Spot</h2>
+                <h2><i class="fas fa-map-pin"></i> Neuer Spot</h2>
                 <button class="close-modal" onclick="closeDealerNewModal()">&times;</button>
             </div>
             <form id="dealer-new-spot-form" onsubmit="saveDealerNewSpot(event)">
                 <div style="padding: 1.5rem;">
                     <div class="form-group">
-                        <label>Spot-Name *</label>
+                        <label>Kategorie *</label>
+                        <div class="dealer-cat-select" id="new-dealer-cat-select">
+                            <button type="button" class="dealer-cat-select-btn active" data-cat="dealer" onclick="selectNewSpotCat('dealer')"><i class="fas fa-pills"></i> Dealer</button>
+                            <button type="button" class="dealer-cat-select-btn" data-cat="gang" onclick="selectNewSpotCat('gang')"><i class="fas fa-skull"></i> Gang</button>
+                            <button type="button" class="dealer-cat-select-btn" data-cat="gewerbe" onclick="selectNewSpotCat('gewerbe')"><i class="fas fa-store"></i> Gewerbe</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Name *</label>
                         <input type="text" id="new-dealer-name" placeholder="z.B. Forum Drive, Hafen Süd..." maxlength="100" required>
                     </div>
                     <div class="form-group">
@@ -1191,7 +1211,7 @@
             </form>
         </div>
 
-        <!-- Dealer-Spot bearbeiten Modal -->
+        <!-- Spot bearbeiten Modal -->
         <div id="dealer-edit-spot-modal" class="modal" style="display: none; max-width: 420px;">
             <div class="modal-header">
                 <h2><i class="fas fa-edit"></i> Spot bearbeiten</h2>
@@ -1201,7 +1221,15 @@
                 <div style="padding: 1.5rem;">
                     <input type="hidden" id="edit-dealer-id">
                     <div class="form-group">
-                        <label>Spot-Name *</label>
+                        <label>Kategorie *</label>
+                        <div class="dealer-cat-select" id="edit-dealer-cat-select">
+                            <button type="button" class="dealer-cat-select-btn" data-cat="dealer" onclick="selectEditSpotCat('dealer')"><i class="fas fa-pills"></i> Dealer</button>
+                            <button type="button" class="dealer-cat-select-btn" data-cat="gang" onclick="selectEditSpotCat('gang')"><i class="fas fa-skull"></i> Gang</button>
+                            <button type="button" class="dealer-cat-select-btn" data-cat="gewerbe" onclick="selectEditSpotCat('gewerbe')"><i class="fas fa-store"></i> Gewerbe</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Name *</label>
                         <input type="text" id="edit-dealer-name" maxlength="100" required>
                     </div>
                     <div class="form-group">

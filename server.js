@@ -76,10 +76,14 @@ db.getConnection((err, conn) => {
         x_pos              DECIMAL(6,3) NOT NULL,
         y_pos              DECIMAL(6,3) NOT NULL,
         color              VARCHAR(20) DEFAULT '#ef4444',
+        category           VARCHAR(20) DEFAULT 'dealer',
         assigned_member_id INT NULL,
         created_by         INT NULL,
         created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`, () => {});
+    )`, () => {
+        // Add category column if not exists (migration for existing DBs)
+        conn.query(`ALTER TABLE dealer_spots ADD COLUMN IF NOT EXISTS category VARCHAR(20) DEFAULT 'dealer'`, () => {});
+    });
 
     // Hero Inventory: Sicherstellen dass ein Eintrag existiert
     conn.query('SELECT COUNT(*) as c FROM hero_inventory', (e, r) => {
@@ -1457,7 +1461,7 @@ app.get('/api/permissions-overview', requireLogin, requirePerm('can_manage_syste
 });
 
 // ══════════════════════════════════════════════════════════
-// DEALER-KARTE
+// GEBIETSKARTE
 // ══════════════════════════════════════════════════════════
 
 app.get('/api/dealer-spots', requireLogin, (req, res) => {
@@ -1474,31 +1478,35 @@ app.get('/api/dealer-spots', requireLogin, (req, res) => {
 });
 
 app.post('/api/dealer-spots', requireLogin, (req, res) => {
-    const { name, description, x_pos, y_pos, color } = req.body;
+    const { name, description, x_pos, y_pos, color, category } = req.body;
     if (!name || x_pos === undefined || y_pos === undefined)
         return res.status(400).json({ error: 'Name und Position erforderlich' });
     const xf = parseFloat(x_pos), yf = parseFloat(y_pos);
     if (isNaN(xf) || isNaN(yf) || xf < 0 || xf > 100 || yf < 0 || yf > 100)
         return res.status(400).json({ error: 'Ungültige Position' });
+    const validCategories = ['dealer', 'gang', 'gewerbe'];
+    const cat = validCategories.includes(category) ? category : 'dealer';
     db.query(
-        'INSERT INTO dealer_spots (name, description, x_pos, y_pos, color, created_by) VALUES (?,?,?,?,?,?)',
+        'INSERT INTO dealer_spots (name, description, x_pos, y_pos, color, category, created_by) VALUES (?,?,?,?,?,?,?)',
         [name.trim().substring(0,100), (description||'').trim().substring(0,500) || null,
-         xf, yf, (color||'#ef4444').substring(0,20), req.session.userId],
+         xf, yf, (color||'#ef4444').substring(0,20), cat, req.session.userId],
         (e, r) => {
             if (e) return res.status(500).json({ error: e.message });
-            logActivity(req.session.userId, 'dealer_spot_created', `Dealer-Spot erstellt: ${name}`);
+            logActivity(req.session.userId, 'map_spot_created', `Karten-Spot erstellt: ${name} [${cat}]`);
             res.json({ success: true, id: r.insertId });
         }
     );
 });
 
 app.put('/api/dealer-spots/:id', requireLogin, (req, res) => {
-    const { name, description, color } = req.body;
+    const { name, description, color, category } = req.body;
     if (!name) return res.status(400).json({ error: 'Name erforderlich' });
+    const validCategories = ['dealer', 'gang', 'gewerbe'];
+    const cat = validCategories.includes(category) ? category : 'dealer';
     db.query(
-        'UPDATE dealer_spots SET name=?, description=?, color=? WHERE id=?',
+        'UPDATE dealer_spots SET name=?, description=?, color=?, category=? WHERE id=?',
         [name.trim().substring(0,100), (description||'').trim().substring(0,500) || null,
-         (color||'#ef4444').substring(0,20), parseInt(req.params.id)],
+         (color||'#ef4444').substring(0,20), cat, parseInt(req.params.id)],
         (e) => {
             if (e) return res.status(500).json({ error: e.message });
             logActivity(req.session.userId, 'dealer_spot_updated', `Dealer-Spot bearbeitet: ${name}`);

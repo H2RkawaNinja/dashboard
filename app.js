@@ -183,7 +183,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             'treasury': 'Gangkasse',
             'recipes': 'Rezepte',
             'intelligence': 'Intel-Sammlung',
-            'dealers': 'Dealer-Karte',
+            'dealers': 'Gebietskarte',
             'activity': 'Aktivitäten',
             'maintenance': 'Einstellungen'
         };
@@ -7599,13 +7599,15 @@ function getMonthName(monthNumber) {
     return months[monthNumber - 1];
 }
 
-// ========== DEALER-KARTE ==========
+// ========== GEBIETSKARTE ==========
 
 let dealerSpotsData = [];
 let dealerPlaceMode = false;
 let dealerPendingPos = null;
 let dealerSelectedSpotId = null;
 let dealerSelectedColor = '#ef4444';
+let dealerSelectedCategory = 'dealer';
+let dealerCatFilter = 'all';
 let dealerZoom = 1.0;
 const DEALER_ZOOM_MIN = 1.0;
 let dealerDragActive = false;
@@ -7633,7 +7635,7 @@ async function loadDealerSpots() {
         if (lblEl) lblEl.textContent = '100%';
     } catch (err) {
         console.error(err);
-        showToast('Fehler beim Laden der Dealer-Karte', 'error');
+        showToast('Fehler beim Laden der Gebietskarte', 'error');
     }
 }
 
@@ -7708,50 +7710,76 @@ function _dealerWheelHandler(e) {
     });
 }
 
+function setDealerCatFilter(cat) {
+    dealerCatFilter = cat;
+    document.querySelectorAll('.dealer-cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+    renderDealerSpots();
+}
+
+const CAT_META = {
+    dealer:  { label: 'Dealer',  icon: 'fa-pills',  color: '#ef4444' },
+    gang:    { label: 'Gang',    icon: 'fa-skull',  color: '#f59e0b' },
+    gewerbe: { label: 'Gewerbe', icon: 'fa-store',  color: '#10b981' },
+};
+
 function renderDealerSpots(filter) {
     const pinsLayer = document.getElementById('dealer-pins-layer');
     const listEl    = document.getElementById('dealer-spots-list');
     if (!pinsLayer || !listEl) return;
 
     pinsLayer.innerHTML = '';
+
+    // Update stat counters
     const totalEl = document.getElementById('dealer-stat-total');
     if (totalEl) totalEl.textContent = dealerSpotsData.length;
+    ['dealer','gang','gewerbe'].forEach(cat => {
+        const el = document.getElementById(`dealer-stat-${cat}`);
+        if (el) el.textContent = dealerSpotsData.filter(s => (s.category||'dealer') === cat).length;
+    });
 
     const query = (filter || document.getElementById('dealer-search-input')?.value || '').toLowerCase();
-    const filtered = query
-        ? dealerSpotsData.filter(s => s.name.toLowerCase().includes(query) || (s.description || '').toLowerCase().includes(query))
-        : dealerSpotsData;
 
-    // Always draw all pins on the map
+    // Filter by category tab
+    let visible = dealerCatFilter === 'all' ? dealerSpotsData
+        : dealerSpotsData.filter(s => (s.category || 'dealer') === dealerCatFilter);
+
+    // Filter by search
+    const filtered = query
+        ? visible.filter(s => s.name.toLowerCase().includes(query) || (s.description || '').toLowerCase().includes(query))
+        : visible;
+
+    // Draw pins for ALL spots always
     dealerSpotsData.forEach(spot => pinsLayer.appendChild(createDealerPin(spot)));
 
     if (dealerSpotsData.length === 0) {
         listEl.innerHTML = `<div class="empty-state">
             <i class="fas fa-map-pin"></i>
-            <p>Noch keine Dealer eingetragen</p>
-            <small>Klicke auf "Dealer hinzufügen" und dann auf die Karte</small>
+            <p>Noch keine Spots eingetragen</p>
+            <small>Klicke auf "Spot hinzufügen" und dann auf die Karte</small>
         </div>`;
         return;
     }
 
     if (filtered.length === 0) {
-        listEl.innerHTML = `<div class="empty-state"><i class="fas fa-search"></i><p>Kein Dealer gefunden</p></div>`;
+        listEl.innerHTML = `<div class="empty-state"><i class="fas fa-search"></i><p>Kein Spot gefunden</p></div>`;
         return;
     }
 
-    listEl.innerHTML = filtered.map(spot => `
-        <div class="dealer-spot-item"
+    listEl.innerHTML = filtered.map(spot => {
+        const cat = spot.category || 'dealer';
+        const meta = CAT_META[cat] || CAT_META.dealer;
+        return `<div class="dealer-spot-item dealer-spot-item-${cat}"
              id="dealer-list-item-${spot.id}"
              onclick="scrollToDealerSpot(${spot.id})"
              oncontextmenu="dealerListRightClick(event,${spot.id})">
-            <div class="dealer-spot-item-dot" style="background:${spot.color || '#ef4444'};"></div>
+            <div class="dealer-spot-item-dot" style="background:${spot.color || meta.color};"></div>
             <div class="dealer-spot-item-info">
                 <div class="dealer-spot-item-name">${escapeHtml(spot.name)}</div>
                 ${spot.description ? `<div class="dealer-spot-item-sub">${escapeHtml(spot.description)}</div>` : ''}
             </div>
-            <i class="fas fa-ellipsis-v dealer-item-ctx-icon" title="Rechtsklick für Optionen"></i>
-        </div>
-    `).join('');
+            <span class="dealer-cat-pill dealer-cat-pill-${cat}"><i class="fas ${meta.icon}"></i></span>
+        </div>`;
+    }).join('');
 }
 
 function filterDealerList() {
@@ -7759,13 +7787,15 @@ function filterDealerList() {
 }
 
 function createDealerPin(spot) {
-    const pin = document.createElement('div');
-    pin.className = 'dealer-pin';
+    const cat  = spot.category || 'dealer';
+    const meta = CAT_META[cat] || CAT_META.dealer;
+    const pin  = document.createElement('div');
+    pin.className = `dealer-pin dealer-pin-${cat}`;
     pin.id = `dealer-pin-${spot.id}`;
     pin.style.left = spot.x_pos + '%';
     pin.style.top  = spot.y_pos + '%';
     pin.innerHTML = `
-        <div class="pin-marker" style="background:${spot.color || '#ef4444'};"></div>
+        <div class="pin-marker" style="background:${spot.color || meta.color};"><i class="fas ${meta.icon}"></i></div>
         <div class="pin-tooltip">${escapeHtml(spot.name)}</div>
     `;
     pin.addEventListener('click', (e) => {
@@ -7783,14 +7813,14 @@ function toggleDealerPlaceMode() {
     const mapInner = document.getElementById('dealer-map-inner');
     if (dealerPlaceMode) {
         btn.innerHTML = '<i class="fas fa-times"></i> Abbrechen';
-        btn.className = 'btn-warning dealer-manage-only';
+        btn.className = 'btn-warning';
         hint.style.display = 'flex';
         mapInner.classList.add('place-mode');
         closeDealerPopup();
-        showToast('Klicke auf die Karte um einen Dealer-Spot zu platzieren', 'info');
+        showToast('Klicke auf die Karte um einen Spot zu platzieren', 'info');
     } else {
-        btn.innerHTML = '<i class="fas fa-map-pin"></i> Dealer hinzufügen';
-        btn.className = 'btn-primary dealer-manage-only';
+        btn.innerHTML = '<i class="fas fa-map-pin"></i> Spot hinzufügen';
+        btn.className = 'btn-primary';
         hint.style.display = 'none';
         mapInner.classList.remove('place-mode');
     }
@@ -7843,9 +7873,14 @@ function handleDealerMapClick(e) {
 
 function showDealerNewModal() {
     dealerSelectedColor = '#ef4444';
+    dealerSelectedCategory = 'dealer';
     document.getElementById('new-dealer-name').value = '';
     document.getElementById('new-dealer-desc').value = '';
     renderDealerColorPalette('new-spot-color-palette', dealerSelectedColor);
+    // Reset category selection
+    document.querySelectorAll('#new-dealer-cat-select .dealer-cat-select-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.cat === 'dealer');
+    });
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('dealer-new-spot-modal').style.display = 'block';
     setTimeout(() => document.getElementById('new-dealer-name').focus(), 50);
@@ -7867,11 +7902,11 @@ async function saveDealerNewSpot(e) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ name, description: desc, x_pos: dealerPendingPos.x, y_pos: dealerPendingPos.y, color: dealerSelectedColor })
+            body: JSON.stringify({ name, description: desc, x_pos: dealerPendingPos.x, y_pos: dealerPendingPos.y, color: dealerSelectedColor, category: dealerSelectedCategory })
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Dealer hinzugefügt!', 'success');
+            showToast('Spot hinzugefügt!', 'success');
             closeDealerNewModal();
             loadDealerSpots();
         } else {
@@ -7886,8 +7921,13 @@ function showDealerEditModal() {
     document.getElementById('edit-dealer-id').value   = spot.id;
     document.getElementById('edit-dealer-name').value = spot.name;
     document.getElementById('edit-dealer-desc').value = spot.description || '';
-    dealerSelectedColor = spot.color || '#ef4444';
+    dealerSelectedColor    = spot.color    || '#ef4444';
+    dealerSelectedCategory = spot.category || 'dealer';
     renderDealerColorPalette('edit-spot-color-palette', dealerSelectedColor);
+    // Set category buttons
+    document.querySelectorAll('#edit-dealer-cat-select .dealer-cat-select-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.cat === dealerSelectedCategory);
+    });
     closeDealerPopup();
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('dealer-edit-spot-modal').style.display = 'block';
@@ -7909,11 +7949,11 @@ async function saveDealerEditSpot(e) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ name, description: desc, color: dealerSelectedColor })
+            body: JSON.stringify({ name, description: desc, color: dealerSelectedColor, category: dealerSelectedCategory })
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Dealer aktualisiert!', 'success');
+            showToast('Spot aktualisiert!', 'success');
             closeDealerEditModal();
             loadDealerSpots();
         } else { showToast(data.error || 'Fehler', 'error'); }
@@ -7928,6 +7968,14 @@ function openDealerSpotPopup(spotId, event) {
 
     document.getElementById('dealer-popup-color').style.background = spot.color || '#ef4444';
     document.getElementById('dealer-popup-name').textContent = spot.name;
+    // Category badge
+    const cat = spot.category || 'dealer';
+    const meta = CAT_META[cat] || CAT_META.dealer;
+    const catBadge = document.getElementById('dealer-popup-cat-badge');
+    if (catBadge) {
+        catBadge.className = `dealer-popup-cat-badge dealer-popup-cat-${cat}`;
+        catBadge.innerHTML = `<i class="fas ${meta.icon}"></i> ${meta.label}`;
+    }
     const descEl = document.getElementById('dealer-popup-desc');
     if (spot.description) {
         descEl.textContent = spot.description;
@@ -8006,6 +8054,20 @@ async function confirmDeleteDealerSpot() {
         if (data.success) { showToast('Dealer gelöscht.', 'success'); closeDealerPopup(); loadDealerSpots(); }
         else showToast(data.error || 'Fehler', 'error');
     } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+function selectNewSpotCat(cat) {
+    dealerSelectedCategory = cat;
+    document.querySelectorAll('#new-dealer-cat-select .dealer-cat-select-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.cat === cat);
+    });
+}
+
+function selectEditSpotCat(cat) {
+    dealerSelectedCategory = cat;
+    document.querySelectorAll('#edit-dealer-cat-select .dealer-cat-select-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.cat === cat);
+    });
 }
 
 function renderDealerColorPalette(containerId, selected) {
