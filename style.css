@@ -4857,7 +4857,7 @@ body {
 .nsg-wrap {
     display: flex;
     flex-direction: column;
-    min-width: max-content;
+    width: 100%;
 }
 
 /* --- Column header row --- */

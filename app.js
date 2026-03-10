@@ -634,10 +634,10 @@ function notesRenderGrid() {
     }
 
     wrap.innerHTML = `
-        <div class="nsg-col-header" style="grid-template-columns: 46px repeat(${cols}, minmax(100px,1fr))">
+        <div class="nsg-col-header" style="grid-template-columns: 46px repeat(${cols}, minmax(0, 1fr))">
             ${colHeader}
         </div>
-        <div class="nsg-body" style="grid-template-columns: 46px repeat(${cols}, minmax(100px,1fr))">
+        <div class="nsg-body" style="grid-template-columns: 46px repeat(${cols}, minmax(0, 1fr))">
             ${rowsHtml}
         </div>
     `;
