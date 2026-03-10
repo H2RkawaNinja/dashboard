@@ -1,4 +1,4 @@
-const API_URL = window.location.origin + '/api';
+﻿const API_URL = window.location.origin + '/api';
 const BASE_URL = window.location.origin;
 let currentUser = null;
 
@@ -85,7 +85,7 @@ function showDashboard() {
     document.getElementById('user-display-name').textContent = currentUser.full_name;
     document.getElementById('user-rank').textContent = currentUser.rank;
     
-    // Speichere Benutzerrank für Wartungsrechte
+    // Speichere Benutzerrank fÃ¼r Wartungsrechte
     sessionStorage.setItem('userRank', currentUser.rank);
     
     // Zeige/Verstecke Buttons basierend auf Berechtigungen
@@ -110,10 +110,10 @@ function showDashboard() {
         newProductButton.style.display = canManageFence ? 'inline-flex' : 'none';
     }
     
-    // Wartungsbereich für Techniker anzeigen
+    // Wartungsbereich fÃ¼r Techniker anzeigen
     updateMaintenanceAccess();
     
-    // Wartungsmodus prüfen
+    // Wartungsmodus prÃ¼fen
     checkMaintenanceModes();
     
     loadDashboardData();
@@ -165,7 +165,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         
         const page = item.getAttribute('data-page');
         
-        // Zugangsprüfung
+        // ZugangsprÃ¼fung
         if ((page === 'warehouse' || page === 'storage') && !currentUser.can_view_storage && !currentUser.can_manage_storage) {
             showToast('Keine Berechtigung zum Anzeigen des Lagers', 'error');
             return;
@@ -175,16 +175,16 @@ document.querySelectorAll('.nav-item').forEach(item => {
         document.getElementById(`${page}-page`).classList.add('active');
         
         const titles = {
-            'overview': 'Übersicht',
+            'overview': 'Ãœbersicht',
             'members': 'Mitglieder',
-            'fence': 'Hehler-Geschäft',
+            'fence': 'Hehler-GeschÃ¤ft',
             'warehouse': 'Sortier Bereich',
             'storage': 'Lager',
             'treasury': 'Gangkasse',
             'recipes': 'Rezepte',
             'intelligence': 'Intel-Sammlung',
             'dealers': 'Dealer-Karte',
-            'activity': 'Aktivitäten',
+            'activity': 'AktivitÃ¤ten',
             'maintenance': 'Einstellungen'
         };
         
@@ -234,7 +234,7 @@ function loadPageData(page) {
 // ========== DASHBOARD ==========
 
 function loadDashboardData() {
-    // Lade Navigation und prüfe Berechtigungen
+    // Lade Navigation und prÃ¼fe Berechtigungen
     updateNavigationAccess();
     loadDashboardStats();
     loadMembers();
@@ -269,7 +269,7 @@ function updateNavigationAccess() {
         treasuryNav.style.display = (currentUser.can_view_treasury || currentUser.can_manage_treasury) ? 'flex' : 'none';
     }
     
-    // Aktivitäten Navigation
+    // AktivitÃ¤ten Navigation
     const activityNav = document.querySelector('[data-page="activity"]');
     if (activityNav) {
         activityNav.style.display = currentUser.can_view_activity ? 'flex' : 'none';
@@ -367,7 +367,7 @@ async function loadDashboardStats() {
     }
 }
 
-// Treasury-Statistiken für Dashboard laden
+// Treasury-Statistiken fÃ¼r Dashboard laden
 async function loadDashboardTreasuryStats() {
     try {
         const response = await fetch(`${API_URL}/treasury/stats`, {
@@ -413,13 +413,13 @@ async function loadDashboardTreasuryStats() {
                 withdrawalsEl.textContent = `$ ${formatCurrency(treasuryStats.monthly_withdrawals || 0)}`;
             }
             
-            // Bezahlte Beiträge
+            // Bezahlte BeitrÃ¤ge
             const contributionsEl = document.getElementById('stat-treasury-contributions');
             if (contributionsEl) {
                 contributionsEl.textContent = treasuryStats.paid_members || '0/0';
             }
             
-            // Ausstehende Beiträge
+            // Ausstehende BeitrÃ¤ge
             const outstandingEl = document.getElementById('stat-treasury-outstanding');
             if (outstandingEl) {
                 outstandingEl.textContent = `$ ${formatCurrency(treasuryStats.outstanding_contributions || 0)}`;
@@ -427,7 +427,7 @@ async function loadDashboardTreasuryStats() {
         }
     } catch (error) {
         console.error('Fehler beim Laden der Treasury-Statistiken:', error);
-        // Falls Treasury-API nicht verfügbar ist, Element ausblenden
+        // Falls Treasury-API nicht verfÃ¼gbar ist, Element ausblenden
         const treasuryCards = document.querySelectorAll('.stat-card.treasury, .stat-card.green, .stat-card.red, .stat-card.teal, .stat-card.warning');
         treasuryCards.forEach(card => {
             if (card.querySelector('[id^="stat-treasury"]')) {
@@ -437,7 +437,7 @@ async function loadDashboardTreasuryStats() {
     }
 }
 
-// ========== ÜBERSICHTS-NOTIZEN ==========
+// ========== ÃœBERSICHTS-NOTIZEN ==========
 
 // ========== NOTIZEN SPREADSHEET ==========
 
@@ -467,7 +467,7 @@ async function loadOverviewNotes() {
             if (!notesSelectedCell) return;
             const active = document.activeElement;
             if (!active || !active.closest || !active.closest('#notes-grid-wrap')) return;
-            if (active.contentEditable === 'true') return; // Zelle in Bearbeitung → Browser macht das
+            if (active.contentEditable === 'true') return; // Zelle in Bearbeitung â†’ Browser macht das
             e.preventDefault();
             const text = (e.clipboardData || window.clipboardData).getData('text/plain');
             if (!text) return;
@@ -627,7 +627,7 @@ function notesRenderTabs() {
     container.innerHTML = notesData.sheets.map((sheet, i) => `
         <div class="nst-tab ${i === activeSheetIdx ? 'active' : ''}" data-idx="${i}">
             <span class="nst-label" onclick="notesSwitchSheet(${i})" ondblclick="notesRenameSheet(${i})">${sheet.name}</span>
-            ${notesData.sheets.length > 1 ? `<span class="nst-close" onclick="notesDeleteSheet(${i})">×</span>` : ''}
+            ${notesData.sheets.length > 1 ? `<span class="nst-close" onclick="notesDeleteSheet(${i})">Ã—</span>` : ''}
         </div>
     `).join('');
 }
@@ -808,7 +808,7 @@ function notesOnCellKey(e) {
             if (e.key === 'x') { e.preventDefault(); notesCopy(true);  return; }
             if (e.key === 'v') { e.preventDefault(); notesPaste();     return; }
         }
-        // Formatierung immer verfügbar
+        // Formatierung immer verfÃ¼gbar
         if (e.key === 'b') { e.preventDefault(); notesToggleFormat('bold', true);   return; }
         if (e.key === 'i') { e.preventDefault(); notesToggleFormat('italic', true); return; }
     }
@@ -837,7 +837,7 @@ function notesOnCellKey(e) {
         if (e.key === 'ArrowLeft')  { e.preventDefault(); notesMoveTo(r, c-1); return; }
         if (e.key === 'ArrowDown')  { e.preventDefault(); notesMoveTo(r+1, c); return; }
         if (e.key === 'ArrowUp')    { e.preventDefault(); notesMoveTo(r-1, c); return; }
-        // Direkt tippen startet Bearbeitung – NUR Display leeren, Daten bleiben bis Blur
+        // Direkt tippen startet Bearbeitung â€“ NUR Display leeren, Daten bleiben bis Blur
         if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { cell.innerHTML=''; notesEditCell(cell); }
     } else {
         if (e.key === 'Escape') { e.preventDefault(); cell.innerHTML=escapeHtml(notesGetCell(r,c)); cell.style.cssText=notesBuildCellStyle(r,c); cell.contentEditable='false'; cell.classList.remove('editing'); cell.focus(); return; }
@@ -880,7 +880,7 @@ function notesCopy(cut = false) {
 function notesPasteData(data, styles) {
     if (!notesSelectedCell) return;
     const { r: startR, c: startC } = notesSelectedCell;
-    // Leere letzte Zeile entfernen (manche Browser fügen sie an)
+    // Leere letzte Zeile entfernen (manche Browser fÃ¼gen sie an)
     if (data.length > 1 && data[data.length - 1].every(v => v === '')) data.pop();
     data.forEach((row, dr) => {
         row.forEach((val, dc) => {
@@ -929,7 +929,7 @@ function notesMergeCells() {
     if (rng.r1 === rng.r2 && rng.c1 === rng.c2) return;
     const sheet = notesCurrentSheet();
     if (!sheet.merges) sheet.merges = [];
-    // Existierende Zusammenführung mit gleichen Grenzen → trennen
+    // Existierende ZusammenfÃ¼hrung mit gleichen Grenzen â†’ trennen
     const idx = sheet.merges.findIndex(m => {
         const nm = normalizeRange(m);
         return nm.r1 === rng.r1 && nm.c1 === rng.c1 && nm.r2 === rng.r2 && nm.c2 === rng.c2;
@@ -937,7 +937,7 @@ function notesMergeCells() {
     if (idx >= 0) {
         sheet.merges.splice(idx, 1);
     } else {
-        // Überlappende Merges entfernen, dann neuen hinzufügen
+        // Ãœberlappende Merges entfernen, dann neuen hinzufÃ¼gen
         sheet.merges = sheet.merges.filter(m => {
             const nm = normalizeRange(m);
             return nm.r2 < rng.r1 || nm.r1 > rng.r2 || nm.c2 < rng.c1 || nm.c1 > rng.c2;
@@ -1003,7 +1003,7 @@ function notesRenameSheet(idx) {
     tab.addEventListener('blur', done); tab.addEventListener('keydown', onk);
 }
 
-// Zeile hinzufügen (Button "+ Zeile")
+// Zeile hinzufÃ¼gen (Button "+ Zeile")
 function addNotesRow() {
     const sheet = notesCurrentSheet();
     sheet.data.push(Array(sheet.cols || NOTES_COLS).fill(''));
@@ -1052,7 +1052,7 @@ async function loadMembers() {
         
         const data = await response.json();
         
-        // Defensiv: Prüfe ob data ein Array ist
+        // Defensiv: PrÃ¼fe ob data ein Array ist
         if (data.error) {
             throw new Error(data.error);
         }
@@ -1082,11 +1082,11 @@ async function loadMembers() {
             if (m.can_manage_storage) permBadges.push('<span class="perm-badge perm-badge-orange" title="Lager verwalten"><i class="fas fa-warehouse"></i></span>');
             if (m.can_view_treasury && !m.can_manage_treasury) permBadges.push('<span class="perm-badge perm-badge-teal" title="Gangkasse einsehen"><i class="fas fa-piggy-bank"></i></span>');
             if (m.can_manage_treasury) permBadges.push('<span class="perm-badge perm-badge-gold" title="Gangkasse verwalten"><i class="fas fa-coins"></i></span>');
-            if (m.can_view_activity) permBadges.push('<span class="perm-badge perm-badge-cyan" title="Aktivitäten"><i class="fas fa-clipboard-list"></i></span>');
+            if (m.can_view_activity) permBadges.push('<span class="perm-badge perm-badge-cyan" title="AktivitÃ¤ten"><i class="fas fa-clipboard-list"></i></span>');
             if (m.can_view_stats) permBadges.push('<span class="perm-badge perm-badge-yellow" title="Statistiken"><i class="fas fa-chart-bar"></i></span>');
             
             const permDisplay = m.rank === 'Techniker' 
-                ? '<span class="perm-badge perm-badge-gold" title="Techniker – Vollzugriff"><i class="fas fa-crown"></i> Alle</span>'
+                ? '<span class="perm-badge perm-badge-gold" title="Techniker â€“ Vollzugriff"><i class="fas fa-crown"></i> Alle</span>'
                 : (permBadges.length > 0 ? permBadges.join('') : '<span style="color: var(--text-secondary); font-size: 0.8rem;">Keine</span>');
             
             return `
@@ -1107,7 +1107,7 @@ async function loadMembers() {
                 <td>
                     ${canEdit ? `
                         <button class="btn-icon-small" onclick="editMember(${m.id})" title="Bearbeiten"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon-small" onclick="deleteMember(${m.id}, '${m.full_name}')" title="Löschen" style="background: #dc3545;"><i class="fas fa-trash"></i></button>
+                        <button class="btn-icon-small" onclick="deleteMember(${m.id}, '${m.full_name}')" title="LÃ¶schen" style="background: #dc3545;"><i class="fas fa-trash"></i></button>
                     ` : '-'}
                 </td>
             </tr>
@@ -1132,7 +1132,7 @@ async function loadHeroInventory() {
         });
         const data = await response.json();
         
-        // Speichere Settings für Berechnungen
+        // Speichere Settings fÃ¼r Berechnungen
         window.heroSettings = {
             sale_price: data.sale_price,
             gang_percentage: data.gang_percentage
@@ -1174,7 +1174,7 @@ async function loadHeroSales() {
         const sales = await response.json();
         const tbody = document.getElementById('hero-sales-table');
         if (!sales || sales.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Keine Verkäufe vorhanden</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Keine VerkÃ¤ufe vorhanden</td></tr>';
             return;
         }
         tbody.innerHTML = sales.map(s => {
@@ -1193,7 +1193,7 @@ async function loadHeroSales() {
             `;
         }).join('');
     } catch (error) {
-        console.error('Fehler beim Laden der Verkäufe:', error);
+        console.error('Fehler beim Laden der VerkÃ¤ufe:', error);
     }
 }
 
@@ -1221,7 +1221,7 @@ async function loadHeroDistributions() {
             if (remaining > 0) {
                 actionButton = `<button class="btn-success" onclick="showPaymentModal(${d.id}, '${d.full_name}', ${gangShare}, ${paidAmount})">Zahlung buchen</button>`;
             } else {
-                actionButton = '<span style="color: var(--success);">Vollständig bezahlt</span>';
+                actionButton = '<span style="color: var(--success);">VollstÃ¤ndig bezahlt</span>';
             }
             return `
                 <tr>
@@ -1323,7 +1323,7 @@ async function loadFenceTemplates() {
         const templates = await response.json();
         
         const select = document.getElementById('fence-item-select');
-        select.innerHTML = '<option value="">-- Artikel auswählen --</option>' +
+        select.innerHTML = '<option value="">-- Artikel auswÃ¤hlen --</option>' +
             templates.map(t => 
                 `<option value="${t.id}" data-name="${t.item_name}" data-price="${t.typical_price}">${t.item_name} (${t.category}) - ca. $${t.typical_price}</option>`
             ).join('');
@@ -1359,7 +1359,7 @@ if (restockForm) {
         const quantity = parseInt(document.getElementById('restock-quantity').value);
         
         if (!quantity || quantity < 1) {
-            showToast('Bitte eine gültige Menge eingeben', 'error');
+            showToast('Bitte eine gÃ¼ltige Menge eingeben', 'error');
             return;
         }
     
@@ -1374,13 +1374,13 @@ if (restockForm) {
         const data = await response.json();
         
         if (response.ok && data.success) {
-            showToast(`${quantity} Hero wurden dem Lager hinzugefügt`, 'success', 'Lager aufgefüllt');
+            showToast(`${quantity} Hero wurden dem Lager hinzugefÃ¼gt`, 'success', 'Lager aufgefÃ¼llt');
             closeModals();
             document.getElementById('restock-form').reset();
             loadHeroData();
             loadDashboardStats();
         } else {
-            showToast(data.error || 'Konnte nicht auffüllen', 'error');
+            showToast(data.error || 'Konnte nicht auffÃ¼llen', 'error');
         }
     } catch (error) {
         console.error('Fetch error:', error);
@@ -1413,13 +1413,13 @@ if (editStockForm) {
         const data = await response.json();
         
         if (response.ok && data.success) {
-            showToast(`Lagerbestand wurde auf ${newQuantity} aktualisiert`, 'success', 'Bestand geändert');
+            showToast(`Lagerbestand wurde auf ${newQuantity} aktualisiert`, 'success', 'Bestand geÃ¤ndert');
             closeModals();
             document.getElementById('edit-stock-form').reset();
             loadHeroData();
             loadDashboardStats();
         } else {
-            showToast(data.error || 'Konnte Bestand nicht ändern', 'error');
+            showToast(data.error || 'Konnte Bestand nicht Ã¤ndern', 'error');
         }
     } catch (error) {
         console.error('Fetch error:', error);
@@ -1438,12 +1438,12 @@ if (distributeForm) {
         const quantity = parseInt(document.getElementById('distribute-quantity').value);
         
         if (!member_id) {
-            showToast('Bitte ein Mitglied auswählen', 'error');
+            showToast('Bitte ein Mitglied auswÃ¤hlen', 'error');
         return;
     }
     
     if (!quantity || quantity < 1) {
-        showToast('Bitte eine gültige Menge eingeben', 'error');
+        showToast('Bitte eine gÃ¼ltige Menge eingeben', 'error');
         return;
     }
     
@@ -1561,7 +1561,7 @@ if (paymentForm) {
         const amount = parseFloat(document.getElementById('payment-amount').value);
         
         if (!amount || amount <= 0) {
-            showToast('Bitte einen gültigen Betrag eingeben', 'error');
+            showToast('Bitte einen gÃ¼ltigen Betrag eingeben', 'error');
             return;
         }
         
@@ -1599,7 +1599,7 @@ async function loadFenceData() {
     await loadFenceSummary();
     await loadSalesSummary();
     
-    // Lade auch die Produkte für den Schnellankauf-Tab
+    // Lade auch die Produkte fÃ¼r den Schnellankauf-Tab
     await loadProductsGrid();
 }
 
@@ -1617,14 +1617,14 @@ async function loadFenceSummary() {
         if (countEl) countEl.textContent = summary.total_purchases || 0;
         if (spentEl) spentEl.textContent = `$${parseFloat(summary.total_spent || 0).toFixed(2)}`;
         
-        // Stats für Umsatz und Gewinn
+        // Stats fÃ¼r Umsatz und Gewinn
         const revenueEl = document.getElementById('fence-revenue-today');
         const profitEl = document.getElementById('fence-profit-today');
         
         if (revenueEl) revenueEl.textContent = `$${parseFloat(summary.total_revenue || 0).toFixed(2)}`;
         if (profitEl) profitEl.textContent = `$${parseFloat(summary.total_profit || 0).toFixed(2)}`;
         
-        // Alte Element-ID für Kompatibilität
+        // Alte Element-ID fÃ¼r KompatibilitÃ¤t
         const itemsEl = document.getElementById('fence-items-today');
         if (itemsEl) itemsEl.textContent = summary.total_items || 0;
     } catch (error) {
@@ -1639,7 +1639,7 @@ async function loadSalesSummary() {
         });
         const summary = await response.json();
         
-        // Verkaufs-Stats für den Verkaufs-Tab
+        // Verkaufs-Stats fÃ¼r den Verkaufs-Tab
         const salesEl = document.getElementById('fence-sales-today');
         const revenueEl2 = document.getElementById('fence-revenue-today-2');
         const profitEl2 = document.getElementById('fence-profit-today-2');
@@ -1674,7 +1674,7 @@ async function loadFencePurchases() {
         }
         
         if (purchases.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Keine Ankäufe vorhanden</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Keine AnkÃ¤ufe vorhanden</td></tr>';
             return;
         }
         
@@ -1694,14 +1694,14 @@ async function loadFencePurchases() {
                     <button class="btn-edit" onclick="editFencePurchase(${p.id})" title="Bearbeiten">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-delete" onclick="deleteFencePurchase(${p.id}, '${p.item_name.replace(/'/g, "\\'")})')" title="Löschen">
+                    <button class="btn-delete" onclick="deleteFencePurchase(${p.id}, '${p.item_name.replace(/'/g, "\\'")})')" title="LÃ¶schen">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
         `).join('');
     } catch (error) {
-        console.error('Fehler beim Laden der Hehler-Käufe:', error);
+        console.error('Fehler beim Laden der Hehler-KÃ¤ufe:', error);
     }
 }
 
@@ -1720,7 +1720,7 @@ document.getElementById('fence-purchase-form').addEventListener('submit', async 
     
     // Validierung
     if (!data.item_name || !data.quantity || !data.unit_price) {
-        showToast('Bitte alle erforderlichen Felder ausfüllen', 'error');
+        showToast('Bitte alle erforderlichen Felder ausfÃ¼llen', 'error');
         return;
     }
     
@@ -1746,7 +1746,7 @@ document.getElementById('fence-purchase-form').addEventListener('submit', async 
         
         if (response.ok && result.success) {
             const totalPrice = data.quantity * data.unit_price;
-            showToast(`Ankauf erfolgreich: ${data.quantity}x ${data.item_name} für $${totalPrice.toFixed(2)}`, 'success', 'Ankauf gespeichert');
+            showToast(`Ankauf erfolgreich: ${data.quantity}x ${data.item_name} fÃ¼r $${totalPrice.toFixed(2)}`, 'success', 'Ankauf gespeichert');
             closeModals();
             document.getElementById('fence-purchase-form').reset();
             document.getElementById('fence-item-select').value = '';
@@ -1773,10 +1773,10 @@ function showFenceSaleModal() {
 
 // Schnell-Verkauf direkt aus der Ankaufs-Liste
 function quickSellPurchase(purchaseId, itemName, quantity, unitCost) {
-    // Öffne das Verkaufs-Modal und fülle es vorab aus
+    // Ã–ffne das Verkaufs-Modal und fÃ¼lle es vorab aus
     showFenceSaleModal();
     
-    // Fülle die Felder aus
+    // FÃ¼lle die Felder aus
     document.getElementById('fence-purchase-select').value = purchaseId;
     document.getElementById('fence-sale-item-name').value = itemName;
     document.getElementById('fence-sale-quantity').value = quantity;
@@ -1798,7 +1798,7 @@ async function loadFencePurchasesForSelect() {
         select.innerHTML = '<option value="">-- Bestehender Ankauf --</option>' +
             purchases.filter(p => p.quantity > 0).map(p => 
                 `<option value="${p.id}" data-item="${p.item_name}" data-cost="${p.unit_price}" data-qty="${p.quantity}">
-                    ${p.item_name} (${p.quantity}x à $${p.unit_price})
+                    ${p.item_name} (${p.quantity}x Ã  $${p.unit_price})
                 </option>`
             ).join('');
         
@@ -1812,7 +1812,7 @@ async function loadFencePurchasesForSelect() {
             }
         });
     } catch (error) {
-        console.error('Fehler beim Laden der Ankäufe:', error);
+        console.error('Fehler beim Laden der AnkÃ¤ufe:', error);
     }
 }
 
@@ -1844,7 +1844,7 @@ document.getElementById('fence-sale-form').addEventListener('submit', async (e) 
     
     // Validierung
     if (!data.item_name || !data.quantity || !data.unit_cost || !data.unit_price) {
-        showToast('Bitte alle erforderlichen Felder ausfüllen', 'error');
+        showToast('Bitte alle erforderlichen Felder ausfÃ¼llen', 'error');
         return;
     }
     
@@ -1867,7 +1867,7 @@ document.getElementById('fence-sale-form').addEventListener('submit', async (e) 
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showToast(`Verkauf erfolgreich: ${data.quantity}x ${data.item_name} für $${totalPrice.toFixed(2)} (Gewinn: $${profit.toFixed(2)})`, 'success', 'Verkauf gespeichert');
+            showToast(`Verkauf erfolgreich: ${data.quantity}x ${data.item_name} fÃ¼r $${totalPrice.toFixed(2)} (Gewinn: $${profit.toFixed(2)})`, 'success', 'Verkauf gespeichert');
             closeModals();
             document.getElementById('fence-sale-form').reset();
             document.getElementById('fence-purchase-select').value = '';
@@ -1896,7 +1896,7 @@ async function loadFenceSales() {
         }
         
         if (sales.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Keine Verkäufe vorhanden</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Keine VerkÃ¤ufe vorhanden</td></tr>';
             return;
         }
         
@@ -1910,18 +1910,18 @@ async function loadFenceSales() {
                 <td class="${parseFloat(s.profit) >= 0 ? 'positive' : 'negative'}">$${s.profit ? parseFloat(s.profit).toFixed(2) : '0.00'}</td>
                 <td>${s.buyer_info || '-'}</td>
                 <td>
-                    <button class="btn-delete" onclick="deleteFenceSale(${s.id}, '${s.item_name}')" title="Löschen">
+                    <button class="btn-delete" onclick="deleteFenceSale(${s.id}, '${s.item_name}')" title="LÃ¶schen">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
         `).join('');
     } catch (error) {
-        console.error('Fehler beim Laden der Verkäufe:', error);
+        console.error('Fehler beim Laden der VerkÃ¤ufe:', error);
     }
 }
 
-// ========== HEHLER BEARBEITEN/LÖSCHEN ==========
+// ========== HEHLER BEARBEITEN/LÃ–SCHEN ==========
 
 async function editFencePurchase(id) {
     try {
@@ -1979,7 +1979,7 @@ document.getElementById('edit-fence-purchase-form').addEventListener('submit', a
 });
 
 async function deleteFencePurchase(id, itemName) {
-    if (!confirm(`${itemName} Ankauf löschen?`)) {
+    if (!confirm(`${itemName} Ankauf lÃ¶schen?`)) {
         return;
     }
     
@@ -1991,17 +1991,17 @@ async function deleteFencePurchase(id, itemName) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Ankauf gelöscht', 'success');
+            showToast('Ankauf gelÃ¶scht', 'success');
             loadFencePurchases();
             loadFenceDashboardStats();
         }
     } catch (error) {
-        showToast('Fehler beim Löschen', 'error');
+        showToast('Fehler beim LÃ¶schen', 'error');
     }
 }
 
 async function deleteFenceSale(id, itemName) {
-    if (!confirm(`${itemName} Verkauf löschen?`)) {
+    if (!confirm(`${itemName} Verkauf lÃ¶schen?`)) {
         return;
     }
     
@@ -2013,12 +2013,12 @@ async function deleteFenceSale(id, itemName) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Verkauf gelöscht', 'success');
+            showToast('Verkauf gelÃ¶scht', 'success');
             loadFenceSales();
             loadFenceDashboardStats();
         }
     } catch (error) {
-        showToast('Fehler beim Löschen', 'error');
+        showToast('Fehler beim LÃ¶schen', 'error');
     }
 }
 
@@ -2055,7 +2055,7 @@ async function loadProductTemplates() {
                     <button class="btn-edit" onclick="editProduct(${p.id})" title="Bearbeiten">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-delete" onclick="deleteProduct(${p.id}, '${p.item_name}')" title="Löschen">
+                    <button class="btn-delete" onclick="deleteProduct(${p.id}, '${p.item_name}')" title="LÃ¶schen">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -2121,7 +2121,7 @@ document.getElementById('edit-product-form').addEventListener('submit', async (e
 });
 
 async function deleteProduct(id, itemName) {
-    if (!confirm(`Produkt "${itemName}" löschen?`)) {
+    if (!confirm(`Produkt "${itemName}" lÃ¶schen?`)) {
         return;
     }
     
@@ -2133,19 +2133,19 @@ async function deleteProduct(id, itemName) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Produkt gelöscht', 'success');
+            showToast('Produkt gelÃ¶scht', 'success');
             loadProductTemplates();
             loadFenceItemsForSelect();
         }
     } catch (error) {
-        showToast('Fehler beim Löschen', 'error');
+        showToast('Fehler beim LÃ¶schen', 'error');
     }
 }
 
 // ========== LAGER ==========
 
 async function deleteWarehouseItem(id, itemName) {
-    if (!confirm(`${itemName} aus dem Lager löschen?`)) {
+    if (!confirm(`${itemName} aus dem Lager lÃ¶schen?`)) {
         return;
     }
     
@@ -2157,11 +2157,11 @@ async function deleteWarehouseItem(id, itemName) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Artikel gelöscht', 'success');
+            showToast('Artikel gelÃ¶scht', 'success');
             loadWarehouse();
         }
     } catch (error) {
-        showToast('Fehler beim Löschen', 'error');
+        showToast('Fehler beim LÃ¶schen', 'error');
     }
 }
 
@@ -2172,11 +2172,11 @@ async function loadWarehouse() {
         });
         const items = await response.json();
         if (!Array.isArray(items)) {
-            console.error('Fehler: /api/warehouse gab kein Array zurück', items);
+            console.error('Fehler: /api/warehouse gab kein Array zurÃ¼ck', items);
             return;
         }
         
-        // Lade Lagerplätze und dann Artikel
+        // Lade LagerplÃ¤tze und dann Artikel
         await loadStorageSlots();
         
         // Lade unsortierte und sortierte Artikel
@@ -2231,7 +2231,7 @@ async function loadStorageSlots() {
                                     <button class="slot-action-btn" onclick="editStorageSlot(${slot.id})" title="Bearbeiten">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="slot-action-btn delete" onclick="deleteStorageSlot(${slot.id}, '${slot.slot_code}')" title="Löschen">
+                                    <button class="slot-action-btn delete" onclick="deleteStorageSlot(${slot.id}, '${slot.slot_code}')" title="LÃ¶schen">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -2245,8 +2245,8 @@ async function loadStorageSlots() {
         `).join('');
         
     } catch (error) {
-        console.error('Fehler beim Laden der Lagerplätze:', error);
-        // Fallback zu Standardplätzen
+        console.error('Fehler beim Laden der LagerplÃ¤tze:', error);
+        // Fallback zu StandardplÃ¤tzen
         storageSlots = [
             {id: 1, slot_code: 'A1', section: 'Regal A', name: null},
             {id: 2, slot_code: 'A2', section: 'Regal A', name: null},
@@ -2343,7 +2343,7 @@ function loadStorageGrid(items) {
                         <div class="slot-item-name">${item.item_name}</div>
                     </div>
                     <div class="slot-item-quantity">${item.quantity}x</div>
-                    <button class="slot-item-remove" onclick="removeFromStorage(${item.id})" title="Zurück zu unsortiert">
+                    <button class="slot-item-remove" onclick="removeFromStorage(${item.id})" title="ZurÃ¼ck zu unsortiert">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -2374,7 +2374,7 @@ function loadWarehouseTable(items) {
             <td>${i.storage_location && i.storage_location !== 'UNSORTED' ? i.storage_location : '<span style="color: var(--danger);">Unsortiert</span>'}</td>
             <td>${formatDateTime(i.last_updated)}</td>
             <td>
-                <button class="btn-delete" onclick="deleteWarehouseItem(${i.id}, '${i.item_name}')" title="Löschen">
+                <button class="btn-delete" onclick="deleteWarehouseItem(${i.id}, '${i.item_name}')" title="LÃ¶schen">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -2442,7 +2442,7 @@ async function removeFromStorage(itemId) {
         });
         
         if (response.ok) {
-            showToast('Artikel zurück zu unsortiert verschoben', 'info', null, 2000);
+            showToast('Artikel zurÃ¼ck zu unsortiert verschoben', 'info', null, 2000);
             loadWarehouse();
         } else {
             showToast('Fehler beim Verschieben', 'error');
@@ -2502,7 +2502,7 @@ async function finishStorageOrganization() {
         
     } catch (error) {
         console.error('Fehler:', error);
-        showToast('Fehler beim Abschließen der Lagerung', 'error');
+        showToast('Fehler beim AbschlieÃŸen der Lagerung', 'error');
     }
 }
 
@@ -2560,7 +2560,7 @@ async function loadStorageOverview() {
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-warehouse"></i>
-                    <p>Noch keine Lagerplätze vorhanden</p>
+                    <p>Noch keine LagerplÃ¤tze vorhanden</p>
                 </div>
             `;
             return;
@@ -2597,7 +2597,7 @@ async function loadStorageOverview() {
                                                 <i class="fas fa-edit"></i> Bearbeiten
                                             </button>
                                             <button class="btn-secondary" onclick="deleteStorageSlot(${slot.id}, '${slot.slot_code}')" style="padding: 0.5rem 1rem; font-size: 0.9rem; background: #dc3545; border-color: #dc3545;">
-                                                <i class="fas fa-trash"></i> Löschen
+                                                <i class="fas fa-trash"></i> LÃ¶schen
                                             </button>
                                         </div>
                                     </div>
@@ -2619,7 +2619,7 @@ async function loadStorageOverview() {
                                                 </div>
                                                 <div style="display:flex; flex-direction:row; gap:0.3rem; align-items:center;">
                                                     ${currentUser && currentUser.can_manage_storage ? `<button class="btn-icon-small" onclick="editWarehouseItemQuantity(${item.id}, '${item.item_name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${item.quantity}, ${parseFloat(item.unit_value)})" title="Anzahl bearbeiten"><i class="fas fa-edit"></i></button>` : ''}
-                                                    <button class="storage-item-delete" onclick="deleteWarehouseItem(${item.id}, '${item.item_name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Artikel löschen"><i class="fas fa-trash"></i></button>
+                                                    <button class="storage-item-delete" onclick="deleteWarehouseItem(${item.id}, '${item.item_name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Artikel lÃ¶schen"><i class="fas fa-trash"></i></button>
                                                 </div>
                                             </div>
                                         `).join('')}
@@ -2634,7 +2634,7 @@ async function loadStorageOverview() {
         
     } catch (error) {
         console.error('Fehler:', error);
-        showToast('Fehler beim Laden der Lager-Übersicht', 'error');
+        showToast('Fehler beim Laden der Lager-Ãœbersicht', 'error');
     }
 }
 
@@ -2692,7 +2692,7 @@ function toggleWarehouseView() {
 
 // ========== LAGERPLATZ VERWALTUNG ==========
 
-// Lade Mitglieder für Besitzer-Dropdown
+// Lade Mitglieder fÃ¼r Besitzer-Dropdown
 async function populateOwnerDropdown() {
     try {
         const response = await fetch(`${API_URL}/members`, {
@@ -2715,12 +2715,12 @@ async function populateOwnerDropdown() {
 }
 
 function showAddStorageSlotModal() {
-    document.getElementById('storage-slot-modal-title').textContent = 'Lagerplatz hinzufügen';
+    document.getElementById('storage-slot-modal-title').textContent = 'Lagerplatz hinzufÃ¼gen';
     document.getElementById('storage-slot-form').reset();
     document.getElementById('storage-slot-id').value = '';
     document.getElementById('storage-slot-old-code').value = '';
     
-    // Lade Mitglieder für Besitzer-Dropdown
+    // Lade Mitglieder fÃ¼r Besitzer-Dropdown
     populateOwnerDropdown();
     
     document.getElementById('modal-overlay').style.display = 'flex';
@@ -2735,7 +2735,7 @@ async function editStorageSlot(slotId) {
     document.getElementById('storage-slot-id').value = slot.id;
     document.getElementById('storage-slot-old-code').value = slot.slot_code || '';
     
-    // Lade Mitglieder für Besitzer-Dropdown
+    // Lade Mitglieder fÃ¼r Besitzer-Dropdown
     await populateOwnerDropdown();
     
     document.getElementById('storage-slot-owner').value = slot.owner || '';
@@ -2748,14 +2748,14 @@ async function editStorageSlot(slotId) {
     document.getElementById('storage-slot-modal').style.display = 'block';
 }
 
-// Lösche Lager-Artikel
+// LÃ¶sche Lager-Artikel
 async function deleteWarehouseItem(itemId, itemName) {
-    // Zeige eigenes Löschbestätigungs-Modal
+    // Zeige eigenes LÃ¶schbestÃ¤tigungs-Modal
     document.getElementById('delete-item-name').textContent = itemName;
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('delete-item-modal').style.display = 'block';
     
-    // Setze Event Handler für Bestätigung
+    // Setze Event Handler fÃ¼r BestÃ¤tigung
     const confirmBtn = document.getElementById('confirm-delete-item-btn');
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
@@ -2770,26 +2770,26 @@ async function deleteWarehouseItem(itemId, itemName) {
             });
             
             if (response.ok) {
-                showToast('Artikel erfolgreich gelöscht', 'success');
+                showToast('Artikel erfolgreich gelÃ¶scht', 'success');
                 loadWarehouse();
                 loadStorageOverview();
             } else {
-                showToast('Fehler beim Löschen des Artikels', 'error');
+                showToast('Fehler beim LÃ¶schen des Artikels', 'error');
             }
         } catch (error) {
             console.error('Fehler:', error);
-            showToast('Fehler beim Löschen des Artikels', 'error');
+            showToast('Fehler beim LÃ¶schen des Artikels', 'error');
         }
     };
 }
 
 async function deleteStorageSlot(slotId, slotCode) {
-    // Zeige eigenes Löschbestätigungs-Modal
+    // Zeige eigenes LÃ¶schbestÃ¤tigungs-Modal
     document.getElementById('delete-storage-code').textContent = slotCode;
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('delete-storage-modal').style.display = 'block';
     
-    // Setze Event Handler für Bestätigung
+    // Setze Event Handler fÃ¼r BestÃ¤tigung
     const confirmBtn = document.getElementById('confirm-delete-storage-btn');
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
@@ -2804,15 +2804,15 @@ async function deleteStorageSlot(slotId, slotCode) {
             });
             
             if (response.ok) {
-                showToast('Lagerplatz erfolgreich gelöscht', 'success');
+                showToast('Lagerplatz erfolgreich gelÃ¶scht', 'success');
                 loadWarehouse();
                 loadStorageOverview();
             } else {
-                showToast('Fehler beim Löschen des Lagerplatzes', 'error');
+                showToast('Fehler beim LÃ¶schen des Lagerplatzes', 'error');
             }
         } catch (error) {
             console.error('Fehler:', error);
-            showToast('Fehler beim Löschen des Lagerplatzes', 'error');
+            showToast('Fehler beim LÃ¶schen des Lagerplatzes', 'error');
         }
     };
 }
@@ -2852,7 +2852,7 @@ if (storageSlotForm) {
             });
             
             if (response.ok) {
-                showToast(slotId ? 'Lagerplatz aktualisiert' : 'Lagerplatz hinzugefügt', 'success');
+                showToast(slotId ? 'Lagerplatz aktualisiert' : 'Lagerplatz hinzugefÃ¼gt', 'success');
                 closeModals();
                 loadWarehouse();
                 loadStorageOverview();
@@ -2867,7 +2867,7 @@ if (storageSlotForm) {
     });
 }
 
-// ========== AKTIVITÄT ==========
+// ========== AKTIVITÃ„T ==========
 
 async function loadActivity() {
     try {
@@ -2882,21 +2882,21 @@ async function loadActivity() {
             logDiv.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-history"></i>
-                    <p>Noch keine Aktivitäten vorhanden</p>
+                    <p>Noch keine AktivitÃ¤ten vorhanden</p>
                 </div>
             `;
             return;
         }
         
         logDiv.innerHTML = activities.map(a => {
-            // Spezielle Formatierung für verschiedene Aktivitätstypen
+            // Spezielle Formatierung fÃ¼r verschiedene AktivitÃ¤tstypen
             let displayText = a.description;
             let iconColor = '';
             let detailsHtml = '';
             
             if (a.action_type === 'fence_purchase') {
                 iconColor = 'style="color: var(--secondary);"';
-                // Format: "Username kaufte Item für $X an"
+                // Format: "Username kaufte Item fÃ¼r $X an"
                 const memberName = a.full_name || a.username || 'Unbekannt';
                 
                 if (a.details) {
@@ -2983,7 +2983,7 @@ async function loadActivity() {
             `;
         }).join('');
     } catch (error) {
-        console.error('Fehler beim Laden der Aktivitäten:', error);
+        console.error('Fehler beim Laden der AktivitÃ¤ten:', error);
     }
 }
 
@@ -3003,7 +3003,7 @@ function getActivityIcon(type) {
     return icons[type] || 'info-circle';
 }
 
-// ========== MITGLIEDER HINZUFÜGEN ==========
+// ========== MITGLIEDER HINZUFÃœGEN ==========
 
 function showAddMemberModal() {
     document.getElementById('modal-overlay').style.display = 'flex';
@@ -3078,7 +3078,7 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
             
             loadMembers();
         } else {
-            showToast(result.error || 'Mitglied konnte nicht hinzugefügt werden', 'error');
+            showToast(result.error || 'Mitglied konnte nicht hinzugefÃ¼gt werden', 'error');
         }
     } catch (error) {
         showToast('Verbindungsfehler zum Server', 'error');
@@ -3168,7 +3168,7 @@ document.getElementById('edit-member-form').addEventListener('submit', async (e)
     }
 });
 
-// Mitglied löschen
+// Mitglied lÃ¶schen
 let deleteMemberId = null;
 let deleteMemberNameGlobal = null;
 
@@ -3181,7 +3181,7 @@ function deleteMember(memberId, memberName) {
     document.getElementById('delete-confirm-modal').style.display = 'block';
 }
 
-// Bestätigung beim Löschen
+// BestÃ¤tigung beim LÃ¶schen
 document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
     if (!deleteMemberId) return;
     
@@ -3194,22 +3194,22 @@ document.getElementById('confirm-delete-btn').addEventListener('click', async ()
         if (!response.ok) {
             const text = await response.text();
             console.error('Server-Antwort:', text);
-            showToast('Fehler beim Löschen: ' + (response.status === 403 ? 'Keine Berechtigung' : 'Server-Fehler'), 'error');
+            showToast('Fehler beim LÃ¶schen: ' + (response.status === 403 ? 'Keine Berechtigung' : 'Server-Fehler'), 'error');
             return;
         }
         
         const result = await response.json();
         
         if (result.success) {
-            showToast(`${deleteMemberNameGlobal} wurde erfolgreich entfernt`, 'success', 'Mitglied gelöscht');
+            showToast(`${deleteMemberNameGlobal} wurde erfolgreich entfernt`, 'success', 'Mitglied gelÃ¶scht');
             closeModals();
             loadMembers();
             loadDashboardStats();
         } else {
-            showToast(result.error || 'Mitglied konnte nicht gelöscht werden', 'error');
+            showToast(result.error || 'Mitglied konnte nicht gelÃ¶scht werden', 'error');
         }
     } catch (error) {
-        console.error('Fehler beim Löschen des Mitglieds:', error);
+        console.error('Fehler beim LÃ¶schen des Mitglieds:', error);
         showToast('Verbindungsfehler zum Server', 'error');
     }
 });
@@ -3227,14 +3227,14 @@ function formatDateTime(dateString) {
     });
 }
 
-// Modal schließen bei Klick außerhalb
+// Modal schlieÃŸen bei Klick auÃŸerhalb
 document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'modal-overlay') {
         closeModals();
     }
 });
 
-// Member-Select für Formulare laden
+// Member-Select fÃ¼r Formulare laden
 async function loadMemberSelects() {
     try {
         const response = await fetch(`${API_URL}/members`, {
@@ -3246,7 +3246,7 @@ async function loadMemberSelects() {
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
             if (select) {
-                select.innerHTML = '<option value="">Mitglied wählen...</option>' +
+                select.innerHTML = '<option value="">Mitglied wÃ¤hlen...</option>' +
                     members.filter(m => m.is_active).map(m => 
                         `<option value="${m.id}">${m.full_name} (${m.rank})</option>`
                     ).join('');
@@ -3265,9 +3265,9 @@ function copyInviteLink() {
     showToast('Link wurde in die Zwischenablage kopiert', 'success', 'Kopiert', 2000);
 }
 
-// Passwort anzeigen (nur für Techniker)
+// Passwort anzeigen (nur fÃ¼r Techniker)
 async function showPassword(memberId) {
-    if (!confirm('Möchtest du das Passwort dieses Mitglieds anzeigen?')) {
+    if (!confirm('MÃ¶chtest du das Passwort dieses Mitglieds anzeigen?')) {
         return;
     }
     
@@ -3278,7 +3278,7 @@ async function showPassword(memberId) {
         const data = await response.json();
         
         if (data.password) {
-            showToast(`Passwort für ${data.full_name} (@${data.username}): ${data.password}`, 'info', 'Passwort', 10000);
+            showToast(`Passwort fÃ¼r ${data.full_name} (@${data.username}): ${data.password}`, 'info', 'Passwort', 10000);
         } else {
             showToast(data.error || 'Fehler beim Laden des Passworts', 'error');
         }
@@ -3306,7 +3306,7 @@ function switchFenceTab(tabName) {
     } else if (tabName === 'manage') {
         loadProductsManagement();
         
-        // Berechtigungen für Produktverwaltung prüfen
+        // Berechtigungen fÃ¼r Produktverwaltung prÃ¼fen
         if (currentUser) {
             const newProductButton = document.querySelector('#fence-manage-tab .btn-primary');
             if (newProductButton) {
@@ -3330,10 +3330,10 @@ function addToCart() {
     const quantity = parseInt(document.getElementById('quick-quantity').value) || 0;
     const unitPrice = parseFloat(document.getElementById('quick-unit-price').value) || 0;
     
-    console.log('Versuche Artikel zum Warenkorb hinzuzufügen:', { productName, quantity, unitPrice }); // Debug log
+    console.log('Versuche Artikel zum Warenkorb hinzuzufÃ¼gen:', { productName, quantity, unitPrice }); // Debug log
     
     if (!productName || quantity < 1 || unitPrice < 0) {
-        showToast('Bitte alle Felder korrekt ausfüllen', 'error');
+        showToast('Bitte alle Felder korrekt ausfÃ¼llen', 'error');
         return;
     }
     
@@ -3351,16 +3351,16 @@ function addToCart() {
     shoppingCart.push(cartItem);
     updateCartDisplay();
     
-    console.log('Artikel hinzugefügt. Warenkorb hat jetzt', shoppingCart.length, 'Artikel'); // Debug log
+    console.log('Artikel hinzugefÃ¼gt. Warenkorb hat jetzt', shoppingCart.length, 'Artikel'); // Debug log
     
     // Reset form
     document.getElementById('quick-quantity').value = 1;
     document.getElementById('quick-unit-price').value = '';
     
-    // Modal schließen
+    // Modal schlieÃŸen
     closeModals();
     
-    showToast(`${productName} zum Warenkorb hinzugefügt`, 'success', null, 2000);
+    showToast(`${productName} zum Warenkorb hinzugefÃ¼gt`, 'success', null, 2000);
 }
 
 function removeFromCart(itemId) {
@@ -3372,7 +3372,7 @@ function removeFromCart(itemId) {
 function clearCart() {
     if (shoppingCart.length === 0) return;
     
-    if (confirm('Möchten Sie den Warenkorb wirklich leeren?')) {
+    if (confirm('MÃ¶chten Sie den Warenkorb wirklich leeren?')) {
         shoppingCart = [];
         updateCartDisplay();
         showToast('Warenkorb geleert', 'info', null, 2000);
@@ -3432,7 +3432,7 @@ function updateCartDisplay() {
                     <div class="cart-item-name">${item.productName}</div>
                     <div class="cart-item-details">
                         <span>${item.quantity}x</span>
-                        <span>$${item.unitPrice.toFixed(2)}/Stück</span>
+                        <span>$${item.unitPrice.toFixed(2)}/StÃ¼ck</span>
                         <span class="text-muted">${item.productCategory || ''}</span>
                     </div>
                 </div>
@@ -3465,7 +3465,7 @@ function updateCartDisplay() {
                 </div>
                 <div class="page-cart-item-details">
                     <div class="page-cart-item-qty">
-                        <strong>${item.quantity}x</strong> à $${item.unitPrice.toFixed(2)}
+                        <strong>${item.quantity}x</strong> Ã  $${item.unitPrice.toFixed(2)}
                     </div>
                     <div class="page-cart-item-price">$${item.total.toFixed(2)}</div>
                 </div>
@@ -3507,7 +3507,7 @@ function changeQuickQty(delta) {
     calculateQuickTotal();
 }
 
-// Privater Ankauf Modal öffnen (nichts wird gespeichert)
+// Privater Ankauf Modal Ã¶ffnen (nichts wird gespeichert)
 function showPrivatePurchaseModal(fromCart = false) {
     const form = document.getElementById('private-purchase-form');
     if (form) form.reset();
@@ -3527,7 +3527,7 @@ function showPrivatePurchaseModal(fromCart = false) {
             <div style="display:flex; justify-content:space-between; align-items:center; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
                 <div>
                     <strong>${item.productName}</strong>
-                    <span style="color:var(--text-secondary); font-size:0.85rem;"> · ${item.quantity}x @ $${item.unitPrice.toFixed(2)}</span>
+                    <span style="color:var(--text-secondary); font-size:0.85rem;"> Â· ${item.quantity}x @ $${item.unitPrice.toFixed(2)}</span>
                 </div>
                 <strong>$${item.total.toFixed(2)}</strong>
             </div>
@@ -3558,7 +3558,7 @@ if (privatePurchaseForm) {
         if (cartSummaryVisible && shoppingCart.length > 0) {
             const total = shoppingCart.reduce((sum, item) => sum + item.total, 0);
             const count = shoppingCart.length;
-            summary = `${count} Artikel für $${total.toFixed(2)} — privat gekauft`;
+            summary = `${count} Artikel fÃ¼r $${total.toFixed(2)} â€” privat gekauft`;
             shoppingCart = [];
             updateCartDisplay();
         } else {
@@ -3566,7 +3566,7 @@ if (privatePurchaseForm) {
             const qty = document.getElementById('private-quantity').value;
             const price = parseFloat(document.getElementById('private-unit-price').value) || 0;
             const total = (parseInt(qty) * price).toFixed(2);
-            summary = `${qty}x ${itemName} für $${total} — privat gekauft`;
+            summary = `${qty}x ${itemName} fÃ¼r $${total} â€” privat gekauft`;
         }
 
         closeModals();
@@ -3574,9 +3574,9 @@ if (privatePurchaseForm) {
     });
 }
 
-// Quick Purchase Modal öffnen
+// Quick Purchase Modal Ã¶ffnen
 function showQuickPurchaseModal(productId, productName, productIcon, productCategory, suggestedPrice) {
-    // Stelle sicher, dass alle Felder richtig zurückgesetzt sind
+    // Stelle sicher, dass alle Felder richtig zurÃ¼ckgesetzt sind
     document.getElementById('quick-product-id').value = productId || '';
     document.getElementById('quick-product-name').value = productName || '';
     document.getElementById('quick-product-icon').value = productIcon || 'fa-box';
@@ -3596,16 +3596,16 @@ function showQuickPurchaseModal(productId, productName, productIcon, productCate
     document.getElementById('quick-purchase-modal').style.display = 'block';
 }
 
-// Zur Kasse gehen (öffnet Checkout Modal)
+// Zur Kasse gehen (Ã¶ffnet Checkout Modal)
 function proceedToCheckout() {
     if (shoppingCart.length === 0) {
         showToast('Warenkorb ist leer', 'error');
         return;
     }
     
-    console.log('Öffne Checkout Modal mit', shoppingCart.length, 'Artikeln'); // Debug log
+    console.log('Ã–ffne Checkout Modal mit', shoppingCart.length, 'Artikeln'); // Debug log
     
-    // Öffne das Checkout Modal
+    // Ã–ffne das Checkout Modal
     updateCartDisplay(); // Aktualisiere Warenkorb-Anzeige
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('cart-checkout-modal').style.display = 'block';
@@ -3620,7 +3620,7 @@ async function loadProductsGrid() {
         });
         const products = await response.json();
         if (!Array.isArray(products)) {
-            console.error('Fehler: /api/fence/templates gab kein Array zurück', products);
+            console.error('Fehler: /api/fence/templates gab kein Array zurÃ¼ck', products);
             return;
         }
         
@@ -3854,7 +3854,7 @@ function loadProductsManagementTable(products) {
                     <button class="btn-icon" onclick="editProduct(${product.id})" title="Bearbeiten">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-icon" onclick="deleteProduct(${product.id})" title="Löschen" style="color: var(--danger);">
+                    <button class="btn-icon" onclick="deleteProduct(${product.id})" title="LÃ¶schen" style="color: var(--danger);">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -3868,7 +3868,7 @@ function showAddProductModal() {
     document.getElementById('product-form').reset();
     document.getElementById('product-id').value = '';
     
-    // Setze Standardwerte für die neuen UI-Felder
+    // Setze Standardwerte fÃ¼r die neuen UI-Felder
     document.getElementById('product-icon').value = 'fa-box';
     document.getElementById('product-category').value = 'Sonstiges';
     document.getElementById('product-status').value = 'active';
@@ -3932,7 +3932,7 @@ function calculateProductMargin() {
 }
 
 async function deleteProduct(productId) {
-    if (!confirm('Möchten Sie dieses Produkt wirklich löschen?')) {
+    if (!confirm('MÃ¶chten Sie dieses Produkt wirklich lÃ¶schen?')) {
         return;
     }
     
@@ -3945,15 +3945,15 @@ async function deleteProduct(productId) {
         const data = await response.json();
         
         if (data.success) {
-            showToast('Produkt gelöscht', 'success');
+            showToast('Produkt gelÃ¶scht', 'success');
             loadProductsManagement();
             loadProductsGrid();
         } else {
-            showToast(data.error || 'Fehler beim Löschen', 'error');
+            showToast(data.error || 'Fehler beim LÃ¶schen', 'error');
         }
     } catch (error) {
-        console.error('Fehler beim Löschen des Produkts:', error);
-        showToast('Fehler beim Löschen des Produkts', 'error');
+        console.error('Fehler beim LÃ¶schen des Produkts:', error);
+        showToast('Fehler beim LÃ¶schen des Produkts', 'error');
     }
 }
 
@@ -3980,7 +3980,7 @@ if (productForm) {
         }
         
         if (!productData.category) {
-            showToast('Bitte Kategorie auswählen', 'error');
+            showToast('Bitte Kategorie auswÃ¤hlen', 'error');
             return;
         }
         
@@ -4007,11 +4007,11 @@ if (productForm) {
                 
                 closeModals();
                 
-                // Neue Daten laden mit kleiner Verzögerung
+                // Neue Daten laden mit kleiner VerzÃ¶gerung
                 setTimeout(() => {
                     loadProductsManagement();
                     loadProductsGrid();
-                    loadFenceData(); // Zusätzlich Fence-Daten neu laden
+                    loadFenceData(); // ZusÃ¤tzlich Fence-Daten neu laden
                 }, 100);
             } else {
                 showToast(data.error || 'Fehler beim Speichern', 'error');
@@ -4036,16 +4036,16 @@ if (cartCheckoutForm) {
         }
         
         const sellerInfo = document.getElementById('checkout-seller-info').value;
-        // Alle Ankäufe kommen automatisch ins Lager als UNSORTED
+        // Alle AnkÃ¤ufe kommen automatisch ins Lager als UNSORTED
         const storedInWarehouse = true;
 
-        // Manueller Gesamtpreis – falls abweichend, proportional aufteilen
+        // Manueller Gesamtpreis â€“ falls abweichend, proportional aufteilen
         const calcTotal = shoppingCart.reduce((sum, item) => sum + item.total, 0);
         const manualTotal = parseFloat(document.getElementById('checkout-total-price').value) || calcTotal;
         const ratio = calcTotal > 0 ? manualTotal / calcTotal : 1;
         
         try {
-            // Alle Artikel im Warenkorb als Ankäufe speichern
+            // Alle Artikel im Warenkorb als AnkÃ¤ufe speichern
             const promises = shoppingCart.map(item => {
                 const adjustedTotal = item.total * ratio;
                 const adjustedUnitPrice = item.quantity > 0 ? adjustedTotal / item.quantity : item.unitPrice;
@@ -4070,9 +4070,9 @@ if (cartCheckoutForm) {
                 const totalItems = shoppingCart.length;
                 const totalPrice = manualTotal;
                 
-                showToast(`${totalItems} Artikel(n) für $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`, 'success', 'Ankauf erfolgreich');
+                showToast(`${totalItems} Artikel(n) fÃ¼r $${totalPrice.toFixed(2)} angekauft und ins Lager verschoben`, 'success', 'Ankauf erfolgreich');
                 
-                // Warenkorb und Formular richtig zurücksetzen
+                // Warenkorb und Formular richtig zurÃ¼cksetzen
                 shoppingCart = [];
                 document.getElementById('cart-checkout-form').reset();
                 document.getElementById('checkout-seller-info').value = '';
@@ -4096,19 +4096,19 @@ if (cartCheckoutForm) {
 }
 
 function filterPurchasesByDate() {
-    // Implementierung für Datumsfilter
+    // Implementierung fÃ¼r Datumsfilter
     loadFencePurchases();
 }
 
 function filterSalesByDate() {
-    // Implementierung für Datumsfilter
+    // Implementierung fÃ¼r Datumsfilter
     loadFenceSales();
 }
 
 // ========== VERKAUFS-WARENKORB SYSTEM ==========
 
 function addToSalesCart(productId, productName, productIcon, productCategory, purchasePrice, salePrice, quantity = 1, cost = null, revenue = null, profit = null) {
-    // Berechne Werte falls nicht übergeben
+    // Berechne Werte falls nicht Ã¼bergeben
     if (cost === null) cost = purchasePrice * quantity;
     if (revenue === null) revenue = salePrice * quantity;
     if (profit === null) profit = revenue - cost;
@@ -4130,7 +4130,7 @@ function addToSalesCart(productId, productName, productIcon, productCategory, pu
     salesCart.push(cartItem);
     updateSalesCartDisplay();
     
-    showToast(`${quantity}x ${productName} zum Verkaufskorb hinzugefügt`, 'success', null, 2000);
+    showToast(`${quantity}x ${productName} zum Verkaufskorb hinzugefÃ¼gt`, 'success', null, 2000);
 }
 
 function removeFromSalesCart(itemId) {
@@ -4142,7 +4142,7 @@ function removeFromSalesCart(itemId) {
 function clearSalesCart() {
     if (salesCart.length === 0) return;
     
-    if (confirm('Möchten Sie den Verkaufskorb wirklich leeren?')) {
+    if (confirm('MÃ¶chten Sie den Verkaufskorb wirklich leeren?')) {
         salesCart = [];
         updateSalesCartDisplay();
         showToast('Verkaufskorb geleert', 'info', null, 2000);
@@ -4204,7 +4204,7 @@ function updateSalesCartDisplay() {
                 <div class="page-cart-item-details">
                     <div class="page-cart-item-qty">
                         <strong>${item.quantity}x</strong>
-                        <span class="text-muted" style="font-size: 0.75rem;">EK: $${item.purchasePrice.toFixed(2)} → VK: $${item.salePrice.toFixed(2)}</span>
+                        <span class="text-muted" style="font-size: 0.75rem;">EK: $${item.purchasePrice.toFixed(2)} â†’ VK: $${item.salePrice.toFixed(2)}</span>
                     </div>
                     <div class="page-cart-item-price" style="color: var(--secondary);">+$${item.profit.toFixed(2)}</div>
                 </div>
@@ -4229,7 +4229,7 @@ async function proceedToSalesCheckout() {
     const totalItems = salesCart.reduce((sum, item) => sum + item.quantity, 0);
     const totalRevenue = salesCart.reduce((sum, item) => sum + item.revenue, 0);
     
-    if (!confirm(`Möchten Sie ${totalItems} Artikel für $${totalRevenue.toFixed(2)} verkaufen?`)) {
+    if (!confirm(`MÃ¶chten Sie ${totalItems} Artikel fÃ¼r $${totalRevenue.toFixed(2)} verkaufen?`)) {
         return;
     }
     
@@ -4260,7 +4260,7 @@ async function proceedToSalesCheckout() {
             }
         }
         
-        showToast(`Verkauf erfolgreich: ${totalItems} Artikel für $${totalRevenue.toFixed(2)}`, 'success');
+        showToast(`Verkauf erfolgreich: ${totalItems} Artikel fÃ¼r $${totalRevenue.toFixed(2)}`, 'success');
         salesCart = [];
         updateSalesCartDisplay();
         
@@ -4278,7 +4278,7 @@ async function proceedToSalesCheckout() {
 
 async function loadSalesProductsGrid() {
     try {
-        // Lade Ankäufe die im Lager sind
+        // Lade AnkÃ¤ufe die im Lager sind
         const response = await fetch(`${API_URL}/fence/purchases`, {
             credentials: 'include'
         });
@@ -4291,7 +4291,7 @@ async function loadSalesProductsGrid() {
             return;
         }
         
-        // Filtere nur Ankäufe die im Lager sind
+        // Filtere nur AnkÃ¤ufe die im Lager sind
         const warehouseItems = purchases.filter(p => p.stored_in_warehouse);
         
         if (warehouseItems.length === 0) {
@@ -4355,7 +4355,7 @@ async function loadSalesProductsGrid() {
                     </div>
                     <div class="product-prices">
                         <div class="product-price-item">
-                            <div class="product-price-label">Ø Einkauf</div>
+                            <div class="product-price-label">Ã˜ Einkauf</div>
                             <div class="product-price-value" style="color: var(--danger);">$${purchasePrice.toFixed(2)}</div>
                         </div>
                         <div class="product-price-item">
@@ -4391,7 +4391,7 @@ async function loadSalesProductsGrid() {
     }
 }
 
-// Hilfsfunktionen für Icons und Kategorien
+// Hilfsfunktionen fÃ¼r Icons und Kategorien
 function getIconForCategory(itemName) {
     const name = itemName.toLowerCase();
     if (name.includes('laptop') || name.includes('computer') || name.includes('handy') || name.includes('phone')) return 'fa-laptop';
@@ -4414,7 +4414,7 @@ function getCategoryForItem(itemName) {
     return 'Sonstiges';
 }
 
-// Modal für Verkauf eines bestimmten Artikels
+// Modal fÃ¼r Verkauf eines bestimmten Artikels
 function showSellItemModal(itemName, availableQty, purchasePrice, suggestedSalePrice, icon, category) {
     document.getElementById('sell-item-name').value = itemName;
     document.getElementById('sell-max-quantity').value = availableQty;
@@ -4426,7 +4426,7 @@ function showSellItemModal(itemName, availableQty, purchasePrice, suggestedSaleP
     document.getElementById('sell-item-display-category').textContent = category;
     document.getElementById('sell-item-display-icon').innerHTML = `<i class="fas ${icon}"></i>`;
     document.getElementById('sell-item-stock').textContent = availableQty;
-    document.getElementById('sell-quantity-hint').textContent = `Max: ${availableQty} Stück`;
+    document.getElementById('sell-quantity-hint').textContent = `Max: ${availableQty} StÃ¼ck`;
     document.getElementById('sell-avg-purchase').textContent = purchasePrice.toFixed(2);
     
     const defaultQuantity = 1;
@@ -4461,7 +4461,7 @@ function calculateSellFromQuantity() {
     const quantity = parseInt(document.getElementById('sell-quantity').value) || 0;
     const unitPrice = parseFloat(document.getElementById('sell-unit-price').value) || 0;
     
-    // Update Gesamtpreis basierend auf Stückpreis
+    // Update Gesamtpreis basierend auf StÃ¼ckpreis
     const totalPrice = quantity * unitPrice;
     document.getElementById('sell-total-price').value = totalPrice.toFixed(2);
     
@@ -4483,7 +4483,7 @@ function calculateSellFromTotalPrice() {
     const quantity = parseInt(document.getElementById('sell-quantity').value) || 0;
     const totalPrice = parseFloat(document.getElementById('sell-total-price').value) || 0;
     
-    // Update Stückpreis basierend auf Gesamtpreis
+    // Update StÃ¼ckpreis basierend auf Gesamtpreis
     if (quantity > 0) {
         const unitPrice = totalPrice / quantity;
         document.getElementById('sell-unit-price').value = unitPrice.toFixed(2);
@@ -4509,7 +4509,7 @@ function updateSellCalculation() {
 }
 
 function calculateSellTotal() {
-    // Alte Funktion für Kompatibilität - ruft neue Funktion auf
+    // Alte Funktion fÃ¼r KompatibilitÃ¤t - ruft neue Funktion auf
     calculateSellFromQuantity();
 }
 
@@ -4533,7 +4533,7 @@ if (sellItemForm) {
         }
         
         if (quantity < 1 || salePrice < 0) {
-            showToast('Bitte gültige Werte eingeben', 'error');
+            showToast('Bitte gÃ¼ltige Werte eingeben', 'error');
             return;
         }
         
@@ -4555,7 +4555,7 @@ if (sellItemForm) {
         );
         
         closeModals();
-        showToast(`${quantity}x ${itemName} zum Verkaufskorb hinzugefügt`, 'success');
+        showToast(`${quantity}x ${itemName} zum Verkaufskorb hinzugefÃ¼gt`, 'success');
     });
 }
 
@@ -4604,7 +4604,7 @@ async function loadIntelligence() {
                     <i class="fas fa-address-book"></i>
                     <p>Keine Kontakte vorhanden</p>
                     <button class="btn-primary" onclick="showAddIntelModal()">
-                        <i class="fas fa-plus"></i> Ersten Kontakt hinzufügen
+                        <i class="fas fa-plus"></i> Ersten Kontakt hinzufÃ¼gen
                     </button>
                 </div>
             `;
@@ -4668,7 +4668,7 @@ async function loadIntelligence() {
                             <button class="btn-edit" onclick="editIntel(${item.id})" title="Bearbeiten">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-delete" onclick="deleteIntel(${item.id}, '${item.subject_name.replace(/'/g, "\\'")}')}" title="Löschen">
+                            <button class="btn-delete" onclick="deleteIntel(${item.id}, '${item.subject_name.replace(/'/g, "\\'")}')}" title="LÃ¶schen">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -4762,7 +4762,7 @@ async function editIntel(id) {
 
 async function deleteIntel(id, name) {
     try {
-        // Prüfe zuerst, ob es eine Gang mit zugeordneten Personen ist
+        // PrÃ¼fe zuerst, ob es eine Gang mit zugeordneten Personen ist
         const checkResponse = await fetch(`${API_URL}/intelligence`, {
             credentials: 'include'
         });
@@ -4771,12 +4771,12 @@ async function deleteIntel(id, name) {
         const item = Array.isArray(allIntel) ? allIntel.find(i => i.id === id) : null;
         const isGang = item && item.category === 'Gang';
         
-        let confirmMessage = `Möchten Sie "${name}" wirklich löschen?`;
+        let confirmMessage = `MÃ¶chten Sie "${name}" wirklich lÃ¶schen?`;
         
         if (isGang) {
             const associatedPersons = allIntel.filter(i => i.category === 'Person' && i.gang_id === id);
             if (associatedPersons.length > 0) {
-                confirmMessage = `Gang "${name}" löschen?\n\n⚠️ ${associatedPersons.length} Person(en) sind dieser Gang zugeordnet:\n${associatedPersons.map(p => '• ' + p.subject_name).join('\n')}\n\nDiese Personen bleiben erhalten, werden aber von der Gang entfernt.`;
+                confirmMessage = `Gang "${name}" lÃ¶schen?\n\nâš ï¸ ${associatedPersons.length} Person(en) sind dieser Gang zugeordnet:\n${associatedPersons.map(p => 'â€¢ ' + p.subject_name).join('\n')}\n\nDiese Personen bleiben erhalten, werden aber von der Gang entfernt.`;
             }
         }
         
@@ -4792,13 +4792,13 @@ async function deleteIntel(id, name) {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showToast(result.message || 'Kontakt gelöscht', 'success');
+            showToast(result.message || 'Kontakt gelÃ¶scht', 'success');
             loadIntelligence();
         } else {
-            showToast(result.error || 'Fehler beim Löschen', 'error');
+            showToast(result.error || 'Fehler beim LÃ¶schen', 'error');
         }
     } catch (error) {
-        console.error('Fehler beim Löschen:', error);
+        console.error('Fehler beim LÃ¶schen:', error);
         showToast('Verbindungsfehler', 'error');
     }
 }
@@ -4835,7 +4835,7 @@ document.getElementById('intel-form').addEventListener('submit', async (e) => {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showToast(id ? 'Kontakt aktualisiert' : 'Kontakt hinzugefügt', 'success');
+            showToast(id ? 'Kontakt aktualisiert' : 'Kontakt hinzugefÃ¼gt', 'success');
             closeModals();
             loadIntelligence();
         } else {
@@ -4915,7 +4915,7 @@ function displayRecipes(recipes) {
     const categoryIcons = {
         'Waffen': 'fa-gun',
         'Drogen': 'fa-pills',
-        'Ausrüstung': 'fa-vest',
+        'AusrÃ¼stung': 'fa-vest',
         'Fahrzeuge': 'fa-car',
         'Sonstiges': 'fa-box'
     };
@@ -4924,7 +4924,7 @@ function displayRecipes(recipes) {
     const categoryColors = {
         'Waffen': '#ef4444',
         'Drogen': '#8b5cf6',
-        'Ausrüstung': '#3b82f6',
+        'AusrÃ¼stung': '#3b82f6',
         'Fahrzeuge': '#f59e0b',
         'Sonstiges': '#6b7280'
     };
@@ -4953,7 +4953,7 @@ function displayRecipes(recipes) {
                         <button class="btn-icon-small" onclick="showEditRecipeModal(${recipe.id})" title="Bearbeiten">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon-small btn-delete" onclick="deleteRecipe(${recipe.id}, '${recipe.recipe_name.replace(/'/g, "\\'")}')" title="Löschen">
+                        <button class="btn-icon-small btn-delete" onclick="deleteRecipe(${recipe.id}, '${recipe.recipe_name.replace(/'/g, "\\'")}')" title="LÃ¶schen">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -5008,7 +5008,7 @@ function previewRecipeImage(event) {
         const preview = document.getElementById('recipe-image-preview');
         if (preview) {
             preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:160px; border-radius:0.5rem; object-fit:contain;">` ;
-            // Speichere Base64 für Upload
+            // Speichere Base64 fÃ¼r Upload
             preview.dataset.imageData = e.target.result;
             // URL-Feld leeren
             const urlInput = document.getElementById('recipe-image-url');
@@ -5030,7 +5030,7 @@ function loadRecipeImageFromUrl() {
         const fileInput = document.getElementById('recipe-image');
         if (fileInput) fileInput.value = '';
     } else {
-        preview.innerHTML = '<i class="fas fa-cloud-upload-alt"></i><span>Bild hierher ziehen</span><small>oder klicken zum Auswählen</small>';
+        preview.innerHTML = '<i class="fas fa-cloud-upload-alt"></i><span>Bild hierher ziehen</span><small>oder klicken zum AuswÃ¤hlen</small>';
         preview.dataset.imageData = '';
     }
 }
@@ -5042,7 +5042,7 @@ function showAddRecipeModal() {
     
     // ...Profilfoto/Bild-Preview entfernt...
     
-    // Zutaten-Container leeren und eine leere Zeile hinzufügen
+    // Zutaten-Container leeren und eine leere Zeile hinzufÃ¼gen
     const container = document.getElementById('ingredients-container');
     container.innerHTML = '';
     ingredientCounter = 0;
@@ -5151,8 +5151,8 @@ async function viewRecipeDetails(id) {
         if (!response.ok) throw new Error('Fehler beim Laden des Rezepts');
         const recipe = await response.json();
 
-        const categoryIcons = { 'Waffen': 'fa-gun', 'Drogen': 'fa-pills', 'Ausüstung': 'fa-toolbox', 'Fahrzeuge': 'fa-car', 'Sonstiges': 'fa-box' };
-        const categoryColors = { 'Waffen': '#ef4444', 'Drogen': '#8b5cf6', 'Ausrüstung': '#3b82f6', 'Fahrzeuge': '#f59e0b', 'Sonstiges': '#6b7280' };
+        const categoryIcons = { 'Waffen': 'fa-gun', 'Drogen': 'fa-pills', 'AusÃ¼stung': 'fa-toolbox', 'Fahrzeuge': 'fa-car', 'Sonstiges': 'fa-box' };
+        const categoryColors = { 'Waffen': '#ef4444', 'Drogen': '#8b5cf6', 'AusrÃ¼stung': '#3b82f6', 'Fahrzeuge': '#f59e0b', 'Sonstiges': '#6b7280' };
         const icon  = categoryIcons[recipe.category]  || 'fa-box';
         const color = categoryColors[recipe.category] || '#6b7280';
 
@@ -5282,7 +5282,7 @@ async function saveRecipe(id, recipeName, category, description, craftingTime, o
             body: JSON.stringify(data)
         });
         
-        // Prüfe ob Antwort JSON ist
+        // PrÃ¼fe ob Antwort JSON ist
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
@@ -5294,7 +5294,7 @@ async function saveRecipe(id, recipeName, category, description, craftingTime, o
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showToast(id ? 'Rezept aktualisiert' : 'Rezept hinzugefügt', 'success');
+            showToast(id ? 'Rezept aktualisiert' : 'Rezept hinzugefÃ¼gt', 'success');
             closeModals();
             loadRecipes();
         } else {
@@ -5307,7 +5307,7 @@ async function saveRecipe(id, recipeName, category, description, craftingTime, o
 }
 
 async function deleteRecipe(id, name) {
-    if (!confirm(`Möchten Sie das Rezept "${name}" wirklich löschen?`)) {
+    if (!confirm(`MÃ¶chten Sie das Rezept "${name}" wirklich lÃ¶schen?`)) {
         return;
     }
     
@@ -5320,13 +5320,13 @@ async function deleteRecipe(id, name) {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            showToast('Rezept gelöscht', 'success');
+            showToast('Rezept gelÃ¶scht', 'success');
             loadRecipes();
         } else {
-            showToast(result.error || 'Fehler beim Löschen', 'error');
+            showToast(result.error || 'Fehler beim LÃ¶schen', 'error');
         }
     } catch (error) {
-        console.error('Fehler beim Löschen:', error);
+        console.error('Fehler beim LÃ¶schen:', error);
         showToast('Verbindungsfehler', 'error');
     }
 }
@@ -5334,7 +5334,7 @@ async function deleteRecipe(id, name) {
 // Bild-Vorschau und Upload Funktionen
 // ...Profilfoto/Bild-Upload Funktionen entfernt...
 
-// Variable für aktuellen Kategorie-Filter
+// Variable fÃ¼r aktuellen Kategorie-Filter
 let currentRecipeCategory = '';
 
 // ========== PRODUZIERT EINLAGERN ==========
@@ -5358,7 +5358,7 @@ document.getElementById('produce-form').addEventListener('submit', async (e) => 
     const quantity = parseInt(document.getElementById('produce-quantity').value);
 
     if (!itemName || quantity < 1) {
-        showToast('Bitte eine gültige Menge eingeben', 'warning');
+        showToast('Bitte eine gÃ¼ltige Menge eingeben', 'warning');
         return;
     }
 
@@ -5379,7 +5379,7 @@ document.getElementById('produce-form').addEventListener('submit', async (e) => 
         const result = await response.json();
 
         if (response.ok && result.success) {
-            showToast(`${quantity}x ${itemName} wurde zum Sortierbereich hinzugefügt`, 'success');
+            showToast(`${quantity}x ${itemName} wurde zum Sortierbereich hinzugefÃ¼gt`, 'success');
             closeModals();
         } else {
             showToast(result.error || 'Fehler beim Einlagern', 'error');
@@ -5441,7 +5441,7 @@ function filterRecipes() {
 // EINSTELLUNGEN (ehemals System Wartung)
 // ========================================
 
-// Tab-Wechsel für Einstellungen
+// Tab-Wechsel fÃ¼r Einstellungen
 function switchSettingsTab(btn, tabName) {
     // Alle Tabs deaktivieren
     document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
@@ -5458,7 +5458,7 @@ function switchSettingsTab(btn, tabName) {
     if (tabName === 'dashboard-stats') loadDashboardStatSettings();
 }
 
-// Wartungsseite für System-Admins anzeigen/verstecken
+// Wartungsseite fÃ¼r System-Admins anzeigen/verstecken
 function updateMaintenanceAccess() {
     const maintenanceNav = document.getElementById('maintenance-nav');
     
@@ -5485,14 +5485,14 @@ async function loadMaintenanceSettings() {
                 }
             });
             
-            // Nach dem Laden der Einstellungen, prüfe aktive Wartungsmodi
+            // Nach dem Laden der Einstellungen, prÃ¼fe aktive Wartungsmodi
             checkMaintenanceModes();
         }
     } catch (error) {
         console.error('Fehler beim Laden der Wartungseinstellungen:', error);
     }
     
-    // Rang-Vorlagen und Rechte-Übersicht laden
+    // Rang-Vorlagen und Rechte-Ãœbersicht laden
     loadRankPermissions();
     loadPermissionsOverview();
 }
@@ -5586,7 +5586,7 @@ async function loadDashboardStatSettings() {
                 </div>
             `).join('');
             
-            // Toggle-Text aktualisieren bei Änderung
+            // Toggle-Text aktualisieren bei Ã„nderung
             container.querySelectorAll('.dashboard-stat-toggle').forEach(cb => {
                 cb.addEventListener('change', () => {
                     cb.closest('.maintenance-toggle').querySelector('.toggle-text').textContent = cb.checked ? 'Sichtbar' : 'Ausgeblendet';
@@ -5624,7 +5624,7 @@ async function saveDashboardStatSettings() {
         
         if (result.success) {
             showToast('Dashboard-Einstellungen gespeichert', 'success');
-            // Übersichts-Karten sofort aktualisieren
+            // Ãœbersichts-Karten sofort aktualisieren
             applyDashboardStatVisibility();
         } else {
             showToast(result.error || 'Fehler beim Speichern', 'error');
@@ -5643,7 +5643,7 @@ function toggleAllDashboardStats(visible) {
     });
 }
 
-// Sichtbarkeit der Stat-Karten auf der Übersichtsseite anwenden
+// Sichtbarkeit der Stat-Karten auf der Ãœbersichtsseite anwenden
 async function applyDashboardStatVisibility() {
     try {
         const response = await fetch(`${API_URL}/dashboard/stat-settings`, {
@@ -5666,10 +5666,10 @@ async function applyDashboardStatVisibility() {
     }
 }
 
-// Wartungsmodus für Bereiche prüfen und Banner anzeigen
+// Wartungsmodus fÃ¼r Bereiche prÃ¼fen und Banner anzeigen
 async function checkMaintenanceModes() {
     const modules = ['members', 'hero', 'fence', 'warehouse', 'storage', 'treasury', 'recipes', 'intelligence', 'activity'];
-    console.log('DEBUG - Prüfe Wartungsmodi für Module:', modules);
+    console.log('DEBUG - PrÃ¼fe Wartungsmodi fÃ¼r Module:', modules);
     
     for (const module of modules) {
         try {
@@ -5678,17 +5678,17 @@ async function checkMaintenanceModes() {
             });
             
             const result = await response.json();
-            console.log(`DEBUG - Wartungsstatus für ${module}:`, result);
+            console.log(`DEBUG - Wartungsstatus fÃ¼r ${module}:`, result);
             
             if (result.success && result.is_disabled) {
-                console.log(`DEBUG - Zeige Wartungsbanner für ${module}`);
+                console.log(`DEBUG - Zeige Wartungsbanner fÃ¼r ${module}`);
                 showMaintenanceBanner(module, result.reason);
             } else {
-                console.log(`DEBUG - Verstecke Wartungsbanner für ${module}`);
+                console.log(`DEBUG - Verstecke Wartungsbanner fÃ¼r ${module}`);
                 hideMaintenanceBanner(module);
             }
         } catch (error) {
-            console.error(`Fehler beim Prüfen des Wartungsmodus für ${module}:`, error);
+            console.error(`Fehler beim PrÃ¼fen des Wartungsmodus fÃ¼r ${module}:`, error);
         }
     }
 }
@@ -5733,7 +5733,7 @@ function showMaintenanceBanner(module, reason) {
             break;
         case 'activity':
             pageId = 'activity-page';
-            moduleName = 'Aktivitäts-Log';
+            moduleName = 'AktivitÃ¤ts-Log';
             break;
     }
     
@@ -5746,12 +5746,12 @@ function showMaintenanceBanner(module, reason) {
             banner.className = 'maintenance-banner';
             banner.innerHTML = `
                 <i class="fas fa-tools"></i>
-                <strong>Wartungsmodus:</strong> ${moduleName} ist temporär deaktiviert. ${reason || ''}
+                <strong>Wartungsmodus:</strong> ${moduleName} ist temporÃ¤r deaktiviert. ${reason || ''}
             `;
             page.insertBefore(banner, page.firstChild);
         }
         
-        // Alle interaktiven Elemente deaktivieren (außer für System-Admins)
+        // Alle interaktiven Elemente deaktivieren (auÃŸer fÃ¼r System-Admins)
         if (!currentUser || !currentUser.can_manage_system) {
             const buttons = page.querySelectorAll('button, input, select, textarea');
             buttons.forEach(btn => {
@@ -5816,7 +5816,7 @@ function hideMaintenanceBanner(module) {
 }
 
 // ========================================
-// RANG-BERECHTIGUNGEN & RECHTE-ÜBERSICHT
+// RANG-BERECHTIGUNGEN & RECHTE-ÃœBERSICHT
 // ========================================
 
 const PERM_KEYS = ['can_add_members', 'can_view_fence', 'can_manage_fence', 'can_view_recipes', 'can_manage_recipes', 'can_view_storage', 'can_manage_storage', 'can_view_storage_password', 'can_view_treasury', 'can_manage_treasury', 'can_view_activity', 'can_view_stats', 'can_manage_system'];
@@ -5831,7 +5831,7 @@ const PERM_LABELS = {
     can_view_storage_password: 'Lager (Passwort sehen)',
     can_view_treasury: 'Gangkasse (Einsicht)',
     can_manage_treasury: 'Gangkasse (Verwalten)',
-    can_view_activity: 'Aktivitäten',
+    can_view_activity: 'AktivitÃ¤ten',
     can_view_stats: 'Statistiken',
     can_manage_system: 'System'
 };
@@ -5932,7 +5932,7 @@ async function saveRankPermissions(rankName) {
         
         const result = await response.json();
         if (result.success) {
-            showToast(`Berechtigungen für "${rankName}" gespeichert`, 'success', 'Rang-Vorlagen');
+            showToast(`Berechtigungen fÃ¼r "${rankName}" gespeichert`, 'success', 'Rang-Vorlagen');
         } else {
             showToast(result.error || 'Fehler', 'error');
         }
@@ -5943,7 +5943,7 @@ async function saveRankPermissions(rankName) {
 
 // Rang-Vorlage auf alle Mitglieder anwenden
 async function applyRankPermissions(rankName) {
-    if (!confirm(`Willst du die Standard-Berechtigungen wirklich auf ALLE aktiven "${rankName}"-Mitglieder anwenden?\n\nDas überschreibt deren aktuelle Einzelrechte!`)) {
+    if (!confirm(`Willst du die Standard-Berechtigungen wirklich auf ALLE aktiven "${rankName}"-Mitglieder anwenden?\n\nDas Ã¼berschreibt deren aktuelle Einzelrechte!`)) {
         return;
     }
     
@@ -5970,7 +5970,7 @@ async function applyRankPermissions(rankName) {
     }
 }
 
-// Rechte-Übersicht Matrix laden
+// Rechte-Ãœbersicht Matrix laden
 async function loadPermissionsOverview() {
     const tbody = document.getElementById('permissions-matrix-body');
     if (!tbody) return;
@@ -6004,12 +6004,12 @@ async function loadPermissionsOverview() {
         }).join('');
         
     } catch (error) {
-        console.error('Fehler beim Laden der Rechte-Übersicht:', error);
+        console.error('Fehler beim Laden der Rechte-Ãœbersicht:', error);
         tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: var(--text-secondary); padding: 1rem;">Fehler beim Laden</td></tr>';
     }
 }
 
-// Rang-Vorlage beim Hinzufügen/Bearbeiten automatisch vorschlagen
+// Rang-Vorlage beim HinzufÃ¼gen/Bearbeiten automatisch vorschlagen
 async function applyRankTemplate(rankName, prefix) {
     try {
         const response = await fetch(`${API_URL}/rank-permissions`, { credentials: 'include' });
@@ -6092,7 +6092,7 @@ async function loadTreasuryPage() {
         // Wochen-Dropdown initialisieren
         populateWeekSelect();
         
-        // Initial: Beiträge-Tab ist aktiv
+        // Initial: BeitrÃ¤ge-Tab ist aktiv
         switchTreasuryTab(document.querySelector('.treasury-tabs .tab-btn.active'), 'contributions');
         
     } catch (error) {
@@ -6125,7 +6125,7 @@ async function loadTreasuryBalance() {
                 goalsEl.className = `balance-amount ${data.goals_balance >= 0 ? 'positive' : 'negative'}`;
             }
             
-            // Speichere aktuelle Balances für die Modals
+            // Speichere aktuelle Balances fÃ¼r die Modals
             window.currentContributionsBalance = data.contributions_balance || 0;
             window.currentGoalsBalance = data.goals_balance || 0;
             window.currentTreasuryBalance = data.balance || 0;
@@ -6161,7 +6161,7 @@ function showAdjustBalanceModal(kasse) {
         document.getElementById('balance-adjust-reason').value = '';
         document.getElementById('balance-difference-preview').style.display = 'none';
         
-        // Live-Vorschau für Differenz
+        // Live-Vorschau fÃ¼r Differenz
         document.getElementById('new-balance-amount').addEventListener('input', updateBalanceDifferencePreview);
     }
 }
@@ -6236,7 +6236,7 @@ function switchTreasuryTab(button, tab) {
     
     currentTreasuryTab = tab;
     
-    // Content für aktiven Tab laden
+    // Content fÃ¼r aktiven Tab laden
     switch (tab) {
         case 'contributions':
             loadContributions();
@@ -6321,7 +6321,7 @@ function renderTransactions() {
     container.innerHTML = transactionsHtml;
 }
 
-// Beiträge laden
+// BeitrÃ¤ge laden
 async function loadContributions() {
     try {
         const response = await fetch(`${API_URL}/treasury/contributions`, {
@@ -6333,11 +6333,11 @@ async function loadContributions() {
             renderContributions();
         }
     } catch (error) {
-        console.error('Fehler beim Laden der Beiträge:', error);
+        console.error('Fehler beim Laden der BeitrÃ¤ge:', error);
     }
 }
 
-// Contribution periods befüllen
+// Contribution periods befÃ¼llen
 function populateContributionPeriods() {
     const select = document.getElementById('contribution-period-select');
     if (!select) return;
@@ -6346,14 +6346,14 @@ function populateContributionPeriods() {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
     
-    // Letzten 12 Monate und nächsten 3 Monate
+    // Letzten 12 Monate und nÃ¤chsten 3 Monate
     for (let i = -12; i <= 3; i++) {
         const date = new Date(currentYear, currentMonth - 1 + i, 1);
         const month = date.getMonth() + 1;
         const year = date.getFullYear();
         
         const monthNames = [
-            'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+            'Januar', 'Februar', 'MÃ¤rz', 'April', 'Mai', 'Juni',
             'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
         ];
         
@@ -6369,15 +6369,15 @@ function populateContributionPeriods() {
     }
 }
 
-// Beiträge rendern
+// BeitrÃ¤ge rendern
 function renderContributions() {
     const container = document.getElementById('contributions-list');
     if (!container) return;
     
-    // Zeiträume aus Contributions extrahieren und Select befüllen
+    // ZeitrÃ¤ume aus Contributions extrahieren und Select befÃ¼llen
     const periodSelect = document.getElementById('contribution-period-select');
     if (periodSelect && treasuryContributions.length > 0) {
-        // Eindeutige Zeiträume sammeln
+        // Eindeutige ZeitrÃ¤ume sammeln
         const periods = new Map();
         treasuryContributions.forEach(c => {
             if (c.woche_start && c.woche_ende) {
@@ -6391,10 +6391,10 @@ function renderContributions() {
             }
         });
         
-        // Select nur befüllen wenn leer oder Perioden geändert
+        // Select nur befÃ¼llen wenn leer oder Perioden geÃ¤ndert
         if (periodSelect.options.length === 0 || periodSelect.dataset.lastPeriods !== JSON.stringify([...periods.keys()])) {
             const currentValue = periodSelect.value;
-            periodSelect.innerHTML = '<option value="">Alle Zeiträume</option>';
+            periodSelect.innerHTML = '<option value="">Alle ZeitrÃ¤ume</option>';
             
             // Nach Datum sortieren (neueste zuerst)
             const sortedPeriods = [...periods.entries()].sort((a, b) => 
@@ -6410,7 +6410,7 @@ function renderContributions() {
             
             periodSelect.dataset.lastPeriods = JSON.stringify([...periods.keys()]);
             
-            // Wert wiederherstellen oder ersten Zeitraum wählen
+            // Wert wiederherstellen oder ersten Zeitraum wÃ¤hlen
             if (currentValue && [...periods.keys()].includes(currentValue)) {
                 periodSelect.value = currentValue;
             } else if (sortedPeriods.length > 0) {
@@ -6419,7 +6419,7 @@ function renderContributions() {
         }
     }
     
-    // Nach ausgewähltem Zeitraum filtern
+    // Nach ausgewÃ¤hltem Zeitraum filtern
     const selectedPeriod = periodSelect?.value || '';
     
     const filteredContributions = selectedPeriod ? 
@@ -6427,7 +6427,7 @@ function renderContributions() {
         treasuryContributions;
     
     if (filteredContributions.length === 0) {
-        container.innerHTML = '<div class="no-data">Keine Beiträge vorhanden. Klicke "Neuer Zeitraum" um Beiträge zu erstellen.</div>';
+        container.innerHTML = '<div class="no-data">Keine BeitrÃ¤ge vorhanden. Klicke "Neuer Zeitraum" um BeitrÃ¤ge zu erstellen.</div>';
         return;
     }
     
@@ -6472,7 +6472,7 @@ function renderContributions() {
                     <div class="contribution-actions">
                         <button class="btn-delete btn-small ${hasPaid ? 'has-paid' : ''}" 
                             onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}', ${hasPaid})"
-                            title="Beitrag löschen">
+                            title="Beitrag lÃ¶schen">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -6484,7 +6484,7 @@ function renderContributions() {
                     </div>
                     ${uebertrag > 0 ? `
                     <div class="amount-row uebertrag-row">
-                        <span class="label"><i class="fas fa-arrow-right" style="font-size:0.75rem;"></i> davon Übertrag:</span>
+                        <span class="label"><i class="fas fa-arrow-right" style="font-size:0.75rem;"></i> davon Ãœbertrag:</span>
                         <span class="amount uebertrag">$ ${formatCurrency(uebertrag)}</span>
                     </div>
                     ` : ''}
@@ -6509,7 +6509,7 @@ function renderContributions() {
                     `<div class="payment-date">Bezahlt: ${formatDate(contribution.bezahlt_am)}</div>` : ''
                 }
                 ${isLocked && outstanding > 0 ? 
-                    `<div class="locked-notice"><i class="fas fa-info-circle"></i> $ ${formatCurrency(outstanding)} wurden in den nächsten Zeitraum übertragen</div>` : ''
+                    `<div class="locked-notice"><i class="fas fa-info-circle"></i> $ ${formatCurrency(outstanding)} wurden in den nÃ¤chsten Zeitraum Ã¼bertragen</div>` : ''
                 }
             </div>
         `;
@@ -6543,7 +6543,7 @@ function getContributionStatusText(status) {
 function renderTreasuryStats() {
     if (!treasuryStats) return;
     
-    // Getrennte Kassenstände
+    // Getrennte KassenstÃ¤nde
     const contribBalanceEl = document.getElementById('stat-contributions-balance');
     if (contribBalanceEl) {
         contribBalanceEl.textContent = `$ ${formatCurrency(treasuryStats.contributions_balance || 0)}`;
@@ -6731,7 +6731,7 @@ async function showContributeGoalModal(goalId) {
     await loadMembersForGoalModal();
 }
 
-// Mitglieder für Ziel-Modal laden
+// Mitglieder fÃ¼r Ziel-Modal laden
 async function loadMembersForGoalModal() {
     try {
         const response = await fetch(`${API_URL}/members`, {
@@ -6741,7 +6741,7 @@ async function loadMembersForGoalModal() {
         if (response.ok) {
             const members = await response.json();
             const select = document.getElementById('contribute-member');
-            select.innerHTML = '<option value="">Mitglied auswählen</option>';
+            select.innerHTML = '<option value="">Mitglied auswÃ¤hlen</option>';
             members.forEach(member => {
                 const option = document.createElement('option');
                 option.value = member.id;
@@ -6843,7 +6843,7 @@ async function cancelGoal(goalId) {
     }
 }
 
-// Einzahler für ein Ziel anzeigen
+// Einzahler fÃ¼r ein Ziel anzeigen
 async function showGoalContributors(goalId) {
     try {
         const response = await fetch(`${API_URL}/treasury/goals/${goalId}/contributors`, {
@@ -6854,13 +6854,13 @@ async function showGoalContributors(goalId) {
             const contributors = await response.json();
             const goal = treasuryGoals.find(g => g.id === goalId);
             
-            document.getElementById('contributors-modal-title').textContent = `Einzahler für: ${goal ? goal.titel : ''}`;
+            document.getElementById('contributors-modal-title').textContent = `Einzahler fÃ¼r: ${goal ? goal.titel : ''}`;
             
             let bodyHtml;
             if (contributors.length === 0) {
                 bodyHtml = '<p style="color: var(--text-secondary); text-align: center; padding: 1rem;">Noch keine Einzahlungen.</p>';
             } else {
-                // Beträge nach Person gruppieren und summieren
+                // BetrÃ¤ge nach Person gruppieren und summieren
                 const grouped = {};
                 contributors.forEach(c => {
                     const key = c.member_name;
@@ -6912,9 +6912,9 @@ async function showGoalContributors(goalId) {
     }
 }
 
-// ========== WOCHEN-BEITRÄGE FUNKTIONEN ==========
+// ========== WOCHEN-BEITRÃ„GE FUNKTIONEN ==========
 
-// Wochen-Dropdown befüllen
+// Wochen-Dropdown befÃ¼llen
 function populateWeekSelect() {
     const select = document.getElementById('contribution-week-select');
     if (!select) return;
@@ -6923,7 +6923,7 @@ function populateWeekSelect() {
     
     const now = new Date();
     
-    // Aktuelle und letzte 8 Wochen + nächste 2 Wochen
+    // Aktuelle und letzte 8 Wochen + nÃ¤chste 2 Wochen
     for (let i = -8; i <= 2; i++) {
         const date = new Date(now);
         date.setDate(date.getDate() + (i * 7));
@@ -6944,7 +6944,7 @@ function populateWeekSelect() {
     }
 }
 
-// Modal für neue Woche öffnen
+// Modal fÃ¼r neue Woche Ã¶ffnen
 function createWeeklyContributions() {
     const modal = document.getElementById('create-period-modal');
     
@@ -6975,7 +6975,7 @@ async function submitCreatePeriod(event) {
     const beitrag = parseFloat(document.getElementById('period-amount').value);
     
     if (!startDate || !endDate) {
-        showToast('Bitte Start- und Enddatum auswählen', 'error');
+        showToast('Bitte Start- und Enddatum auswÃ¤hlen', 'error');
         return;
     }
     
@@ -6999,7 +6999,7 @@ async function submitCreatePeriod(event) {
         const result = await response.json();
         
         if (result.success) {
-            showToast(result.message || 'Beiträge angelegt', 'success');
+            showToast(result.message || 'BeitrÃ¤ge angelegt', 'success');
             closeModals();
             loadContributions();
         } else {
@@ -7016,7 +7016,7 @@ function showAddTransactionModal() {
     document.getElementById('add-transaction-modal').style.display = 'block';
     document.getElementById('modal-overlay').style.display = 'flex';
     
-    // Mitglieder für Select laden
+    // Mitglieder fÃ¼r Select laden
     loadMembersForTreasuryModal();
 }
 
@@ -7031,7 +7031,7 @@ function showSetContributionModal() {
     // Standard-Beitragstyp setzen
     document.getElementById('contribution-period-type').value = 'weekly';
     
-    // Fälligkeitsdatum-Feld initial verstecken
+    // FÃ¤lligkeitsdatum-Feld initial verstecken
     const dueDateGroup = document.querySelector('#contribution-due-date').closest('.form-group');
     dueDateGroup.style.display = 'none';
     
@@ -7051,7 +7051,7 @@ function showMarkContributionModal() {
     document.getElementById('mark-contribution-payment-date').value = dateString;
 }
 
-// Mitglieder für Treasury-Modals laden
+// Mitglieder fÃ¼r Treasury-Modals laden
 async function loadMembersForTreasuryModal() {
     try {
         const response = await fetch(`${API_URL}/members`, {
@@ -7061,10 +7061,10 @@ async function loadMembersForTreasuryModal() {
         if (response.ok) {
             const members = await response.json();
             
-            // Transaction-Modal-Select befüllen
+            // Transaction-Modal-Select befÃ¼llen
             const transactionSelect = document.getElementById('transaction-member');
             if (transactionSelect) {
-                transactionSelect.innerHTML = '<option value="">Mitglied auswählen</option>';
+                transactionSelect.innerHTML = '<option value="">Mitglied auswÃ¤hlen</option>';
                 members.forEach(member => {
                     const option = document.createElement('option');
                     option.value = member.id;
@@ -7073,10 +7073,10 @@ async function loadMembersForTreasuryModal() {
                 });
             }
             
-            // Contribution-Modal-Select befüllen
+            // Contribution-Modal-Select befÃ¼llen
             const contributionSelect = document.getElementById('mark-contribution-member');
             if (contributionSelect) {
-                contributionSelect.innerHTML = '<option value="">Mitglied auswählen</option>';
+                contributionSelect.innerHTML = '<option value="">Mitglied auswÃ¤hlen</option>';
                 members.forEach(member => {
                     const option = document.createElement('option');
                     option.value = member.id;
@@ -7132,7 +7132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    showToast('Transaktion erfolgreich hinzugefügt', 'success');
+                    showToast('Transaktion erfolgreich hinzugefÃ¼gt', 'success');
                     closeModals();
                     addTransactionForm.reset();
                     await Promise.all([
@@ -7142,7 +7142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         loadDashboardTreasuryStats() // Dashboard Stats auch aktualisieren
                     ]);
                 } else {
-                    showToast(result.error || 'Fehler beim Hinzufügen der Transaktion', 'error');
+                    showToast(result.error || 'Fehler beim HinzufÃ¼gen der Transaktion', 'error');
                 }
             } catch (error) {
                 console.error('Fehler:', error);
@@ -7163,7 +7163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const kasseLabel = kasse === 'goals' ? 'Zielkasse' : 'Beitragskasse';
             
             if (isNaN(newBalance)) {
-                showToast('Bitte gültigen Betrag eingeben', 'error');
+                showToast('Bitte gÃ¼ltigen Betrag eingeben', 'error');
                 return;
             }
             
@@ -7242,7 +7242,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setContributionForm.reset();
                     loadContributions();
                 } else {
-                    showToast(result.error || 'Fehler beim Festlegen der Beiträge', 'error');
+                    showToast(result.error || 'Fehler beim Festlegen der BeitrÃ¤ge', 'error');
                 }
             } catch (error) {
                 console.error('Fehler:', error);
@@ -7289,13 +7289,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         loadDashboardTreasuryStats()
                     ]);
                     
-                    // Modal-Daten zurücksetzen und neu laden
+                    // Modal-Daten zurÃ¼cksetzen und neu laden
                     markContributionForm.reset();
                     currentMemberContributions = [];
                     
-                    // Dropdown zurücksetzen
+                    // Dropdown zurÃ¼cksetzen
                     document.getElementById('mark-contribution-member').value = '';
-                    document.getElementById('mark-contribution-period').innerHTML = '<option value="">Beitrag auswählen</option>';
+                    document.getElementById('mark-contribution-period').innerHTML = '<option value="">Beitrag auswÃ¤hlen</option>';
                     document.getElementById('mark-contribution-amount').value = '';
                     
                     closeModals();
@@ -7310,7 +7310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Globale Variable für Contribution-Daten
+// Globale Variable fÃ¼r Contribution-Daten
 let currentMemberContributions = [];
 
 // Load Member Contributions for Mark Modal
@@ -7320,7 +7320,7 @@ async function loadMemberContributions() {
     const amountField = document.getElementById('mark-contribution-amount');
     
     if (!memberSelect.value) {
-        periodSelect.innerHTML = '<option value="">Beitrag auswählen</option>';
+        periodSelect.innerHTML = '<option value="">Beitrag auswÃ¤hlen</option>';
         amountField.value = '';
         currentMemberContributions = [];
         return;
@@ -7339,10 +7339,10 @@ async function loadMemberContributions() {
                 (c.status === 'offen' || c.status === 'teilweise')
             );
             
-            // Daten für spätere Verwendung speichern
+            // Daten fÃ¼r spÃ¤tere Verwendung speichern
             currentMemberContributions = memberContributions;
             
-            periodSelect.innerHTML = '<option value="">Beitrag auswählen</option>';
+            periodSelect.innerHTML = '<option value="">Beitrag auswÃ¤hlen</option>';
             memberContributions.forEach(contribution => {
                 const option = document.createElement('option');
                 option.value = contribution.id;
@@ -7355,11 +7355,11 @@ async function loadMemberContributions() {
             amountField.value = '';
         }
     } catch (error) {
-        console.error('Fehler beim Laden der Mitgliederbeiträge:', error);
+        console.error('Fehler beim Laden der MitgliederbeitrÃ¤ge:', error);
     }
 }
 
-// Automatisches Einfügen des ausstehenden Betrags
+// Automatisches EinfÃ¼gen des ausstehenden Betrags
 function updateContributionAmount() {
     const periodSelect = document.getElementById('mark-contribution-period');
     const amountField = document.getElementById('mark-contribution-amount');
@@ -7376,12 +7376,12 @@ function updateContributionAmount() {
     }
 }
 
-// Beitrag löschen Bestätigung
+// Beitrag lÃ¶schen BestÃ¤tigung
 function confirmDeleteContribution(contributionId, memberName, hasPaid = false) {
-    let message = `Möchten Sie den Beitrag für ${memberName} wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`;
+    let message = `MÃ¶chten Sie den Beitrag fÃ¼r ${memberName} wirklich lÃ¶schen?\n\nDiese Aktion kann nicht rÃ¼ckgÃ¤ngig gemacht werden.`;
     
     if (hasPaid) {
-        message = `ACHTUNG: Dieser Beitrag hat bereits Zahlungen!\n\nMöchten Sie den Beitrag für ${memberName} wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`;
+        message = `ACHTUNG: Dieser Beitrag hat bereits Zahlungen!\n\nMÃ¶chten Sie den Beitrag fÃ¼r ${memberName} wirklich lÃ¶schen?\n\nDiese Aktion kann nicht rÃ¼ckgÃ¤ngig gemacht werden.`;
     }
     
     if (confirm(message)) {
@@ -7389,7 +7389,7 @@ function confirmDeleteContribution(contributionId, memberName, hasPaid = false) 
     }
 }
 
-// Beitrag löschen
+// Beitrag lÃ¶schen
 async function deleteContribution(contributionId) {
     try {
         const response = await fetch(`${API_URL}/treasury/contributions/${contributionId}`, {
@@ -7400,7 +7400,7 @@ async function deleteContribution(contributionId) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('Beitrag erfolgreich gelöscht', 'success');
+            showToast('Beitrag erfolgreich gelÃ¶scht', 'success');
             
             // Listen aktualisieren
             await Promise.all([
@@ -7409,10 +7409,10 @@ async function deleteContribution(contributionId) {
                 loadDashboardTreasuryStats()
             ]);
         } else {
-            showToast(result.error || 'Fehler beim Löschen des Beitrags', 'error');
+            showToast(result.error || 'Fehler beim LÃ¶schen des Beitrags', 'error');
         }
     } catch (error) {
-        console.error('Fehler beim Löschen:', error);
+        console.error('Fehler beim LÃ¶schen:', error);
         showToast('Verbindungsfehler', 'error');
     }
 }
@@ -7469,10 +7469,10 @@ function formatTransactionDate(dateString) {
 function getStatusText(status) {
     const statusTexts = {
         'pending': 'Ausstehend',
-        'confirmed': 'Bestätigt',
+        'confirmed': 'BestÃ¤tigt',
         'cancelled': 'Storniert',
         'nicht_bezahlt': 'Nicht bezahlt',
-        'vollständig_bezahlt': 'Bezahlt'
+        'vollstÃ¤ndig_bezahlt': 'Bezahlt'
     };
     return statusTexts[status] || status;
 }
@@ -7492,12 +7492,12 @@ function updatePeriodFields() {
         switch (periodType) {
             case 'weekly':
                 end.setDate(start.getDate() + 6);
-                dueDate.setDate(start.getDate() + 6); // Fällig am Ende der Woche
+                dueDate.setDate(start.getDate() + 6); // FÃ¤llig am Ende der Woche
                 dueDateGroup.style.display = 'none'; // Verstecke Feld
                 break;
             case 'biweekly':
                 end.setDate(start.getDate() + 13);
-                dueDate.setDate(start.getDate() + 13); // Fällig am Ende der 2 Wochen
+                dueDate.setDate(start.getDate() + 13); // FÃ¤llig am Ende der 2 Wochen
                 dueDateGroup.style.display = 'none'; // Verstecke Feld
                 break;
             case 'monthly':
@@ -7515,7 +7515,7 @@ function updatePeriodFields() {
                 dueDateGroup.style.display = 'none'; // Verstecke Feld
                 break;
             case 'custom':
-                dueDateGroup.style.display = 'block'; // Zeige Feld für manuelle Eingabe
+                dueDateGroup.style.display = 'block'; // Zeige Feld fÃ¼r manuelle Eingabe
                 return; // Bei custom wird alles manuell gesetzt
             default:
                 dueDateGroup.style.display = 'block';
@@ -7526,7 +7526,7 @@ function updatePeriodFields() {
         dueDateField.value = dueDate.toISOString().slice(0, 10);
         updatePeriodDescription();
     } else {
-        // Wenn kein Typ gewählt, zeige das Feld
+        // Wenn kein Typ gewÃ¤hlt, zeige das Feld
         dueDateGroup.style.display = 'block';
     }
 }
@@ -7593,7 +7593,7 @@ function formatDate(date) {
 
 function getMonthName(monthNumber) {
     const months = [
-        'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+        'Januar', 'Februar', 'MÃ¤rz', 'April', 'Mai', 'Juni',
         'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
     ];
     return months[monthNumber - 1];
@@ -7703,7 +7703,8 @@ function renderDealerSpots(filter) {
     if (!pinsLayer || !listEl) return;
 
     pinsLayer.innerHTML = '';
-    document.getElementById('dealer-stat-total').textContent = dealerSpotsData.length;
+    const totalEl = document.getElementById('dealer-stat-total');
+    if (totalEl) totalEl.textContent = dealerSpotsData.length;
 
     const query = (filter || document.getElementById('dealer-search-input')?.value || '').toLowerCase();
     const filtered = query
@@ -7717,7 +7718,7 @@ function renderDealerSpots(filter) {
         listEl.innerHTML = `<div class="empty-state">
             <i class="fas fa-map-pin"></i>
             <p>Noch keine Dealer eingetragen</p>
-            <small>Klicke auf "Dealer hinzufügen" und dann auf die Karte</small>
+            <small>Klicke auf "Dealer hinzufÃ¼gen" und dann auf die Karte</small>
         </div>`;
         return;
     }
@@ -7776,7 +7777,7 @@ function toggleDealerPlaceMode() {
         closeDealerPopup();
         showToast('Klicke auf die Karte um einen Dealer-Spot zu platzieren', 'info');
     } else {
-        btn.innerHTML = '<i class="fas fa-map-pin"></i> Dealer hinzufügen';
+        btn.innerHTML = '<i class="fas fa-map-pin"></i> Dealer hinzufÃ¼gen';
         btn.className = 'btn-primary dealer-manage-only';
         hint.style.display = 'none';
         mapInner.classList.remove('place-mode');
@@ -7812,7 +7813,7 @@ function closeDealerNewModal() {
 
 async function saveDealerNewSpot(e) {
     e.preventDefault();
-    if (!dealerPendingPos) { showToast('Kein Standort ausgewählt', 'error'); return; }
+    if (!dealerPendingPos) { showToast('Kein Standort ausgewÃ¤hlt', 'error'); return; }
     const name = document.getElementById('new-dealer-name').value.trim();
     const desc = document.getElementById('new-dealer-desc').value.trim();
     try {
@@ -7824,7 +7825,7 @@ async function saveDealerNewSpot(e) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Dealer hinzugefügt!', 'success');
+            showToast('Dealer hinzugefÃ¼gt!', 'success');
             closeDealerNewModal();
             loadDealerSpots();
         } else {
@@ -7940,13 +7941,13 @@ async function confirmDeleteDealerSpot() {
     if (!dealerSelectedSpotId) return;
     const spot = dealerSpotsData.find(s => s.id === dealerSelectedSpotId);
     if (!spot) return;
-    if (!confirm(`Dealer "${spot.name}" wirklich löschen?`)) return;
+    if (!confirm(`Dealer "${spot.name}" wirklich lÃ¶schen?`)) return;
     try {
         const res  = await fetch(`${API_URL}/dealer-spots/${dealerSelectedSpotId}`, {
             method: 'DELETE', credentials: 'include'
         });
         const data = await res.json();
-        if (data.success) { showToast('Dealer gelöscht.', 'success'); closeDealerPopup(); loadDealerSpots(); }
+        if (data.success) { showToast('Dealer gelÃ¶scht.', 'success'); closeDealerPopup(); loadDealerSpots(); }
         else showToast(data.error || 'Fehler', 'error');
     } catch { showToast('Verbindungsfehler', 'error'); }
 }
@@ -7994,69 +7995,6 @@ async function loadDealerSpots() {
     }
 }
 
-function initDealerMap() {
-    const mapInner = document.getElementById('dealer-map-inner');
-    if (!mapInner) return;
-    // Re-attach click handler (remove old first)
-    mapInner.removeEventListener('click', handleDealerMapClick);
-    mapInner.addEventListener('click', handleDealerMapClick);
-    // Show/hide admin controls
-    const canManage = currentUser && currentUser.can_add_members;
-    document.querySelectorAll('.dealer-manage-only').forEach(el => {
-        el.style.display = canManage ? '' : 'none';
-    });
-}
-
-function renderDealerSpots() {
-    const pinsLayer = document.getElementById('dealer-pins-layer');
-    const listEl    = document.getElementById('dealer-spots-list');
-    if (!pinsLayer || !listEl) return;
-
-    pinsLayer.innerHTML = '';
-
-    const total = dealerSpotsData.length;
-    const taken = dealerSpotsData.filter(s => s.assigned_member_id).length;
-    const free  = total - taken;
-    document.getElementById('dealer-stat-total').textContent = total;
-    document.getElementById('dealer-stat-free').textContent  = free;
-    document.getElementById('dealer-stat-taken').textContent = taken;
-
-    const emptyState = document.getElementById('dealer-empty-state');
-
-    if (total === 0) {
-        if (emptyState) emptyState.style.display = '';
-        listEl.innerHTML = `<div class="empty-state" id="dealer-empty-state">
-            <i class="fas fa-map-pin"></i>
-            <p>Noch keine Spots eingetragen</p>
-            <small>Admins können Spots per Klick auf die Karte hinzufügen</small>
-        </div>`;
-        return;
-    }
-
-    // Pins on map
-    dealerSpotsData.forEach(spot => pinsLayer.appendChild(createDealerPin(spot)));
-
-    // Sidebar list
-    listEl.innerHTML = dealerSpotsData.map(spot => `
-        <div class="dealer-spot-item ${spot.assigned_member_id ? 'taken' : 'free'}"
-             id="dealer-list-item-${spot.id}"
-             onclick="clickDealerSpotFromList(${spot.id})">
-            <div class="dealer-spot-item-dot" style="background:${spot.color || '#ef4444'};"></div>
-            <div class="dealer-spot-item-info">
-                <div class="dealer-spot-item-name">${escapeHtml(spot.name)}</div>
-                <div class="dealer-spot-item-sub">
-                    ${spot.assigned_member_name
-                        ? `<i class="fas fa-user"></i> ${escapeHtml(spot.assigned_member_name)}`
-                        : '<span style="color:var(--success)"><i class="fas fa-circle" style="font-size:0.55em;"></i> Frei</span>'}
-                </div>
-            </div>
-            <span class="dealer-spot-badge ${spot.assigned_member_id ? 'badge-taken' : 'badge-free'}">
-                ${spot.assigned_member_id ? 'Belegt' : 'Frei'}
-            </span>
-        </div>
-    `).join('');
-}
-
 function createDealerPin(spot) {
     const pin = document.createElement('div');
     pin.className = 'dealer-pin' + (spot.assigned_member_id ? ' pin-taken' : '');
@@ -8088,7 +8026,7 @@ function toggleDealerPlaceMode() {
         closeDealerPopup();
         showToast('Klicke auf die Karte um einen Spot zu platzieren', 'info');
     } else {
-        btn.innerHTML = '<i class="fas fa-map-pin"></i> Spot hinzufügen';
+        btn.innerHTML = '<i class="fas fa-map-pin"></i> Spot hinzufÃ¼gen';
         btn.className = 'btn-primary dealer-manage-only';
         hint.style.display = 'none';
         mapInner.classList.remove('place-mode');
@@ -8124,7 +8062,7 @@ function closeDealerNewModal() {
 
 async function saveDealerNewSpot(e) {
     e.preventDefault();
-    if (!dealerPendingPos) { showToast('Kein Standort ausgewählt', 'error'); return; }
+    if (!dealerPendingPos) { showToast('Kein Standort ausgewÃ¤hlt', 'error'); return; }
     const name = document.getElementById('new-dealer-name').value.trim();
     const desc = document.getElementById('new-dealer-desc').value.trim();
     try {
@@ -8276,7 +8214,7 @@ async function dealerRegisterSelf() {
             credentials: 'include', body: JSON.stringify({ member_id: currentUser.id })
         });
         const data = await res.json();
-        if (data.success) { showToast('Du hast dich für diesen Spot angemeldet!', 'success'); closeDealerPopup(); loadDealerSpots(); }
+        if (data.success) { showToast('Du hast dich fÃ¼r diesen Spot angemeldet!', 'success'); closeDealerPopup(); loadDealerSpots(); }
         else showToast(data.error || 'Fehler', 'error');
     } catch { showToast('Verbindungsfehler', 'error'); }
 }
@@ -8298,13 +8236,13 @@ async function confirmDeleteDealerSpot() {
     if (!dealerSelectedSpotId) return;
     const spot = dealerSpotsData.find(s => s.id === dealerSelectedSpotId);
     if (!spot) return;
-    if (!confirm(`Spot "${spot.name}" wirklich löschen?`)) return;
+    if (!confirm(`Spot "${spot.name}" wirklich lÃ¶schen?`)) return;
     try {
         const res  = await fetch(`${API_URL}/dealer-spots/${dealerSelectedSpotId}`, {
             method: 'DELETE', credentials: 'include'
         });
         const data = await res.json();
-        if (data.success) { showToast('Spot gelöscht.', 'success'); closeDealerPopup(); loadDealerSpots(); }
+        if (data.success) { showToast('Spot gelÃ¶scht.', 'success'); closeDealerPopup(); loadDealerSpots(); }
         else showToast(data.error || 'Fehler', 'error');
     } catch { showToast('Verbindungsfehler', 'error'); }
 }
