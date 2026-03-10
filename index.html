@@ -185,6 +185,33 @@
                             <span id="notes-status" class="notes-status"></span>
                         </div>
                     </div>
+                    <div class="nft-bar">
+                        <select id="nft-heading" class="nft-select" onchange="notesApplyFormat('h', this.value||null)" title="Textformat">
+                            <option value="">Normal</option>
+                            <option value="1">Überschrift 1</option>
+                            <option value="2">Überschrift 2</option>
+                        </select>
+                        <div class="nft-divider"></div>
+                        <button id="nft-bold"   class="nft-btn" onclick="notesToggleFormat('bold',true)"   title="Fett (Ctrl+B)"><b>B</b></button>
+                        <button id="nft-italic" class="nft-btn" onclick="notesToggleFormat('italic',true)" title="Kursiv (Ctrl+I)"><i>I</i></button>
+                        <div class="nft-divider"></div>
+                        <label class="nft-color-wrap" title="Textfarbe">
+                            <span class="nft-color-icon"><i class="fas fa-font"></i><span id="nft-color-bar" class="nft-color-bar" style="background:#000"></span></span>
+                            <input id="nft-color" type="color" value="#000000" oninput="notesApplyFormat('color',this.value); document.getElementById('nft-color-bar').style.background=this.value" />
+                        </label>
+                        <label class="nft-color-wrap" title="Hintergrundfarbe">
+                            <span class="nft-color-icon"><i class="fas fa-fill-drip"></i><span id="nft-bg-bar" class="nft-color-bar" style="background:#ffff66"></span></span>
+                            <input id="nft-bg" type="color" value="#ffff66" oninput="notesApplyFormat('bg',this.value); document.getElementById('nft-bg-bar').style.background=this.value" />
+                        </label>
+                        <div class="nft-divider"></div>
+                        <button id="nft-border-all" class="nft-btn" onclick="notesToggleFormat('border','all')"    title="Rahmen rundum">&#9633;</button>
+                        <button id="nft-border-bot" class="nft-btn" onclick="notesToggleFormat('border','bottom')" title="Linie unten">&#818;</button>
+                        <div class="nft-divider"></div>
+                        <button class="nft-btn" onclick="notesClearFormat()" title="Formatierung entfernen"><i class="fas fa-eraser"></i></button>
+                        <div class="nft-divider"></div>
+                        <button class="nft-btn" onclick="notesCopy(false)" title="Kopieren (Ctrl+C)"><i class="fas fa-copy"></i></button>
+                        <button class="nft-btn" onclick="notesPaste()" title="Einfügen (Ctrl+V)"><i class="fas fa-paste"></i></button>
+                    </div>
                     <div class="nsg-outer">
                         <div id="notes-grid-wrap" class="nsg-wrap"></div>
                     </div>

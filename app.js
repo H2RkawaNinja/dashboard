@@ -437,12 +437,14 @@ async function loadDashboardTreasuryStats() {
 
 // ========== NOTIZEN SPREADSHEET ==========
 
-const NOTES_COLS = 6;   // Anzahl Datenspalten (A–F)
-const NOTES_ROWS = 30;  // Startzeilen pro Sheet
+const NOTES_COLS = 6;
+const NOTES_ROWS = 30;
 
 let notesData = { sheets: [{ name: 'Tabelle 1', cols: NOTES_COLS, data: [] }] };
 let activeSheetIdx = 0;
-let notesSelectedCell = null; // { row, col }
+let notesSelectedCell = null;  // { r, c }
+let notesSelRange    = null;   // { r1, c1, r2, c2 }
+let notesClipboard   = null;   // { data, styles, srcRange, srcSheet, cut }
 
 // Hilfsfunktion: Spaltenbuchstabe A, B, C, ... Z, AA, AB ...
 function colLetter(n) {
@@ -535,19 +537,18 @@ function notesRenderGrid() {
     const rows = notesRowCount();
     const cols = notesColCount();
 
-    // Spalten-Header (A, B, C...)
     let colHeader = '<div class="nsg-corner"></div>';
     for (let c = 0; c < cols; c++) {
         colHeader += `<div class="nsg-col-head" data-col="${c}">${colLetter(c)}</div>`;
     }
 
-    // Zeilen
     let rowsHtml = '';
     for (let r = 0; r < rows; r++) {
         rowsHtml += `<div class="nsg-row-num">${r + 1}</div>`;
         for (let c = 0; c < cols; c++) {
             const val = notesGetCell(r, c);
-            rowsHtml += `<div class="nsg-cell" data-r="${r}" data-c="${c}" tabindex="0" contenteditable="false" spellcheck="false">${val ? escapeHtml(val) : ''}</div>`;
+            const style = notesBuildCellStyle(r, c);
+            rowsHtml += `<div class="nsg-cell" data-r="${r}" data-c="${c}" tabindex="0" contenteditable="false" spellcheck="false"${style ? ` style="${style}"` : ''}>${val ? escapeHtml(val) : ''}</div>`;
         }
     }
 
@@ -560,22 +561,55 @@ function notesRenderGrid() {
         </div>
     `;
 
-    // Events
     wrap.querySelectorAll('.nsg-cell').forEach(cell => {
         cell.addEventListener('click', notesOnCellClick);
         cell.addEventListener('keydown', notesOnCellKey);
         cell.addEventListener('blur', notesOnCellBlur);
         cell.addEventListener('dblclick', notesOnCellDblClick);
     });
+
+    if (notesSelectedCell) { notesUpdateCellStyles(); notesUpdateToolbar(); }
 }
 
 function escapeHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function notesUpdateCellStyles() {
+    const wrap = document.getElementById('notes-grid-wrap');
+    if (!wrap) return;
+    wrap.querySelectorAll('.nsg-cell.selected,.nsg-cell.nsg-in-range,.nsg-cell.nsg-clipboard').forEach(c => {
+        c.classList.remove('selected','nsg-in-range','nsg-clipboard');
+    });
+    wrap.querySelectorAll('.nsg-col-head.sel').forEach(c => c.classList.remove('sel'));
+    if (!notesSelRange) return;
+    const { r1, c1, r2, c2 } = normalizeRange(notesSelRange);
+    wrap.querySelectorAll('.nsg-cell').forEach(cell => {
+        const r = +cell.dataset.r, c = +cell.dataset.c;
+        if (r >= r1 && r <= r2 && c >= c1 && c <= c2) {
+            if (notesSelectedCell && r === notesSelectedCell.r && c === notesSelectedCell.c) {
+                cell.classList.add('selected');
+                const ch = wrap.querySelector(`.nsg-col-head[data-col="${c}"]`);
+                if (ch) ch.classList.add('sel');
+            } else {
+                cell.classList.add('nsg-in-range');
+            }
+        }
+        if (notesClipboard && notesClipboard.srcRange && notesClipboard.srcSheet === activeSheetIdx) {
+            const sr = notesClipboard.srcRange;
+            if (r >= sr.r1 && r <= sr.r2 && c >= sr.c1 && c <= sr.c2) cell.classList.add('nsg-clipboard');
+        }
+    });
+}
+
 function notesOnCellClick(e) {
     const cell = e.currentTarget;
-    notesSelectCell(cell);
+    if (e.shiftKey && notesSelectedCell) {
+        notesSelRange = { r1: notesSelectedCell.r, c1: notesSelectedCell.c, r2: +cell.dataset.r, c2: +cell.dataset.c };
+        notesUpdateCellStyles();
+    } else {
+        notesSelectCell(cell);
+    }
 }
 
 function notesOnCellDblClick(e) {
@@ -584,21 +618,13 @@ function notesOnCellDblClick(e) {
 }
 
 function notesSelectCell(cell) {
-    // Vorherige Selektion aufheben
-    document.querySelectorAll('.nsg-cell.selected').forEach(c => c.classList.remove('selected'));
-    document.querySelectorAll('.nsg-col-head.sel, .nsg-row-num.sel').forEach(c => c.classList.remove('sel'));
-    cell.classList.add('selected');
-    cell.focus();
     notesSelectedCell = { r: +cell.dataset.r, c: +cell.dataset.c };
-    // Spalten+Zeilen Header markieren
-    const wrap = document.getElementById('notes-grid-wrap');
-    if (wrap) {
-        const colHead = wrap.querySelector(`.nsg-col-head[data-col="${cell.dataset.c}"]`);
-        if (colHead) colHead.classList.add('sel');
-    }
-    // Formelleiste aktualisieren
+    notesSelRange = { r1: notesSelectedCell.r, c1: notesSelectedCell.c, r2: notesSelectedCell.r, c2: notesSelectedCell.c };
+    notesUpdateCellStyles();
+    cell.focus();
     const bar = document.getElementById('notes-formula-bar');
-    if (bar) bar.value = notesGetCell(+cell.dataset.r, +cell.dataset.c);
+    if (bar) bar.value = notesGetCell(notesSelectedCell.r, notesSelectedCell.c);
+    notesUpdateToolbar();
 }
 
 function notesEditCell(cell) {
@@ -623,6 +649,7 @@ function notesOnCellBlur(e) {
         notesSetCell(r, c, val);
         cell.contentEditable = 'false';
         cell.classList.remove('editing');
+        cell.style.cssText = notesBuildCellStyle(r, c);
         cell.innerHTML = val ? escapeHtml(val) : '';
         const bar = document.getElementById('notes-formula-bar');
         if (bar && notesSelectedCell && notesSelectedCell.r === r && notesSelectedCell.c === c) bar.value = val;
@@ -633,25 +660,106 @@ function notesOnCellKey(e) {
     const cell = e.currentTarget;
     const isEditing = cell.contentEditable === 'true';
     const r = +cell.dataset.r, c = +cell.dataset.c;
-    const cols = notesColCount();
+
+    // Ctrl-Shortcuts immer
+    if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'c') { e.preventDefault(); notesCopy(false); return; }
+        if (e.key === 'x') { e.preventDefault(); notesCopy(true);  return; }
+        if (e.key === 'v') { e.preventDefault(); notesPaste();     return; }
+        if (e.key === 'b') { e.preventDefault(); notesToggleFormat('bold', true);   return; }
+        if (e.key === 'i') { e.preventDefault(); notesToggleFormat('italic', true); return; }
+    }
 
     if (!isEditing) {
         if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); notesEditCell(cell); return; }
-        if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); notesSetCell(r,c,''); cell.innerHTML=''; const b=document.getElementById('notes-formula-bar'); if(b) b.value=''; return; }
-        if (e.key === 'ArrowRight' || e.key === 'Tab') { e.preventDefault(); notesMoveTo(r, c + 1); return; }
-        if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) { e.preventDefault(); notesMoveTo(r, c - 1); return; }
-        if (e.key === 'ArrowDown') { e.preventDefault(); notesMoveTo(r + 1, c); return; }
-        if (e.key === 'ArrowUp') { e.preventDefault(); notesMoveTo(r - 1, c); return; }
-        // Direkt tippen startet Bearbeitung
-        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-            notesSetCell(r, c, '');
-            cell.innerHTML = '';
-            notesEditCell(cell);
+        if ((e.key === 'Delete' || e.key === 'Backspace') && !e.shiftKey) {
+            e.preventDefault();
+            if (notesSelRange) {
+                const { r1,c1,r2,c2 } = normalizeRange(notesSelRange);
+                for (let rr=r1;rr<=r2;rr++) for (let cc=c1;cc<=c2;cc++) {
+                    notesSetCell(rr,cc,'');
+                    const tc = document.querySelector(`#notes-grid-wrap .nsg-cell[data-r="${rr}"][data-c="${cc}"]`);
+                    if (tc) tc.innerHTML='';
+                }
+            }
+            const b = document.getElementById('notes-formula-bar'); if(b) b.value='';
+            return;
         }
+        if (e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); notesExtendSel(r, c+1); return; }
+        if (e.shiftKey && e.key === 'ArrowLeft')  { e.preventDefault(); notesExtendSel(r, c-1); return; }
+        if (e.shiftKey && e.key === 'ArrowDown')  { e.preventDefault(); notesExtendSel(r+1, c); return; }
+        if (e.shiftKey && e.key === 'ArrowUp')    { e.preventDefault(); notesExtendSel(r-1, c); return; }
+        if (e.shiftKey && e.key === 'Tab') { e.preventDefault(); notesMoveTo(r, c-1); return; }
+        if (e.key === 'ArrowRight' || e.key === 'Tab') { e.preventDefault(); notesMoveTo(r, c+1); return; }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); notesMoveTo(r, c-1); return; }
+        if (e.key === 'ArrowDown')  { e.preventDefault(); notesMoveTo(r+1, c); return; }
+        if (e.key === 'ArrowUp')    { e.preventDefault(); notesMoveTo(r-1, c); return; }
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { notesSetCell(r,c,''); cell.innerHTML=''; notesEditCell(cell); }
     } else {
-        if (e.key === 'Escape') { e.preventDefault(); cell.innerHTML = escapeHtml(notesGetCell(r,c)); cell.contentEditable='false'; cell.classList.remove('editing'); cell.focus(); return; }
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); cell.blur(); notesMoveTo(r + 1, c); return; }
-        if (e.key === 'Tab') { e.preventDefault(); cell.blur(); notesMoveTo(r, c + (e.shiftKey ? -1 : 1)); return; }
+        if (e.key === 'Escape') { e.preventDefault(); cell.innerHTML=escapeHtml(notesGetCell(r,c)); cell.style.cssText=notesBuildCellStyle(r,c); cell.contentEditable='false'; cell.classList.remove('editing'); cell.focus(); return; }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); cell.blur(); notesMoveTo(r+1, c); return; }
+        if (e.key === 'Tab') { e.preventDefault(); cell.blur(); notesMoveTo(r, c+(e.shiftKey?-1:1)); return; }
+    }
+}
+
+function notesExtendSel(r2, c2) {
+    if (!notesSelectedCell) return;
+    r2 = Math.max(0, Math.min(notesRowCount()-1, r2));
+    c2 = Math.max(0, Math.min(notesColCount()-1, c2));
+    notesSelRange = { r1: notesSelectedCell.r, c1: notesSelectedCell.c, r2, c2 };
+    notesUpdateCellStyles();
+    const wrap = document.getElementById('notes-grid-wrap');
+    if (wrap) { const t = wrap.querySelector(`.nsg-cell[data-r="${r2}"][data-c="${c2}"]`); if(t) t.scrollIntoView({block:'nearest',inline:'nearest'}); }
+}
+
+function notesCopy(cut = false) {
+    if (!notesSelRange) return;
+    const { r1, c1, r2, c2 } = normalizeRange(notesSelRange);
+    const data = [], styles = [];
+    for (let r = r1; r <= r2; r++) {
+        const row = [], srow = [];
+        for (let c = c1; c <= c2; c++) { row.push(notesGetCell(r,c)); srow.push({...notesGetCellStyle(r,c)}); }
+        data.push(row); styles.push(srow);
+    }
+    notesClipboard = { data, styles, srcRange: normalizeRange(notesSelRange), srcSheet: activeSheetIdx, cut };
+    if (cut) {
+        for (let r=r1;r<=r2;r++) for (let c=c1;c<=c2;c++) {
+            notesSetCell(r,c,'');
+            const cell = document.querySelector(`#notes-grid-wrap .nsg-cell[data-r="${r}"][data-c="${c}"]`);
+            if (cell) cell.innerHTML='';
+        }
+    }
+    navigator.clipboard?.writeText(data.map(row=>row.join('\t')).join('\n')).catch(()=>{});
+    notesUpdateCellStyles();
+}
+
+function notesPaste() {
+    if (!notesSelectedCell) return;
+    const { r, c } = notesSelectedCell;
+    const applyPaste = (data, styles) => {
+        data.forEach((row, dr) => {
+            row.forEach((val, dc) => {
+                notesSetCell(r+dr, c+dc, val);
+                if (styles && styles[dr] && styles[dr][dc]) {
+                    const sheet = notesCurrentSheet();
+                    if (!sheet.styles) sheet.styles = {};
+                    const st = styles[dr][dc];
+                    if (Object.keys(st).length) sheet.styles[`${r+dr},${c+dc}`] = {...st};
+                }
+                const cell = document.querySelector(`#notes-grid-wrap .nsg-cell[data-r="${r+dr}"][data-c="${c+dc}"]`);
+                if (cell) { cell.style.cssText = notesBuildCellStyle(r+dr,c+dc); cell.innerHTML = val ? escapeHtml(val) : ''; }
+            });
+        });
+        if (notesClipboard && notesClipboard.cut) notesClipboard = null;
+        notesUpdateCellStyles();
+    };
+    if (notesClipboard) {
+        applyPaste(notesClipboard.data, notesClipboard.styles);
+    } else {
+        navigator.clipboard?.readText().then(text => {
+            const data = text.split('\n').map(row => row.split('\t'));
+            applyPaste(data, null);
+        }).catch(()=>{});
     }
 }
 
@@ -680,6 +788,7 @@ function notesFormulaInput(val) {
 function notesSwitchSheet(idx) {
     if (idx === activeSheetIdx) return;
     activeSheetIdx = idx;
+    notesSelectedCell = null; notesSelRange = null;
     notesRender();
 }
 
