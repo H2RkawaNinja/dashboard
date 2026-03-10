@@ -7612,7 +7612,7 @@ let dealerDragActive = false;
 let dealerDragMoved  = false;
 let dealerDragSX = 0, dealerDragSY = 0;
 let dealerDragSL = 0, dealerDragST = 0;
-const DEALER_ZOOM_MAX = 4.0;
+const DEALER_ZOOM_MAX = 8.0;
 const DEALER_ZOOM_STEP = 0.25;
 
 const DEALER_COLORS = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#ffffff'];
