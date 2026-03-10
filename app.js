@@ -704,8 +704,9 @@ function notesOnRowNumClick(e) {
     }
     notesUpdateCellStyles();
     notesUpdateToolbar();
-    const wrap = document.getElementById('notes-grid-wrap');
-    if (wrap) { const cell = wrap.querySelector(`.nsg-cell[data-r="${r}"][data-c="0"]`); if (cell) cell.focus(); }
+    // Zeile ist ausgewaehlt, focus auf Zeilennummer selbst damit Tastatur-Del etc. funktioniert
+    e.currentTarget.setAttribute('tabindex','0');
+    e.currentTarget.focus();
 }
 
 function notesUpdateCellStyles() {
@@ -715,12 +716,19 @@ function notesUpdateCellStyles() {
         c.classList.remove('selected','nsg-in-range','nsg-clipboard');
     });
     wrap.querySelectorAll('.nsg-col-head.sel').forEach(c => c.classList.remove('sel'));
+    wrap.querySelectorAll('.nsg-row-num.sel').forEach(c => c.classList.remove('sel'));
     if (!notesSelRange) return;
     const { r1, c1, r2, c2 } = normalizeRange(notesSelRange);
+    const cols = notesColCount();
+    const isFullRow = (c1 === 0 && c2 === cols - 1);
+    wrap.querySelectorAll('.nsg-row-num').forEach(rn => {
+        const r = +rn.dataset.row;
+        if (isFullRow && r >= r1 && r <= r2) rn.classList.add('sel');
+    });
     wrap.querySelectorAll('.nsg-cell').forEach(cell => {
         const r = +cell.dataset.r, c = +cell.dataset.c;
         if (r >= r1 && r <= r2 && c >= c1 && c <= c2) {
-            if (notesSelectedCell && r === notesSelectedCell.r && c === notesSelectedCell.c) {
+            if (!isFullRow && notesSelectedCell && r === notesSelectedCell.r && c === notesSelectedCell.c) {
                 cell.classList.add('selected');
                 const ch = wrap.querySelector(`.nsg-col-head[data-col="${c}"]`);
                 if (ch) ch.classList.add('sel');

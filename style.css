@@ -4919,6 +4919,7 @@ body {
     transition: background 0.1s;
 }
 .nsg-row-num:hover { background: #e2e6ea; color: #1a73e8; }
+.nsg-row-num.sel  { background: #d2e3fc !important; color: #1a73e8; font-weight: 700; }
 
 .nsg-merged {
     overflow: hidden;
