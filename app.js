@@ -7617,7 +7617,22 @@ let dealerDragSL = 0, dealerDragST = 0;
 const DEALER_ZOOM_MAX = 8.0;
 const DEALER_ZOOM_STEP = 0.25;
 
-const DEALER_COLORS = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#ffffff'];
+const DEALER_COLORS = [
+    // Rot-Töne
+    '#ef4444','#dc2626','#fca5a5',
+    // Orange/Gelb
+    '#f97316','#f59e0b','#fde68a',
+    // Grün
+    '#10b981','#16a34a','#86efac',
+    // Blau
+    '#3b82f6','#0ea5e9','#93c5fd',
+    // Lila/Pink
+    '#8b5cf6','#a855f7','#ec4899','#f9a8d4',
+    // Braun/Grau
+    '#78716c','#94a3b8',
+    // Schwarz/Weiß
+    '#1e1e2e','#ffffff',
+];
 
 async function loadDealerSpots() {
     try {
