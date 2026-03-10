@@ -7606,6 +7606,10 @@ let dealerPlaceMode = false;
 let dealerPendingPos = null;
 let dealerSelectedSpotId = null;
 let dealerSelectedColor = '#ef4444';
+let dealerZoom = 1.0;
+const DEALER_ZOOM_MIN = 0.5;
+const DEALER_ZOOM_MAX = 4.0;
+const DEALER_ZOOM_STEP = 0.25;
 
 const DEALER_COLORS = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#ffffff'];
 
@@ -7617,20 +7621,80 @@ async function loadDealerSpots() {
         dealerSpotsData = data.spots || [];
         renderDealerSpots();
         initDealerMap();
+        // Reset zoom when page is opened
+        dealerZoom = 1.0;
+        const img = document.getElementById('dealer-map-img');
+        if (img) { img.style.width = ''; img.style.maxWidth = ''; }
+        const lblEl = document.getElementById('dealer-zoom-label');
+        if (lblEl) lblEl.textContent = '100%';
     } catch (err) {
         console.error(err);
         showToast('Fehler beim Laden der Dealer-Karte', 'error');
     }
 }
 
+function dealerZoomIn()    { _applyDealerZoom(dealerZoom + DEALER_ZOOM_STEP); }
+function dealerZoomOut()   { _applyDealerZoom(dealerZoom - DEALER_ZOOM_STEP); }
+function dealerZoomReset() { _applyDealerZoom(1.0); }
+
+function _applyDealerZoom(newZoom, pivotRatioX, pivotRatioY) {
+    const wrap = document.getElementById('dealer-map-wrap');
+    const img  = document.getElementById('dealer-map-img');
+    if (!wrap || !img || img.offsetWidth === 0) return;
+
+    newZoom = Math.max(DEALER_ZOOM_MIN, Math.min(DEALER_ZOOM_MAX, newZoom));
+
+    // Ratio of current center in image coords
+    const cx = (wrap.scrollLeft + wrap.offsetWidth  / 2) / img.offsetWidth;
+    const cy = (wrap.scrollTop  + wrap.offsetHeight / 2) / img.offsetHeight;
+
+    dealerZoom = newZoom;
+    const baseW = wrap.offsetWidth;
+    img.style.width    = (baseW * dealerZoom) + 'px';
+    img.style.maxWidth = 'none';
+
+    requestAnimationFrame(() => {
+        wrap.scrollLeft = cx * img.offsetWidth  - wrap.offsetWidth  / 2;
+        wrap.scrollTop  = cy * img.offsetHeight - wrap.offsetHeight / 2;
+        const lbl = document.getElementById('dealer-zoom-label');
+        if (lbl) lbl.textContent = Math.round(dealerZoom * 100) + '%';
+    });
+}
+
 function initDealerMap() {
     const mapInner = document.getElementById('dealer-map-inner');
-    if (!mapInner) return;
+    const mapWrap  = document.getElementById('dealer-map-wrap');
+    if (!mapInner || !mapWrap) return;
     mapInner.removeEventListener('click', handleDealerMapClick);
     mapInner.addEventListener('click', handleDealerMapClick);
-    const canManage = currentUser && currentUser.can_add_members;
-    const placeBtn = document.getElementById('dealer-place-btn');
-    if (placeBtn) placeBtn.style.display = canManage ? '' : 'none';
+    // Mouse wheel zoom
+    mapWrap.removeEventListener('wheel', _dealerWheelHandler);
+    mapWrap.addEventListener('wheel', _dealerWheelHandler, { passive: false });
+}
+
+function _dealerWheelHandler(e) {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? DEALER_ZOOM_STEP : -DEALER_ZOOM_STEP;
+    const wrap = document.getElementById('dealer-map-wrap');
+    const img  = document.getElementById('dealer-map-img');
+    if (!wrap || !img || img.offsetWidth === 0) return;
+    const rect = wrap.getBoundingClientRect();
+    // Zoom toward mouse cursor
+    const mx = e.clientX - rect.left + wrap.scrollLeft;
+    const my = e.clientY - rect.top  + wrap.scrollTop;
+    const cx = mx / img.offsetWidth;
+    const cy = my / img.offsetHeight;
+    const newZoom = Math.max(DEALER_ZOOM_MIN, Math.min(DEALER_ZOOM_MAX, dealerZoom + delta));
+    dealerZoom = newZoom;
+    const baseW = wrap.offsetWidth;
+    img.style.width    = (baseW * dealerZoom) + 'px';
+    img.style.maxWidth = 'none';
+    requestAnimationFrame(() => {
+        wrap.scrollLeft = cx * img.offsetWidth  - (e.clientX - rect.left);
+        wrap.scrollTop  = cy * img.offsetHeight - (e.clientY - rect.top);
+        const lbl = document.getElementById('dealer-zoom-label');
+        if (lbl) lbl.textContent = Math.round(dealerZoom * 100) + '%';
+    });
 }
 
 function renderDealerSpots(filter) {
@@ -7653,7 +7717,7 @@ function renderDealerSpots(filter) {
         listEl.innerHTML = `<div class="empty-state">
             <i class="fas fa-map-pin"></i>
             <p>Noch keine Dealer eingetragen</p>
-            <small>Admins können Dealer per Klick auf die Karte hinzufügen</small>
+            <small>Klicke auf "Dealer hinzufügen" und dann auf die Karte</small>
         </div>`;
         return;
     }
@@ -7825,9 +7889,8 @@ function openDealerSpotPopup(spotId, event) {
         descEl.style.display = 'none';
     }
 
-    const canManage = currentUser && currentUser.can_add_members;
     const footerEl = document.getElementById('dealer-popup-admin-footer');
-    if (footerEl) footerEl.style.display = canManage ? 'flex' : 'none';
+    if (footerEl) footerEl.style.display = 'flex';
 
     popup.style.display = 'block';
     const pw = 280, ph = 120;

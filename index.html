@@ -1032,7 +1032,13 @@
                         <span class="dealer-stat-badge dealer-stat-total"><i class="fas fa-map-pin"></i> <span id="dealer-stat-total">0</span> Dealer</span>
                     </div>
                     <div class="dealer-map-controls">
-                        <button class="btn-primary dealer-manage-only" id="dealer-place-btn" onclick="toggleDealerPlaceMode()" style="display:none;">
+                        <div class="dealer-zoom-controls">
+                            <button class="dealer-zoom-btn" onclick="dealerZoomOut()" title="Rauszoomen"><i class="fas fa-minus"></i></button>
+                            <span class="dealer-zoom-label" id="dealer-zoom-label">100%</span>
+                            <button class="dealer-zoom-btn" onclick="dealerZoomIn()" title="Reinzoomen"><i class="fas fa-plus"></i></button>
+                            <button class="dealer-zoom-btn" onclick="dealerZoomReset()" title="Zurücksetzen"><i class="fas fa-compress-arrows-alt"></i></button>
+                        </div>
+                        <button class="btn-primary" id="dealer-place-btn" onclick="toggleDealerPlaceMode()">
                             <i class="fas fa-map-pin"></i> Dealer hinzufügen
                         </button>
                     </div>
@@ -1065,7 +1071,7 @@
                                 <div class="empty-state" id="dealer-empty-state">
                                     <i class="fas fa-map-pin"></i>
                                     <p>Noch keine Dealer eingetragen</p>
-                                    <small>Admins können Dealer per Klick auf die Karte hinzufügen</small>
+                                    <small>Klicke auf "Dealer hinzufügen" und dann auf die Karte</small>
                                 </div>
                             </div>
                         </div>

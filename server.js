@@ -1473,7 +1473,7 @@ app.get('/api/dealer-spots', requireLogin, (req, res) => {
     );
 });
 
-app.post('/api/dealer-spots', requireLogin, requirePerm('can_add_members'), (req, res) => {
+app.post('/api/dealer-spots', requireLogin, (req, res) => {
     const { name, description, x_pos, y_pos, color } = req.body;
     if (!name || x_pos === undefined || y_pos === undefined)
         return res.status(400).json({ error: 'Name und Position erforderlich' });
@@ -1492,7 +1492,7 @@ app.post('/api/dealer-spots', requireLogin, requirePerm('can_add_members'), (req
     );
 });
 
-app.put('/api/dealer-spots/:id', requireLogin, requirePerm('can_add_members'), (req, res) => {
+app.put('/api/dealer-spots/:id', requireLogin, (req, res) => {
     const { name, description, color } = req.body;
     if (!name) return res.status(400).json({ error: 'Name erforderlich' });
     db.query(
@@ -1507,7 +1507,7 @@ app.put('/api/dealer-spots/:id', requireLogin, requirePerm('can_add_members'), (
     );
 });
 
-app.delete('/api/dealer-spots/:id', requireLogin, requirePerm('can_add_members'), (req, res) => {
+app.delete('/api/dealer-spots/:id', requireLogin, (req, res) => {
     db.query('SELECT name FROM dealer_spots WHERE id=?', [parseInt(req.params.id)], (e, r) => {
         if (e) return res.status(500).json({ error: e.message });
         if (!r.length) return res.status(404).json({ error: 'Spot nicht gefunden' });
