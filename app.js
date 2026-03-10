@@ -742,11 +742,15 @@ function notesOnCellKey(e) {
     const isEditing = cell.contentEditable === 'true';
     const r = +cell.dataset.r, c = +cell.dataset.c;
 
-    // Ctrl-Shortcuts immer
+    // Ctrl-Shortcuts
     if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'c') { e.preventDefault(); notesCopy(false); return; }
-        if (e.key === 'x') { e.preventDefault(); notesCopy(true);  return; }
-        if (e.key === 'v') { e.preventDefault(); notesPaste();     return; }
+        // C/X/V nur wenn nicht gerade Text in der Zelle bearbeitet wird
+        if (!isEditing) {
+            if (e.key === 'c') { e.preventDefault(); notesCopy(false); return; }
+            if (e.key === 'x') { e.preventDefault(); notesCopy(true);  return; }
+            if (e.key === 'v') { e.preventDefault(); notesPaste();     return; }
+        }
+        // Formatierung immer verfügbar
         if (e.key === 'b') { e.preventDefault(); notesToggleFormat('bold', true);   return; }
         if (e.key === 'i') { e.preventDefault(); notesToggleFormat('italic', true); return; }
     }
@@ -775,7 +779,8 @@ function notesOnCellKey(e) {
         if (e.key === 'ArrowLeft')  { e.preventDefault(); notesMoveTo(r, c-1); return; }
         if (e.key === 'ArrowDown')  { e.preventDefault(); notesMoveTo(r+1, c); return; }
         if (e.key === 'ArrowUp')    { e.preventDefault(); notesMoveTo(r-1, c); return; }
-        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { notesSetCell(r,c,''); cell.innerHTML=''; notesEditCell(cell); }
+        // Direkt tippen startet Bearbeitung – NUR Display leeren, Daten bleiben bis Blur
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { cell.innerHTML=''; notesEditCell(cell); }
     } else {
         if (e.key === 'Escape') { e.preventDefault(); cell.innerHTML=escapeHtml(notesGetCell(r,c)); cell.style.cssText=notesBuildCellStyle(r,c); cell.contentEditable='false'; cell.classList.remove('editing'); cell.focus(); return; }
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); cell.blur(); notesMoveTo(r+1, c); return; }
@@ -832,6 +837,11 @@ function notesPaste() {
             });
         });
         if (notesClipboard && notesClipboard.cut) notesClipboard = null;
+        // Neu rendern falls eingefügte Daten über die sichtbaren Zeilen hinausgehen
+        const sheet = notesCurrentSheet();
+        if (sheet.data.length > notesRowCount() - 5) {
+            notesRenderGrid();
+        }
         notesUpdateCellStyles();
     };
     if (notesClipboard) {
