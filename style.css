@@ -4914,8 +4914,18 @@ body {
     border-right: 2px solid #b0b0b0;
     border-bottom: 1px solid #e0e0e0;
     user-select: none;
-    cursor: default;
+    cursor: pointer;
     flex-shrink: 0;
+    transition: background 0.1s;
+}
+.nsg-row-num:hover { background: #e2e6ea; color: #1a73e8; }
+
+.nsg-merged {
+    overflow: hidden;
+    align-items: flex-start;
+    padding-top: 4px;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .nsg-cell {
