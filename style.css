@@ -6653,6 +6653,18 @@ body {
     margin-top: 1px;
 }
 
+.dealer-item-ctx-icon {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+}
+
+.dealer-spot-item:hover .dealer-item-ctx-icon {
+    opacity: 0.9;
+}
+
 .dealer-spot-badge {
     font-size: 0.7rem;
     font-weight: 700;
