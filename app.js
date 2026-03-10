@@ -514,6 +514,87 @@ function notesColCount() {
     return notesCurrentSheet().cols || NOTES_COLS;
 }
 
+// ---- Range helper ----
+function normalizeRange(rng) {
+    return { r1: Math.min(rng.r1, rng.r2), c1: Math.min(rng.c1, rng.c2), r2: Math.max(rng.r1, rng.r2), c2: Math.max(rng.c1, rng.c2) };
+}
+
+// ---- Cell styles ----
+function notesGetCellStyle(r, c) {
+    const sheet = notesCurrentSheet();
+    return (sheet.styles && sheet.styles[`${r},${c}`]) || {};
+}
+function notesSetCellStyle(r, c, prop, val) {
+    const sheet = notesCurrentSheet();
+    if (!sheet.styles) sheet.styles = {};
+    const key = `${r},${c}`;
+    if (!sheet.styles[key]) sheet.styles[key] = {};
+    if (val === null || val === '' || val === false) {
+        delete sheet.styles[key][prop];
+        if (!Object.keys(sheet.styles[key]).length) delete sheet.styles[key];
+    } else {
+        sheet.styles[key][prop] = val;
+    }
+}
+function notesBuildCellStyle(r, c) {
+    const s = notesGetCellStyle(r, c);
+    let css = '';
+    if (s.bold)   css += 'font-weight:700;';
+    if (s.italic) css += 'font-style:italic;';
+    if (s.color)  css += `color:${s.color};`;
+    if (s.bg)     css += `background-color:${s.bg};`;
+    if (s.h === '1') css += 'font-size:1.22rem;font-weight:700;';
+    else if (s.h === '2') css += 'font-size:1.04rem;font-weight:600;';
+    if (s.border === 'all')    css += 'box-shadow:inset 0 0 0 1px #555;';
+    if (s.border === 'bottom') css += 'border-bottom:2px solid #333!important;';
+    return css;
+}
+function notesApplyFormat(prop, val) {
+    if (!notesSelRange) return;
+    const { r1, c1, r2, c2 } = normalizeRange(notesSelRange);
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+        notesSetCellStyle(r, c, prop, val);
+        const cell = document.querySelector(`#notes-grid-wrap .nsg-cell[data-r="${r}"][data-c="${c}"]`);
+        if (cell) cell.style.cssText = notesBuildCellStyle(r, c);
+    }
+    notesUpdateToolbar();
+}
+function notesToggleFormat(prop, val) {
+    if (!notesSelRange) return;
+    const { r1, c1, r2, c2 } = normalizeRange(notesSelRange);
+    let allHave = true;
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+        if (notesGetCellStyle(r, c)[prop] !== val) { allHave = false; break; }
+    }
+    notesApplyFormat(prop, allHave ? null : val);
+}
+function notesClearFormat() {
+    if (!notesSelRange) return;
+    const { r1, c1, r2, c2 } = normalizeRange(notesSelRange);
+    const sheet = notesCurrentSheet();
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+        if (sheet.styles) delete sheet.styles[`${r},${c}`];
+        const cell = document.querySelector(`#notes-grid-wrap .nsg-cell[data-r="${r}"][data-c="${c}"]`);
+        if (cell) cell.style.cssText = '';
+    }
+    notesUpdateToolbar();
+}
+function notesUpdateToolbar() {
+    if (!notesSelectedCell) return;
+    const s = notesGetCellStyle(notesSelectedCell.r, notesSelectedCell.c);
+    const setA = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('nft-active', !!on); };
+    setA('nft-bold',       s.bold);
+    setA('nft-italic',     s.italic);
+    setA('nft-border-all', s.border === 'all');
+    setA('nft-border-bot', s.border === 'bottom');
+    const hSel = document.getElementById('nft-heading');
+    if (hSel) hSel.value = s.h || '';
+    const colorEl = document.getElementById('nft-color');
+    if (colorEl) { colorEl.value = s.color || '#000000'; const bar = document.getElementById('nft-color-bar'); if (bar) bar.style.background = colorEl.value; }
+    const bgEl = document.getElementById('nft-bg');
+    if (bgEl) { bgEl.value = s.bg || '#ffff66'; const bar = document.getElementById('nft-bg-bar'); if (bar) bar.style.background = bgEl.value; }
+}
+
 // ---- Render ----
 function notesRender() {
     notesRenderTabs();
