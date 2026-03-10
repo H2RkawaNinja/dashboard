@@ -1519,24 +1519,6 @@ app.delete('/api/dealer-spots/:id', requireLogin, requirePerm('can_add_members')
     });
 });
 
-app.post('/api/dealer-spots/:id/assign', requireLogin, (req, res) => {
-    const { member_id } = req.body;
-    // Allow: unassign always | assign: only the user themselves or admins
-    const targetId = member_id ? parseInt(member_id) : null;
-    if (targetId !== null && targetId !== req.session.userId && !req.session.can_add_members)
-        return res.status(403).json({ error: 'Keine Berechtigung' });
-    db.query(
-        'UPDATE dealer_spots SET assigned_member_id=? WHERE id=?',
-        [targetId, parseInt(req.params.id)],
-        (e) => {
-            if (e) return res.status(500).json({ error: e.message });
-            const action = targetId ? 'angemeldet' : 'abgemeldet';
-            logActivity(req.session.userId, 'dealer_spot_assign', `Dealer-Spot ${action}: #${req.params.id}`);
-            res.json({ success: true });
-        }
-    );
-});
-
 // ── Error Handler ──────────────────────────────────────────
 app.use((err, req, res, next) => {
     if (err instanceof URIError) return res.status(400).end();

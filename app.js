@@ -7612,6 +7612,314 @@ const DEALER_COLORS = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec489
 async function loadDealerSpots() {
     try {
         const res = await fetch(`${API_URL}/dealer-spots`, { credentials: 'include' });
+        if (!res.ok) { showToast('Fehler beim Laden der Dealer', 'error'); return; }
+        const data = await res.json();
+        dealerSpotsData = data.spots || [];
+        renderDealerSpots();
+        initDealerMap();
+    } catch (err) {
+        console.error(err);
+        showToast('Fehler beim Laden der Dealer-Karte', 'error');
+    }
+}
+
+function initDealerMap() {
+    const mapInner = document.getElementById('dealer-map-inner');
+    if (!mapInner) return;
+    mapInner.removeEventListener('click', handleDealerMapClick);
+    mapInner.addEventListener('click', handleDealerMapClick);
+    const canManage = currentUser && currentUser.can_add_members;
+    const placeBtn = document.getElementById('dealer-place-btn');
+    if (placeBtn) placeBtn.style.display = canManage ? '' : 'none';
+}
+
+function renderDealerSpots(filter) {
+    const pinsLayer = document.getElementById('dealer-pins-layer');
+    const listEl    = document.getElementById('dealer-spots-list');
+    if (!pinsLayer || !listEl) return;
+
+    pinsLayer.innerHTML = '';
+    document.getElementById('dealer-stat-total').textContent = dealerSpotsData.length;
+
+    const query = (filter || document.getElementById('dealer-search-input')?.value || '').toLowerCase();
+    const filtered = query
+        ? dealerSpotsData.filter(s => s.name.toLowerCase().includes(query) || (s.description || '').toLowerCase().includes(query))
+        : dealerSpotsData;
+
+    // Always draw all pins on the map
+    dealerSpotsData.forEach(spot => pinsLayer.appendChild(createDealerPin(spot)));
+
+    if (dealerSpotsData.length === 0) {
+        listEl.innerHTML = `<div class="empty-state">
+            <i class="fas fa-map-pin"></i>
+            <p>Noch keine Dealer eingetragen</p>
+            <small>Admins können Dealer per Klick auf die Karte hinzufügen</small>
+        </div>`;
+        return;
+    }
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="empty-state"><i class="fas fa-search"></i><p>Kein Dealer gefunden</p></div>`;
+        return;
+    }
+
+    listEl.innerHTML = filtered.map(spot => `
+        <div class="dealer-spot-item"
+             id="dealer-list-item-${spot.id}"
+             onclick="clickDealerSpotFromList(${spot.id})">
+            <div class="dealer-spot-item-dot" style="background:${spot.color || '#ef4444'};"></div>
+            <div class="dealer-spot-item-info">
+                <div class="dealer-spot-item-name">${escapeHtml(spot.name)}</div>
+                ${spot.description ? `<div class="dealer-spot-item-sub">${escapeHtml(spot.description)}</div>` : ''}
+            </div>
+            <i class="fas fa-map-marker-alt" style="color:${spot.color||'#ef4444'}; font-size:0.85rem; flex-shrink:0;"></i>
+        </div>
+    `).join('');
+}
+
+function filterDealerList() {
+    renderDealerSpots();
+}
+
+function createDealerPin(spot) {
+    const pin = document.createElement('div');
+    pin.className = 'dealer-pin';
+    pin.id = `dealer-pin-${spot.id}`;
+    pin.style.left = spot.x_pos + '%';
+    pin.style.top  = spot.y_pos + '%';
+    pin.innerHTML = `
+        <div class="pin-marker" style="background:${spot.color || '#ef4444'};"></div>
+        <div class="pin-tooltip">${escapeHtml(spot.name)}</div>
+    `;
+    pin.addEventListener('click', (e) => {
+        if (dealerPlaceMode) return;
+        e.stopPropagation();
+        openDealerSpotPopup(spot.id, e);
+    });
+    return pin;
+}
+
+function toggleDealerPlaceMode() {
+    dealerPlaceMode = !dealerPlaceMode;
+    const btn      = document.getElementById('dealer-place-btn');
+    const hint     = document.getElementById('dealer-cursor-hint');
+    const mapInner = document.getElementById('dealer-map-inner');
+    if (dealerPlaceMode) {
+        btn.innerHTML = '<i class="fas fa-times"></i> Abbrechen';
+        btn.className = 'btn-warning dealer-manage-only';
+        hint.style.display = 'flex';
+        mapInner.classList.add('place-mode');
+        closeDealerPopup();
+        showToast('Klicke auf die Karte um einen Dealer-Spot zu platzieren', 'info');
+    } else {
+        btn.innerHTML = '<i class="fas fa-map-pin"></i> Dealer hinzufügen';
+        btn.className = 'btn-primary dealer-manage-only';
+        hint.style.display = 'none';
+        mapInner.classList.remove('place-mode');
+    }
+}
+
+function handleDealerMapClick(e) {
+    if (!dealerPlaceMode) return;
+    const mapInner = document.getElementById('dealer-map-inner');
+    const rect = mapInner.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width)  * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top)  / rect.height) * 100));
+    dealerPendingPos = { x: parseFloat(x.toFixed(3)), y: parseFloat(y.toFixed(3)) };
+    if (dealerPlaceMode) toggleDealerPlaceMode();
+    showDealerNewModal();
+}
+
+function showDealerNewModal() {
+    dealerSelectedColor = '#ef4444';
+    document.getElementById('new-dealer-name').value = '';
+    document.getElementById('new-dealer-desc').value = '';
+    renderDealerColorPalette('new-spot-color-palette', dealerSelectedColor);
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('dealer-new-spot-modal').style.display = 'block';
+    setTimeout(() => document.getElementById('new-dealer-name').focus(), 50);
+}
+
+function closeDealerNewModal() {
+    document.getElementById('dealer-new-spot-modal').style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'none';
+    dealerPendingPos = null;
+}
+
+async function saveDealerNewSpot(e) {
+    e.preventDefault();
+    if (!dealerPendingPos) { showToast('Kein Standort ausgewählt', 'error'); return; }
+    const name = document.getElementById('new-dealer-name').value.trim();
+    const desc = document.getElementById('new-dealer-desc').value.trim();
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name, description: desc, x_pos: dealerPendingPos.x, y_pos: dealerPendingPos.y, color: dealerSelectedColor })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Dealer hinzugefügt!', 'success');
+            closeDealerNewModal();
+            loadDealerSpots();
+        } else {
+            showToast(data.error || 'Fehler', 'error');
+        }
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+function showDealerEditModal() {
+    const spot = dealerSpotsData.find(s => s.id === dealerSelectedSpotId);
+    if (!spot) return;
+    document.getElementById('edit-dealer-id').value   = spot.id;
+    document.getElementById('edit-dealer-name').value = spot.name;
+    document.getElementById('edit-dealer-desc').value = spot.description || '';
+    dealerSelectedColor = spot.color || '#ef4444';
+    renderDealerColorPalette('edit-spot-color-palette', dealerSelectedColor);
+    closeDealerPopup();
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('dealer-edit-spot-modal').style.display = 'block';
+    setTimeout(() => document.getElementById('edit-dealer-name').focus(), 50);
+}
+
+function closeDealerEditModal() {
+    document.getElementById('dealer-edit-spot-modal').style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'none';
+}
+
+async function saveDealerEditSpot(e) {
+    e.preventDefault();
+    const id   = document.getElementById('edit-dealer-id').value;
+    const name = document.getElementById('edit-dealer-name').value.trim();
+    const desc = document.getElementById('edit-dealer-desc').value.trim();
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name, description: desc, color: dealerSelectedColor })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Dealer aktualisiert!', 'success');
+            closeDealerEditModal();
+            loadDealerSpots();
+        } else { showToast(data.error || 'Fehler', 'error'); }
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+function openDealerSpotPopup(spotId, event) {
+    const spot = dealerSpotsData.find(s => s.id === spotId);
+    if (!spot) return;
+    dealerSelectedSpotId = spotId;
+    const popup = document.getElementById('dealer-spot-popup');
+
+    document.getElementById('dealer-popup-color').style.background = spot.color || '#ef4444';
+    document.getElementById('dealer-popup-name').textContent = spot.name;
+    const descEl = document.getElementById('dealer-popup-desc');
+    if (spot.description) {
+        descEl.textContent = spot.description;
+        descEl.style.display = '';
+    } else {
+        descEl.style.display = 'none';
+    }
+
+    const canManage = currentUser && currentUser.can_add_members;
+    const footerEl = document.getElementById('dealer-popup-admin-footer');
+    if (footerEl) footerEl.style.display = canManage ? 'flex' : 'none';
+
+    popup.style.display = 'block';
+    const pw = 280, ph = 120;
+    let px = event.clientX + 15, py = event.clientY - 50;
+    if (px + pw > window.innerWidth  - 10) px = event.clientX - pw - 15;
+    if (py < 10) py = 10;
+    if (py + ph > window.innerHeight - 10) py = window.innerHeight - ph - 10;
+    popup.style.left = px + 'px';
+    popup.style.top  = py + 'px';
+
+    document.querySelectorAll('.dealer-spot-item').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.dealer-pin').forEach(el => el.classList.remove('active'));
+    document.getElementById(`dealer-pin-${spotId}`)?.classList.add('active');
+    document.getElementById(`dealer-list-item-${spotId}`)?.classList.add('selected');
+    document.getElementById(`dealer-list-item-${spotId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDealerPopup() {
+    const popup = document.getElementById('dealer-spot-popup');
+    if (popup) popup.style.display = 'none';
+    document.querySelectorAll('.dealer-pin').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.dealer-spot-item').forEach(el => el.classList.remove('selected'));
+    dealerSelectedSpotId = null;
+}
+
+function clickDealerSpotFromList(spotId) {
+    const spot = dealerSpotsData.find(s => s.id === spotId);
+    if (!spot) return;
+    const mapWrap = document.getElementById('dealer-map-wrap');
+    const mapImg  = document.getElementById('dealer-map-img');
+    if (mapWrap && mapImg && mapImg.offsetWidth > 0) {
+        const scrollX = (spot.x_pos / 100) * mapImg.offsetWidth  - mapWrap.offsetWidth  / 2;
+        const scrollY = (spot.y_pos / 100) * mapImg.offsetHeight - mapWrap.offsetHeight / 2;
+        mapWrap.scrollTo({ left: Math.max(0, scrollX), top: Math.max(0, scrollY), behavior: 'smooth' });
+    }
+    const pin = document.getElementById(`dealer-pin-${spotId}`);
+    if (pin) {
+        // Wait for scroll then show popup
+        setTimeout(() => {
+            const rect = pin.getBoundingClientRect();
+            openDealerSpotPopup(spotId, { clientX: rect.left + rect.width / 2, clientY: rect.top });
+        }, 320);
+    }
+}
+
+async function confirmDeleteDealerSpot() {
+    if (!dealerSelectedSpotId) return;
+    const spot = dealerSpotsData.find(s => s.id === dealerSelectedSpotId);
+    if (!spot) return;
+    if (!confirm(`Dealer "${spot.name}" wirklich löschen?`)) return;
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots/${dealerSelectedSpotId}`, {
+            method: 'DELETE', credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) { showToast('Dealer gelöscht.', 'success'); closeDealerPopup(); loadDealerSpots(); }
+        else showToast(data.error || 'Fehler', 'error');
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+function renderDealerColorPalette(containerId, selected) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = DEALER_COLORS.map(color => `
+        <button type="button"
+                class="spot-color-btn ${color === selected ? 'active' : ''}"
+                style="background:${color};${color === '#ffffff' ? 'border:2px solid #555;' : ''}"
+                onclick="selectDealerColor('${color}','${containerId}')">
+            ${color === selected ? `<i class="fas fa-check" style="font-size:0.65em;color:${color==='#ffffff'?'#000':'#fff'}"></i>` : ''}
+        </button>
+    `).join('');
+}
+
+function selectDealerColor(color, containerId) {
+    dealerSelectedColor = color;
+    renderDealerColorPalette(containerId, color);
+}
+
+// Close dealer popup when clicking outside
+document.addEventListener('click', (e) => {
+    const popup = document.getElementById('dealer-spot-popup');
+    if (popup && popup.style.display === 'block') {
+        if (!popup.contains(e.target) && !e.target.closest('.dealer-pin') && !e.target.closest('.dealer-spot-item')) {
+            closeDealerPopup();
+        }
+    }
+});
+
+
+async function loadDealerSpots() {
+    try {
+        const res = await fetch(`${API_URL}/dealer-spots`, { credentials: 'include' });
         if (!res.ok) { showToast('Fehler beim Laden der Dealer-Spots', 'error'); return; }
         const data = await res.json();
         dealerSpotsData = data.spots || [];

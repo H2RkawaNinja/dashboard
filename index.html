@@ -1029,13 +1029,11 @@
             <div id="dealers-page" class="page">
                 <div class="dealer-map-header">
                     <div class="dealer-map-stats">
-                        <span class="dealer-stat-badge dealer-stat-total"><i class="fas fa-map-pin"></i> <span id="dealer-stat-total">0</span> Spots</span>
-                        <span class="dealer-stat-badge dealer-stat-free"><i class="fas fa-circle" style="font-size:0.55em;"></i> <span id="dealer-stat-free">0</span> Frei</span>
-                        <span class="dealer-stat-badge dealer-stat-taken"><i class="fas fa-circle" style="font-size:0.55em; color:#ef4444"></i> <span id="dealer-stat-taken">0</span> Belegt</span>
+                        <span class="dealer-stat-badge dealer-stat-total"><i class="fas fa-map-pin"></i> <span id="dealer-stat-total">0</span> Dealer</span>
                     </div>
                     <div class="dealer-map-controls">
                         <button class="btn-primary dealer-manage-only" id="dealer-place-btn" onclick="toggleDealerPlaceMode()" style="display:none;">
-                            <i class="fas fa-map-pin"></i> Spot hinzufügen
+                            <i class="fas fa-map-pin"></i> Dealer hinzufügen
                         </button>
                     </div>
                 </div>
@@ -1044,12 +1042,12 @@
                     <!-- Karte -->
                     <div class="dealer-map-wrap" id="dealer-map-wrap">
                         <div class="dealer-map-inner" id="dealer-map-inner">
-                            <img src="gta5map.jpg" alt="GTA5 Karte" id="dealer-map-img" class="dealer-map-img"
+                            <img src="gta5map.png" alt="GTA5 Karte" id="dealer-map-img" class="dealer-map-img"
                                  onerror="document.getElementById('dealer-no-map').style.display='flex'; this.style.display='none';">
                             <div class="dealer-no-map" id="dealer-no-map" style="display:none;">
                                 <i class="fas fa-map"></i>
                                 <p>Karte nicht gefunden</p>
-                                <small>Bitte <strong>gta5map.jpg</strong> im Projektordner ablegen</small>
+                                <small>Bitte <strong>gta5map.png</strong> im Projektordner ablegen</small>
                             </div>
                             <div class="dealer-pins-layer" id="dealer-pins-layer"></div>
                             <div class="dealer-cursor-hint" id="dealer-cursor-hint" style="display:none;">
@@ -1062,11 +1060,12 @@
                     <div class="dealer-sidebar">
                         <div class="card dealer-sidebar-card">
                             <h3 style="margin-bottom:1rem;"><i class="fas fa-list-ul"></i> Dealer-Spots</h3>
+                            <input type="text" id="dealer-search-input" class="search-input" placeholder="🔍 Dealer suchen..." oninput="filterDealerList()" style="margin-bottom:0.75rem;">
                             <div id="dealer-spots-list" class="dealer-spots-list">
                                 <div class="empty-state" id="dealer-empty-state">
                                     <i class="fas fa-map-pin"></i>
-                                    <p>Noch keine Spots eingetragen</p>
-                                    <small>Admins können Spots per Klick auf die Karte hinzufügen</small>
+                                    <p>Noch keine Dealer eingetragen</p>
+                                    <small>Admins können Dealer per Klick auf die Karte hinzufügen</small>
                                 </div>
                             </div>
                         </div>
@@ -1086,23 +1085,14 @@
         </div>
         <div class="dealer-popup-body">
             <p class="dealer-popup-desc" id="dealer-popup-desc"></p>
-            <div id="dealer-popup-assignment"></div>
         </div>
-        <div class="dealer-popup-footer">
-            <button class="btn-success btn-sm" id="dealer-popup-register-btn" onclick="dealerRegisterSelf()">
-                <i class="fas fa-user-plus"></i> Anmelden
+        <div class="dealer-popup-footer" id="dealer-popup-admin-footer" style="display:none;">
+            <button class="btn-icon-small" id="dealer-popup-edit-btn" onclick="showDealerEditModal()" title="Bearbeiten">
+                <i class="fas fa-edit"></i> Bearbeiten
             </button>
-            <button class="btn-warning btn-sm" id="dealer-popup-unregister-btn" style="display:none;" onclick="dealerUnregisterSelf()">
-                <i class="fas fa-user-minus"></i> Abmelden
+            <button class="btn-icon-small" style="background:rgba(239,68,68,0.2); margin-left:auto;" id="dealer-popup-delete-btn" onclick="confirmDeleteDealerSpot()" title="Löschen">
+                <i class="fas fa-trash" style="color:#ef4444;"></i>
             </button>
-            <div style="display:flex; gap:0.4rem; margin-left:auto;">
-                <button class="btn-icon-small dealer-manage-only" id="dealer-popup-edit-btn" onclick="showDealerEditModal()" title="Bearbeiten" style="display:none;">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn-icon-small dealer-manage-only" style="background:rgba(239,68,68,0.2); display:none;" id="dealer-popup-delete-btn" onclick="confirmDeleteDealerSpot()" title="Löschen">
-                    <i class="fas fa-trash" style="color:#ef4444;"></i>
-                </button>
-            </div>
         </div>
     </div>
 
