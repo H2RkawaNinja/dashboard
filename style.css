@@ -4991,14 +4991,41 @@ body {
     cursor: default;
 }
 
-.notes-col-thema  { width: 22%; }
-.notes-col-details { }
-.notes-col-prio   { width: 130px; }
-.notes-col-del    {
-    width: 38px;
+.notes-col-a { width: 28%; }
+.notes-col-b { }
+.notes-col-c { width: 22%; }
+.notes-col-del {
+    width: 32px;
     text-align: center;
     background: #f1f3f4 !important;
     border-left: 2px solid #b0b0b0 !important;
+}
+
+.notes-sheet-table th.notes-col-a,
+.notes-sheet-table th.notes-col-b,
+.notes-sheet-table th.notes-col-c {
+    text-align: center;
+    font-weight: 700;
+    color: #3c4043;
+    font-size: 0.82rem;
+}
+
+.notes-del-btn {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 0.70rem;
+    padding: 2px 5px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+.notes-del-btn:hover {
+    background: #fde8e8;
+    color: #c0392b;
 }
 
 /* Editable cell content */

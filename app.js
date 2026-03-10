@@ -539,7 +539,11 @@ function renderNotesTable(rows) {
     if (rows.length === 0) {
         tbody.innerHTML = `<tr class="notes-empty-row"><td colspan="5">Noch keine Einträge – klicke auf <strong>+ Zeile</strong> um zu starten.</td></tr>`;
     } else {
-        tbody.innerHTML = rows.map((row, i) => buildNotesRow(i + 1, row.thema || '', row.details || '', row.priority || '')).join('');
+        tbody.innerHTML = rows.map((row, i) => {
+            // Migration: altes Format {thema, details, priority} → cols
+            const cols = row.cols || [row.thema || '', row.details || '', row.priority || ''];
+            return buildNotesRow(i + 1, cols);
+        }).join('');
         notesRowCounter = rows.length;
     }
     initNotesKeyboard();
@@ -576,22 +580,16 @@ function initNotesKeyboard() {
     });
 }
 
-function buildNotesRow(num, thema, details, priority) {
+function buildNotesRow(num, cols) {
     const id = notesRowCounter++;
-    const priorities = [
-        { val: '',        label: '—' },
-        { val: 'hoch',    label: '🔴 Hoch' },
-        { val: 'mittel',  label: '🟡 Mittel' },
-        { val: 'niedrig', label: '🟢 Niedrig' },
-    ];
-    const opts = priorities.map(p => `<option value="${p.val}" ${priority === p.val ? 'selected' : ''}>${p.label}</option>`).join('');
+    const [a, b, c] = cols || ['', '', ''];
     return `
         <tr data-row-id="${id}">
             <td class="notes-col-num">${num}</td>
-            <td><div class="notes-cell" contenteditable="true" spellcheck="false">${thema}</div></td>
-            <td><div class="notes-cell notes-cell-details" contenteditable="true" spellcheck="false">${details}</div></td>
-            <td><select class="notes-priority-select">${opts}</select></td>
-            <td><button class="btn-icon-small btn-delete" onclick="deleteNotesRow(this)" title="Zeile löschen"><i class="fas fa-trash"></i></button></td>
+            <td class="notes-col-a"><div class="notes-cell" contenteditable="true" spellcheck="false">${a}</div></td>
+            <td class="notes-col-b"><div class="notes-cell" contenteditable="true" spellcheck="false">${b}</div></td>
+            <td class="notes-col-c"><div class="notes-cell" contenteditable="true" spellcheck="false">${c}</div></td>
+            <td class="notes-col-del"><button class="notes-del-btn" onclick="deleteNotesRow(this)" title="Zeile löschen"><i class="fas fa-times"></i></button></td>
         </tr>`;
 }
 
@@ -601,8 +599,7 @@ function addNotesRow() {
     const emptyRow = tbody.querySelector('.notes-empty-row');
     if (emptyRow) emptyRow.remove();
     const rowCount = tbody.querySelectorAll('tr').length + 1;
-    tbody.insertAdjacentHTML('beforeend', buildNotesRow(rowCount, '', '', ''));
-    // Focus auf Thema-Zelle der neuen Zeile
+    tbody.insertAdjacentHTML('beforeend', buildNotesRow(rowCount, ['', '', '']));
     const lastCell = tbody.lastElementChild?.querySelector('.notes-cell');
     if (lastCell) lastCell.focus();
 }
@@ -622,11 +619,12 @@ function collectNotesRows() {
     const rows = [];
     document.querySelectorAll('#notes-table-body tr:not(.notes-empty-row)').forEach(tr => {
         const cells = tr.querySelectorAll('.notes-cell');
-        const priority = tr.querySelector('.notes-priority-select')?.value || '';
         rows.push({
-            thema:    cells[0]?.innerText.trim() || '',
-            details:  cells[1]?.innerText.trim() || '',
-            priority: priority
+            cols: [
+                cells[0]?.innerText.trim() || '',
+                cells[1]?.innerText.trim() || '',
+                cells[2]?.innerText.trim() || ''
+            ]
         });
     });
     return rows;
