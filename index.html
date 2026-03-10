@@ -74,6 +74,9 @@
                 <a href="#" class="nav-item" data-page="intelligence">
                     <i class="fas fa-user-secret"></i><span>Intel-Sammlung</span>
                 </a>
+                <a href="#" class="nav-item" data-page="dealers">
+                    <i class="fas fa-map-marked-alt"></i><span>Dealer-Karte</span>
+                </a>
                 <a href="#" class="nav-item" data-page="activity">
                     <i class="fas fa-clipboard-list"></i><span>Aktivitäten</span>
                 </a>
@@ -1021,7 +1024,86 @@
                 <!-- Intelligence Grid -->
                 <div id="intelligence-grid" class="intelligence-grid"></div>
             </div>
+
+            <!-- Dealer-Karte Page -->
+            <div id="dealers-page" class="page">
+                <div class="dealer-map-header">
+                    <div class="dealer-map-stats">
+                        <span class="dealer-stat-badge dealer-stat-total"><i class="fas fa-map-pin"></i> <span id="dealer-stat-total">0</span> Spots</span>
+                        <span class="dealer-stat-badge dealer-stat-free"><i class="fas fa-circle" style="font-size:0.55em;"></i> <span id="dealer-stat-free">0</span> Frei</span>
+                        <span class="dealer-stat-badge dealer-stat-taken"><i class="fas fa-circle" style="font-size:0.55em; color:#ef4444"></i> <span id="dealer-stat-taken">0</span> Belegt</span>
+                    </div>
+                    <div class="dealer-map-controls">
+                        <button class="btn-primary dealer-manage-only" id="dealer-place-btn" onclick="toggleDealerPlaceMode()" style="display:none;">
+                            <i class="fas fa-map-pin"></i> Spot hinzufügen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dealer-layout">
+                    <!-- Karte -->
+                    <div class="dealer-map-wrap" id="dealer-map-wrap">
+                        <div class="dealer-map-inner" id="dealer-map-inner">
+                            <img src="gta5map.jpg" alt="GTA5 Karte" id="dealer-map-img" class="dealer-map-img"
+                                 onerror="document.getElementById('dealer-no-map').style.display='flex'; this.style.display='none';">
+                            <div class="dealer-no-map" id="dealer-no-map" style="display:none;">
+                                <i class="fas fa-map"></i>
+                                <p>Karte nicht gefunden</p>
+                                <small>Bitte <strong>gta5map.jpg</strong> im Projektordner ablegen</small>
+                            </div>
+                            <div class="dealer-pins-layer" id="dealer-pins-layer"></div>
+                            <div class="dealer-cursor-hint" id="dealer-cursor-hint" style="display:none;">
+                                <i class="fas fa-crosshairs"></i> Auf Karte klicken um Spot zu platzieren
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="dealer-sidebar">
+                        <div class="card dealer-sidebar-card">
+                            <h3 style="margin-bottom:1rem;"><i class="fas fa-list-ul"></i> Dealer-Spots</h3>
+                            <div id="dealer-spots-list" class="dealer-spots-list">
+                                <div class="empty-state" id="dealer-empty-state">
+                                    <i class="fas fa-map-pin"></i>
+                                    <p>Noch keine Spots eingetragen</p>
+                                    <small>Admins können Spots per Klick auf die Karte hinzufügen</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </main>
+    </div>
+
+    <!-- Dealer Spot Popup (fixed, position via JS) -->
+    <div id="dealer-spot-popup" class="dealer-spot-popup" style="display:none;">
+        <div class="dealer-popup-header">
+            <div class="dealer-popup-color" id="dealer-popup-color"></div>
+            <h4 id="dealer-popup-name"></h4>
+            <button class="dealer-popup-close" onclick="closeDealerPopup()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="dealer-popup-body">
+            <p class="dealer-popup-desc" id="dealer-popup-desc"></p>
+            <div id="dealer-popup-assignment"></div>
+        </div>
+        <div class="dealer-popup-footer">
+            <button class="btn-success btn-sm" id="dealer-popup-register-btn" onclick="dealerRegisterSelf()">
+                <i class="fas fa-user-plus"></i> Anmelden
+            </button>
+            <button class="btn-warning btn-sm" id="dealer-popup-unregister-btn" style="display:none;" onclick="dealerUnregisterSelf()">
+                <i class="fas fa-user-minus"></i> Abmelden
+            </button>
+            <div style="display:flex; gap:0.4rem; margin-left:auto;">
+                <button class="btn-icon-small dealer-manage-only" id="dealer-popup-edit-btn" onclick="showDealerEditModal()" title="Bearbeiten" style="display:none;">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon-small dealer-manage-only" style="background:rgba(239,68,68,0.2); display:none;" id="dealer-popup-delete-btn" onclick="confirmDeleteDealerSpot()" title="Löschen">
+                    <i class="fas fa-trash" style="color:#ef4444;"></i>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Modals -->
@@ -1085,6 +1167,63 @@
             </form>
         </div>
         
+        <!-- Neuer Dealer-Spot Modal -->
+        <div id="dealer-new-spot-modal" class="modal" style="display: none; max-width: 420px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-map-pin"></i> Neuer Dealer-Spot</h2>
+                <button class="close-modal" onclick="closeDealerNewModal()">&times;</button>
+            </div>
+            <form id="dealer-new-spot-form" onsubmit="saveDealerNewSpot(event)">
+                <div style="padding: 1.5rem;">
+                    <div class="form-group">
+                        <label>Spot-Name *</label>
+                        <input type="text" id="new-dealer-name" placeholder="z.B. Forum Drive, Hafen Süd..." maxlength="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea id="new-dealer-desc" rows="2" placeholder="Optionale Beschreibung..." maxlength="500"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Farbe</label>
+                        <div class="spot-color-palette" id="new-spot-color-palette"></div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.75rem; padding: 0 1.5rem 1.5rem;">
+                    <button type="button" class="btn-secondary" style="flex:1;" onclick="closeDealerNewModal()">Abbrechen</button>
+                    <button type="submit" class="btn-primary" style="flex:1;"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Dealer-Spot bearbeiten Modal -->
+        <div id="dealer-edit-spot-modal" class="modal" style="display: none; max-width: 420px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Spot bearbeiten</h2>
+                <button class="close-modal" onclick="closeDealerEditModal()">&times;</button>
+            </div>
+            <form id="dealer-edit-spot-form" onsubmit="saveDealerEditSpot(event)">
+                <div style="padding: 1.5rem;">
+                    <input type="hidden" id="edit-dealer-id">
+                    <div class="form-group">
+                        <label>Spot-Name *</label>
+                        <input type="text" id="edit-dealer-name" maxlength="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea id="edit-dealer-desc" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Farbe</label>
+                        <div class="spot-color-palette" id="edit-spot-color-palette"></div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.75rem; padding: 0 1.5rem 1.5rem;">
+                    <button type="button" class="btn-secondary" style="flex:1;" onclick="closeDealerEditModal()">Abbrechen</button>
+                    <button type="submit" class="btn-primary" style="flex:1;"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+            </form>
+        </div>
+
         <!-- Löschbestätigungs-Modal -->
         <div id="delete-confirm-modal" class="modal" style="display: none; max-width: 450px;">
             <div class="modal-header" style="background: #dc3545; color: white;">

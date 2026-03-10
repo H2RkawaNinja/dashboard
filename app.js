@@ -183,6 +183,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             'treasury': 'Gangkasse',
             'recipes': 'Rezepte',
             'intelligence': 'Intel-Sammlung',
+            'dealers': 'Dealer-Karte',
             'activity': 'Aktivitäten',
             'maintenance': 'Einstellungen'
         };
@@ -217,6 +218,9 @@ function loadPageData(page) {
             break;
         case 'intelligence':
             loadIntelligence();
+            break;
+        case 'dealers':
+            loadDealerSpots();
             break;
         case 'activity':
             loadActivity();
@@ -7594,4 +7598,374 @@ function getMonthName(monthNumber) {
     ];
     return months[monthNumber - 1];
 }
+
+// ========== DEALER-KARTE ==========
+
+let dealerSpotsData = [];
+let dealerPlaceMode = false;
+let dealerPendingPos = null;
+let dealerSelectedSpotId = null;
+let dealerSelectedColor = '#ef4444';
+
+const DEALER_COLORS = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#ffffff'];
+
+async function loadDealerSpots() {
+    try {
+        const res = await fetch(`${API_URL}/dealer-spots`, { credentials: 'include' });
+        if (!res.ok) { showToast('Fehler beim Laden der Dealer-Spots', 'error'); return; }
+        const data = await res.json();
+        dealerSpotsData = data.spots || [];
+        renderDealerSpots();
+        initDealerMap();
+    } catch (err) {
+        console.error(err);
+        showToast('Fehler beim Laden der Dealer-Karte', 'error');
+    }
+}
+
+function initDealerMap() {
+    const mapInner = document.getElementById('dealer-map-inner');
+    if (!mapInner) return;
+    // Re-attach click handler (remove old first)
+    mapInner.removeEventListener('click', handleDealerMapClick);
+    mapInner.addEventListener('click', handleDealerMapClick);
+    // Show/hide admin controls
+    const canManage = currentUser && currentUser.can_add_members;
+    document.querySelectorAll('.dealer-manage-only').forEach(el => {
+        el.style.display = canManage ? '' : 'none';
+    });
+}
+
+function renderDealerSpots() {
+    const pinsLayer = document.getElementById('dealer-pins-layer');
+    const listEl    = document.getElementById('dealer-spots-list');
+    if (!pinsLayer || !listEl) return;
+
+    pinsLayer.innerHTML = '';
+
+    const total = dealerSpotsData.length;
+    const taken = dealerSpotsData.filter(s => s.assigned_member_id).length;
+    const free  = total - taken;
+    document.getElementById('dealer-stat-total').textContent = total;
+    document.getElementById('dealer-stat-free').textContent  = free;
+    document.getElementById('dealer-stat-taken').textContent = taken;
+
+    const emptyState = document.getElementById('dealer-empty-state');
+
+    if (total === 0) {
+        if (emptyState) emptyState.style.display = '';
+        listEl.innerHTML = `<div class="empty-state" id="dealer-empty-state">
+            <i class="fas fa-map-pin"></i>
+            <p>Noch keine Spots eingetragen</p>
+            <small>Admins können Spots per Klick auf die Karte hinzufügen</small>
+        </div>`;
+        return;
+    }
+
+    // Pins on map
+    dealerSpotsData.forEach(spot => pinsLayer.appendChild(createDealerPin(spot)));
+
+    // Sidebar list
+    listEl.innerHTML = dealerSpotsData.map(spot => `
+        <div class="dealer-spot-item ${spot.assigned_member_id ? 'taken' : 'free'}"
+             id="dealer-list-item-${spot.id}"
+             onclick="clickDealerSpotFromList(${spot.id})">
+            <div class="dealer-spot-item-dot" style="background:${spot.color || '#ef4444'};"></div>
+            <div class="dealer-spot-item-info">
+                <div class="dealer-spot-item-name">${escapeHtml(spot.name)}</div>
+                <div class="dealer-spot-item-sub">
+                    ${spot.assigned_member_name
+                        ? `<i class="fas fa-user"></i> ${escapeHtml(spot.assigned_member_name)}`
+                        : '<span style="color:var(--success)"><i class="fas fa-circle" style="font-size:0.55em;"></i> Frei</span>'}
+                </div>
+            </div>
+            <span class="dealer-spot-badge ${spot.assigned_member_id ? 'badge-taken' : 'badge-free'}">
+                ${spot.assigned_member_id ? 'Belegt' : 'Frei'}
+            </span>
+        </div>
+    `).join('');
+}
+
+function createDealerPin(spot) {
+    const pin = document.createElement('div');
+    pin.className = 'dealer-pin' + (spot.assigned_member_id ? ' pin-taken' : '');
+    pin.id = `dealer-pin-${spot.id}`;
+    pin.style.left = spot.x_pos + '%';
+    pin.style.top  = spot.y_pos + '%';
+    pin.innerHTML = `
+        <div class="pin-marker" style="background:${spot.color || '#ef4444'};"></div>
+        <div class="pin-tooltip">${escapeHtml(spot.name)}</div>
+    `;
+    pin.addEventListener('click', (e) => {
+        if (dealerPlaceMode) return; // Let map handle clicks in place mode
+        e.stopPropagation();
+        openDealerSpotPopup(spot.id, e);
+    });
+    return pin;
+}
+
+function toggleDealerPlaceMode() {
+    dealerPlaceMode = !dealerPlaceMode;
+    const btn     = document.getElementById('dealer-place-btn');
+    const hint    = document.getElementById('dealer-cursor-hint');
+    const mapInner = document.getElementById('dealer-map-inner');
+    if (dealerPlaceMode) {
+        btn.innerHTML = '<i class="fas fa-times"></i> Abbrechen';
+        btn.className = 'btn-warning dealer-manage-only';
+        hint.style.display = 'flex';
+        mapInner.classList.add('place-mode');
+        closeDealerPopup();
+        showToast('Klicke auf die Karte um einen Spot zu platzieren', 'info');
+    } else {
+        btn.innerHTML = '<i class="fas fa-map-pin"></i> Spot hinzufügen';
+        btn.className = 'btn-primary dealer-manage-only';
+        hint.style.display = 'none';
+        mapInner.classList.remove('place-mode');
+    }
+}
+
+function handleDealerMapClick(e) {
+    if (!dealerPlaceMode) return;
+    const mapInner = document.getElementById('dealer-map-inner');
+    const rect = mapInner.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width)  * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top)  / rect.height) * 100));
+    dealerPendingPos = { x: parseFloat(x.toFixed(3)), y: parseFloat(y.toFixed(3)) };
+    if (dealerPlaceMode) toggleDealerPlaceMode(); // exit place mode
+    showDealerNewModal();
+}
+
+function showDealerNewModal() {
+    dealerSelectedColor = '#ef4444';
+    document.getElementById('new-dealer-name').value = '';
+    document.getElementById('new-dealer-desc').value = '';
+    renderDealerColorPalette('new-spot-color-palette', dealerSelectedColor);
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('dealer-new-spot-modal').style.display = 'block';
+    setTimeout(() => document.getElementById('new-dealer-name').focus(), 50);
+}
+
+function closeDealerNewModal() {
+    document.getElementById('dealer-new-spot-modal').style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'none';
+    dealerPendingPos = null;
+}
+
+async function saveDealerNewSpot(e) {
+    e.preventDefault();
+    if (!dealerPendingPos) { showToast('Kein Standort ausgewählt', 'error'); return; }
+    const name = document.getElementById('new-dealer-name').value.trim();
+    const desc = document.getElementById('new-dealer-desc').value.trim();
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name, description: desc, x_pos: dealerPendingPos.x, y_pos: dealerPendingPos.y, color: dealerSelectedColor })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Dealer-Spot erstellt!', 'success');
+            closeDealerNewModal();
+            loadDealerSpots();
+        } else {
+            showToast(data.error || 'Fehler', 'error');
+        }
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+function showDealerEditModal() {
+    const spot = dealerSpotsData.find(s => s.id === dealerSelectedSpotId);
+    if (!spot) return;
+    document.getElementById('edit-dealer-id').value   = spot.id;
+    document.getElementById('edit-dealer-name').value = spot.name;
+    document.getElementById('edit-dealer-desc').value = spot.description || '';
+    dealerSelectedColor = spot.color || '#ef4444';
+    renderDealerColorPalette('edit-spot-color-palette', dealerSelectedColor);
+    closeDealerPopup();
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('dealer-edit-spot-modal').style.display = 'block';
+    setTimeout(() => document.getElementById('edit-dealer-name').focus(), 50);
+}
+
+function closeDealerEditModal() {
+    document.getElementById('dealer-edit-spot-modal').style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'none';
+}
+
+async function saveDealerEditSpot(e) {
+    e.preventDefault();
+    const id   = document.getElementById('edit-dealer-id').value;
+    const name = document.getElementById('edit-dealer-name').value.trim();
+    const desc = document.getElementById('edit-dealer-desc').value.trim();
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name, description: desc, color: dealerSelectedColor })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Spot aktualisiert!', 'success');
+            closeDealerEditModal();
+            loadDealerSpots();
+        } else { showToast(data.error || 'Fehler', 'error'); }
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+function openDealerSpotPopup(spotId, event) {
+    const spot = dealerSpotsData.find(s => s.id === spotId);
+    if (!spot) return;
+    dealerSelectedSpotId = spotId;
+    const popup = document.getElementById('dealer-spot-popup');
+
+    // Fill content
+    document.getElementById('dealer-popup-color').style.background = spot.color || '#ef4444';
+    document.getElementById('dealer-popup-name').textContent = spot.name;
+    const descEl = document.getElementById('dealer-popup-desc');
+    if (spot.description) {
+        descEl.textContent = spot.description;
+        descEl.style.display = '';
+    } else {
+        descEl.style.display = 'none';
+    }
+
+    const assignEl = document.getElementById('dealer-popup-assignment');
+    if (spot.assigned_member_id) {
+        assignEl.innerHTML = `<div class="popup-assigned-row">
+            <i class="fas fa-user-circle" style="color:var(--primary)"></i>
+            <strong>${escapeHtml(spot.assigned_member_name)}</strong>
+            <span class="rank-pill">${escapeHtml(spot.assigned_member_rank || '')}</span>
+        </div>`;
+    } else {
+        assignEl.innerHTML = `<div class="popup-free-row"><i class="fas fa-circle" style="color:var(--success);font-size:0.6em;"></i> Freier Spot</div>`;
+    }
+
+    const isAssignedToMe = spot.assigned_member_id === currentUser.id;
+    const isTaken = !!spot.assigned_member_id;
+    document.getElementById('dealer-popup-register-btn').style.display   = !isTaken ? '' : 'none';
+    document.getElementById('dealer-popup-unregister-btn').style.display  = isAssignedToMe ? '' : 'none';
+    const canManage = currentUser && currentUser.can_add_members;
+    document.getElementById('dealer-popup-edit-btn').style.display   = canManage ? '' : 'none';
+    document.getElementById('dealer-popup-delete-btn').style.display = canManage ? '' : 'none';
+
+    // Position popup near click
+    popup.style.display = 'block';
+    const pw = 290, ph = 180;
+    let px = event.clientX + 15, py = event.clientY - 60;
+    if (px + pw > window.innerWidth  - 10) px = event.clientX - pw - 15;
+    if (py < 10) py = 10;
+    if (py + ph > window.innerHeight - 10) py = window.innerHeight - ph - 10;
+    popup.style.left = px + 'px';
+    popup.style.top  = py + 'px';
+
+    // Highlight list item + pin
+    document.querySelectorAll('.dealer-spot-item').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.dealer-pin').forEach(el => el.classList.remove('active'));
+    document.getElementById(`dealer-list-item-${spotId}`)?.classList.add('selected');
+    document.getElementById(`dealer-pin-${spotId}`)?.classList.add('active');
+    document.getElementById(`dealer-list-item-${spotId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDealerPopup() {
+    const popup = document.getElementById('dealer-spot-popup');
+    if (popup) popup.style.display = 'none';
+    document.querySelectorAll('.dealer-pin').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.dealer-spot-item').forEach(el => el.classList.remove('selected'));
+    dealerSelectedSpotId = null;
+}
+
+function clickDealerSpotFromList(spotId) {
+    const spot = dealerSpotsData.find(s => s.id === spotId);
+    if (!spot) return;
+    // Scroll the map to the pin
+    const mapWrap = document.getElementById('dealer-map-wrap');
+    if (mapWrap) {
+        const mapImg = document.getElementById('dealer-map-img');
+        const w = mapImg ? mapImg.offsetWidth  : mapWrap.offsetWidth;
+        const h = mapImg ? mapImg.offsetHeight : mapWrap.offsetHeight;
+        const scrollX = (spot.x_pos / 100) * w - mapWrap.offsetWidth  / 2;
+        const scrollY = (spot.y_pos / 100) * h - mapWrap.offsetHeight / 2;
+        mapWrap.scrollTo({ left: Math.max(0, scrollX), top: Math.max(0, scrollY), behavior: 'smooth' });
+    }
+    // Show popup near the pin
+    const pin = document.getElementById(`dealer-pin-${spotId}`);
+    if (pin) {
+        const rect = pin.getBoundingClientRect();
+        openDealerSpotPopup(spotId, { clientX: rect.left + rect.width / 2, clientY: rect.top });
+    }
+}
+
+async function dealerRegisterSelf() {
+    if (!dealerSelectedSpotId) return;
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots/${dealerSelectedSpotId}/assign`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', body: JSON.stringify({ member_id: currentUser.id })
+        });
+        const data = await res.json();
+        if (data.success) { showToast('Du hast dich für diesen Spot angemeldet!', 'success'); closeDealerPopup(); loadDealerSpots(); }
+        else showToast(data.error || 'Fehler', 'error');
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+async function dealerUnregisterSelf() {
+    if (!dealerSelectedSpotId) return;
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots/${dealerSelectedSpotId}/assign`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', body: JSON.stringify({ member_id: null })
+        });
+        const data = await res.json();
+        if (data.success) { showToast('Du hast dich abgemeldet.', 'info'); closeDealerPopup(); loadDealerSpots(); }
+        else showToast(data.error || 'Fehler', 'error');
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+async function confirmDeleteDealerSpot() {
+    if (!dealerSelectedSpotId) return;
+    const spot = dealerSpotsData.find(s => s.id === dealerSelectedSpotId);
+    if (!spot) return;
+    if (!confirm(`Spot "${spot.name}" wirklich löschen?`)) return;
+    try {
+        const res  = await fetch(`${API_URL}/dealer-spots/${dealerSelectedSpotId}`, {
+            method: 'DELETE', credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) { showToast('Spot gelöscht.', 'success'); closeDealerPopup(); loadDealerSpots(); }
+        else showToast(data.error || 'Fehler', 'error');
+    } catch { showToast('Verbindungsfehler', 'error'); }
+}
+
+function renderDealerColorPalette(containerId, selected) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = DEALER_COLORS.map(color => {
+        const isSelected = color === selected;
+        const checkIcon = isSelected ? '<i class="fas fa-check" style="font-size:0.65em;"></i>' : '';
+        const border = color === '#ffffff' ? 'border:2px solid #555;' : '';
+        return `<button type="button"
+                class="spot-color-btn ${isSelected ? 'active' : ''}"
+                style="background:${color};${border}"
+                onclick="selectDealerColor('${color}','${containerId}')">
+            ${checkIcon}
+        </button>`;
+    }).join('');
+}
+
+function selectDealerColor(color, containerId) {
+    dealerSelectedColor = color;
+    renderDealerColorPalette(containerId, color);
+}
+
+// Close dealer popup when clicking outside
+document.addEventListener('click', (e) => {
+    const popup = document.getElementById('dealer-spot-popup');
+    if (popup && popup.style.display === 'block') {
+        if (!popup.contains(e.target) && !e.target.closest('.dealer-pin') && !e.target.closest('.dealer-spot-item')) {
+            closeDealerPopup();
+        }
+    }
+});
 

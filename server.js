@@ -68,6 +68,19 @@ db.getConnection((err, conn) => {
     safeAddCol('gang_transactions',  'notes',              'TEXT');
     safeAddCol('fence_item_templates', 'sale_price',       'DECIMAL(10,2) DEFAULT 0');
 
+    // Dealer-Karte Tabelle erstellen falls nicht vorhanden
+    conn.query(`CREATE TABLE IF NOT EXISTS dealer_spots (
+        id                 INT AUTO_INCREMENT PRIMARY KEY,
+        name               VARCHAR(100) NOT NULL,
+        description        TEXT,
+        x_pos              DECIMAL(6,3) NOT NULL,
+        y_pos              DECIMAL(6,3) NOT NULL,
+        color              VARCHAR(20) DEFAULT '#ef4444',
+        assigned_member_id INT NULL,
+        created_by         INT NULL,
+        created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`, () => {});
+
     // Hero Inventory: Sicherstellen dass ein Eintrag existiert
     conn.query('SELECT COUNT(*) as c FROM hero_inventory', (e, r) => {
         if (!e && r[0].c === 0) {
@@ -1441,6 +1454,87 @@ app.get('/api/permissions-overview', requireLogin, requirePerm('can_manage_syste
         COALESCE(can_manage_system,FALSE) can_manage_system
         FROM members WHERE is_active=TRUE ORDER BY FIELD(\`rank\`,'Techniker','OG','2OG','Member','Soldat','Runner'), full_name`,
         (e, r) => { if (e) return res.status(500).json({ error: e.message }); res.json({ success: true, members: r }); });
+});
+
+// ══════════════════════════════════════════════════════════
+// DEALER-KARTE
+// ══════════════════════════════════════════════════════════
+
+app.get('/api/dealer-spots', requireLogin, (req, res) => {
+    db.query(
+        `SELECT ds.*, m.full_name AS assigned_member_name, m.rank AS assigned_member_rank
+         FROM dealer_spots ds
+         LEFT JOIN members m ON ds.assigned_member_id = m.id
+         ORDER BY ds.created_at ASC`,
+        (e, r) => {
+            if (e) return res.status(500).json({ error: e.message });
+            res.json({ success: true, spots: r });
+        }
+    );
+});
+
+app.post('/api/dealer-spots', requireLogin, requirePerm('can_add_members'), (req, res) => {
+    const { name, description, x_pos, y_pos, color } = req.body;
+    if (!name || x_pos === undefined || y_pos === undefined)
+        return res.status(400).json({ error: 'Name und Position erforderlich' });
+    const xf = parseFloat(x_pos), yf = parseFloat(y_pos);
+    if (isNaN(xf) || isNaN(yf) || xf < 0 || xf > 100 || yf < 0 || yf > 100)
+        return res.status(400).json({ error: 'Ungültige Position' });
+    db.query(
+        'INSERT INTO dealer_spots (name, description, x_pos, y_pos, color, created_by) VALUES (?,?,?,?,?,?)',
+        [name.trim().substring(0,100), (description||'').trim().substring(0,500) || null,
+         xf, yf, (color||'#ef4444').substring(0,20), req.session.userId],
+        (e, r) => {
+            if (e) return res.status(500).json({ error: e.message });
+            logActivity(req.session.userId, 'dealer_spot_created', `Dealer-Spot erstellt: ${name}`);
+            res.json({ success: true, id: r.insertId });
+        }
+    );
+});
+
+app.put('/api/dealer-spots/:id', requireLogin, requirePerm('can_add_members'), (req, res) => {
+    const { name, description, color } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name erforderlich' });
+    db.query(
+        'UPDATE dealer_spots SET name=?, description=?, color=? WHERE id=?',
+        [name.trim().substring(0,100), (description||'').trim().substring(0,500) || null,
+         (color||'#ef4444').substring(0,20), parseInt(req.params.id)],
+        (e) => {
+            if (e) return res.status(500).json({ error: e.message });
+            logActivity(req.session.userId, 'dealer_spot_updated', `Dealer-Spot bearbeitet: ${name}`);
+            res.json({ success: true });
+        }
+    );
+});
+
+app.delete('/api/dealer-spots/:id', requireLogin, requirePerm('can_add_members'), (req, res) => {
+    db.query('SELECT name FROM dealer_spots WHERE id=?', [parseInt(req.params.id)], (e, r) => {
+        if (e) return res.status(500).json({ error: e.message });
+        if (!r.length) return res.status(404).json({ error: 'Spot nicht gefunden' });
+        db.query('DELETE FROM dealer_spots WHERE id=?', [parseInt(req.params.id)], e2 => {
+            if (e2) return res.status(500).json({ error: e2.message });
+            logActivity(req.session.userId, 'dealer_spot_deleted', `Dealer-Spot gelöscht: ${r[0].name}`);
+            res.json({ success: true });
+        });
+    });
+});
+
+app.post('/api/dealer-spots/:id/assign', requireLogin, (req, res) => {
+    const { member_id } = req.body;
+    // Allow: unassign always | assign: only the user themselves or admins
+    const targetId = member_id ? parseInt(member_id) : null;
+    if (targetId !== null && targetId !== req.session.userId && !req.session.can_add_members)
+        return res.status(403).json({ error: 'Keine Berechtigung' });
+    db.query(
+        'UPDATE dealer_spots SET assigned_member_id=? WHERE id=?',
+        [targetId, parseInt(req.params.id)],
+        (e) => {
+            if (e) return res.status(500).json({ error: e.message });
+            const action = targetId ? 'angemeldet' : 'abgemeldet';
+            logActivity(req.session.userId, 'dealer_spot_assign', `Dealer-Spot ${action}: #${req.params.id}`);
+            res.json({ success: true });
+        }
+    );
 });
 
 // ── Error Handler ──────────────────────────────────────────

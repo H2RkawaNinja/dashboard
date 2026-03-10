@@ -438,3 +438,19 @@ INSERT INTO dashboard_stat_settings (stat_key, label, is_visible, sort_order) VA
     ('outstanding',           'Ausstehende Beiträge', TRUE, 9)
 ON DUPLICATE KEY UPDATE label = VALUES(label);
 
+-- ============================================================
+-- DEALER-KARTE
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS dealer_spots (
+    id                  INT AUTO_INCREMENT PRIMARY KEY,
+    name                VARCHAR(100) NOT NULL,
+    description         TEXT,
+    x_pos               DECIMAL(6,3) NOT NULL,
+    y_pos               DECIMAL(6,3) NOT NULL,
+    color               VARCHAR(20) DEFAULT '#ef4444',
+    assigned_member_id  INT NULL,
+    created_by          INT NULL,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
