@@ -6453,6 +6453,8 @@ body {
     position: relative;
     min-height: 520px;
     max-height: 74vh;
+    cursor: grab;
+    user-select: none;
 }
 
 .dealer-map-inner {
