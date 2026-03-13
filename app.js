@@ -3507,6 +3507,22 @@ function changeQuickQty(delta) {
     calculateQuickTotal();
 }
 
+// Privater Ankauf direkt aus dem Checkout ohne Zwischenmodal bestätigen
+function confirmPrivatePurchaseFromCart() {
+    if (shoppingCart.length > 0) {
+        const total = shoppingCart.reduce((sum, item) => sum + item.total, 0);
+        const count = shoppingCart.length;
+        const summary = `${count} Artikel für $${total.toFixed(2)} – privat gekauft`;
+        shoppingCart = [];
+        updateCartDisplay();
+        closeModals();
+        showToast(summary, 'warning', 'Privater Ankauf (nicht gespeichert)');
+    } else {
+        closeModals();
+        showPrivatePurchaseModal(false);
+    }
+}
+
 // Privater Ankauf Modal öffnen (nichts wird gespeichert)
 function showPrivatePurchaseModal(fromCart = false) {
     const form = document.getElementById('private-purchase-form');
