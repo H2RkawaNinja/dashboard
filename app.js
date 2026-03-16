@@ -4697,6 +4697,23 @@ async function loadIntelligence() {
     }
 }
 
+function selectIntelType(type) {
+    document.getElementById('intel-category').value = type;
+    document.querySelectorAll('.intel-type-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+    });
+    const iconWrap = document.getElementById('intel-modal-icon-wrap');
+    const icon = document.getElementById('intel-modal-icon');
+    if (type === 'Gang') {
+        iconWrap.classList.add('gang-mode');
+        icon.className = 'fas fa-skull';
+    } else {
+        iconWrap.classList.remove('gang-mode');
+        icon.className = 'fas fa-user';
+    }
+    toggleTypeFields();
+}
+
 function toggleTypeFields() {
     const category = document.getElementById('intel-category').value;
     const gangFields = document.getElementById('gang-fields');
@@ -4708,13 +4725,13 @@ function toggleTypeFields() {
         gangFields.style.display = 'block';
         personFields.style.display = 'none';
         personGangField.style.display = 'none';
-        nameLabel.textContent = 'Gang Name *';
+        nameLabel.innerHTML = '<i class="fas fa-id-card"></i> Gang Name *';
         document.getElementById('intel-subject').placeholder = 'z.B. Los Santos Vagos';
     } else {
         gangFields.style.display = 'none';
         personFields.style.display = 'block';
         personGangField.style.display = 'block';
-        nameLabel.textContent = 'Name *';
+        nameLabel.innerHTML = '<i class="fas fa-id-card"></i> Name *';
         document.getElementById('intel-subject').placeholder = 'z.B. John Doe';
     }
 }
@@ -4723,8 +4740,8 @@ async function showAddIntelModal() {
     document.getElementById('intel-modal-title').textContent = 'Neuer Kontakt';
     document.getElementById('intel-form').reset();
     document.getElementById('intel-id').value = '';
+    selectIntelType('Person');
     await loadGangsForDropdown();
-    toggleTypeFields(); // Initialize fields based on default Person selection
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('intel-modal').style.display = 'block';
 }
@@ -4757,16 +4774,14 @@ async function editIntel(id) {
         
         document.getElementById('intel-modal-title').textContent = 'Kontakt bearbeiten';
         document.getElementById('intel-id').value = intel.id;
-        document.getElementById('intel-category').value = intel.category;
         document.getElementById('intel-subject').value = intel.subject_name;
         document.getElementById('intel-description').value = intel.description || '';
         document.getElementById('intel-source').value = intel.source || '';
         document.getElementById('intel-color').value = intel.color || '#9c27b0';
         
+        selectIntelType(intel.category || 'Person');
         await loadGangsForDropdown();
         document.getElementById('intel-gang-id').value = intel.gang_id || '';
-        
-        toggleTypeFields();
         
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('intel-modal').style.display = 'block';

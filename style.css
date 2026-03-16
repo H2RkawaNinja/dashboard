@@ -3064,6 +3064,109 @@ body {
     margin-right: 3px;
 }
 
+/* ========== INTEL MODAL ========== */
+
+.intel-modal-header {
+    background: rgba(255,255,255,0.02);
+}
+
+.intel-modal-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background: rgba(33, 150, 243, 0.15);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    color: #2196f3;
+    font-size: 0.95rem;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.intel-modal-icon-wrap.gang-mode {
+    background: rgba(156, 39, 176, 0.15);
+    border-color: rgba(156, 39, 176, 0.3);
+    color: #9c27b0;
+}
+
+/* Type toggle buttons */
+.intel-type-select {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.intel-type-btn {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.intel-type-btn:hover {
+    background: rgba(255,255,255,0.07);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.intel-type-btn.active[data-type="Person"] {
+    background: rgba(33, 150, 243, 0.15);
+    border-color: rgba(33, 150, 243, 0.5);
+    color: #2196f3;
+    font-weight: 600;
+}
+
+.intel-type-btn.active[data-type="Gang"] {
+    background: rgba(156, 39, 176, 0.15);
+    border-color: rgba(156, 39, 176, 0.5);
+    color: #9c27b0;
+    font-weight: 600;
+}
+
+/* Color picker row */
+.intel-color-picker-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.2s;
+}
+
+.intel-color-picker-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.intel-color-picker-wrapper input[type="color"] {
+    width: 38px;
+    height: 34px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 4px;
+}
+
+.intel-color-picker-wrapper span {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+}
+
 /* ========== REZEPTE STYLES (NEUE VERSION) ========== */
 
 /* Rezepte Seiten-Header */
