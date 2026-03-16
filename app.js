@@ -6412,7 +6412,7 @@ function renderContributions() {
         const periods = new Map();
         treasuryContributions.forEach(c => {
             if (c.woche_start && c.woche_ende) {
-                const key = `${c.woche_start}_${c.woche_ende}`;
+                const key = `${toYMD(c.woche_start)}_${toYMD(c.woche_ende)}`;
                 if (!periods.has(key)) {
                     periods.set(key, {
                         start: c.woche_start,
@@ -6454,7 +6454,7 @@ function renderContributions() {
     const selectedPeriod = periodSelect?.value || '';
     
     const filteredContributions = selectedPeriod ? 
-        treasuryContributions.filter(c => `${c.woche_start}_${c.woche_ende}` === selectedPeriod) : 
+        treasuryContributions.filter(c => `${toYMD(c.woche_start)}_${toYMD(c.woche_ende)}` === selectedPeriod) : 
         treasuryContributions;
     
     if (filteredContributions.length === 0) {
@@ -7453,6 +7453,14 @@ async function deleteContribution(contributionId) {
     }
 }
 
+// Datum sicher in YYYY-MM-DD umwandeln (egal ob String, Date-Object oder ISO)
+function toYMD(d) {
+    if (!d) return '';
+    if (typeof d === 'string') return d.slice(0, 10);
+    if (d instanceof Date) return d.toISOString().slice(0, 10);
+    return String(d).slice(0, 10);
+}
+
 // Bulk: Betrag für alle im gewählten Zeitraum anpassen
 function showBulkUpdateAmountModal() {
     const periodSelect = document.getElementById('contribution-period-select');
@@ -7461,34 +7469,52 @@ function showBulkUpdateAmountModal() {
         showToast('Bitte zuerst einen Zeitraum auswählen', 'warning');
         return;
     }
+    // Finde einen Eintrag des Zeitraums
+    const sample = treasuryContributions.find(c =>
+        `${toYMD(c.woche_start)}_${toYMD(c.woche_ende)}` === periodKey ||
+        `${c.woche_start}_${c.woche_ende}` === periodKey
+    );
+    if (!sample) {
+        showToast('Zeitraum nicht gefunden', 'error');
+        return;
+    }
+    const wocheStart = toYMD(sample.woche_start);
+    const wocheEnde  = toYMD(sample.woche_ende);
+
     const selectedOption = periodSelect.options[periodSelect.selectedIndex];
     document.getElementById('bulk-update-period-label').value = selectedOption.textContent;
-    document.getElementById('bulk-update-period-key').value = periodKey;
-    // Aktuellen Betrag vorausfüllen (erster Eintrag des Zeitraums)
-    const sample = treasuryContributions.find(c => `${c.woche_start}_${c.woche_ende}` === periodKey);
-    if (sample) {
-        const base = parseFloat(sample.soll_betrag) - (parseFloat(sample.uebertrag_betrag) || 0);
-        document.getElementById('bulk-update-new-amount').value = base > 0 ? base.toFixed(2) : '';
-    }
+    document.getElementById('bulk-update-woche-start').value = wocheStart;
+    document.getElementById('bulk-update-woche-ende').value  = wocheEnde;
+
+    // Aktuellen Basisbetrag vorausfüllen
+    const base = parseFloat(sample.soll_betrag) - (parseFloat(sample.uebertrag_betrag) || 0);
+    document.getElementById('bulk-update-new-amount').value = base > 0 ? base.toFixed(2) : '';
+
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('bulk-update-amount-modal').style.display = 'block';
+    document.getElementById('bulk-update-new-amount').focus();
 }
 
 async function saveBulkUpdateAmount(event) {
     event.preventDefault();
-    const periodKey = document.getElementById('bulk-update-period-key').value;
-    const newAmount = parseFloat(document.getElementById('bulk-update-new-amount').value);
-    if (!periodKey || isNaN(newAmount) || newAmount < 0) {
-        showToast('Ungültige Eingabe', 'error');
+    const wocheStart = document.getElementById('bulk-update-woche-start').value;
+    const wocheEnde  = document.getElementById('bulk-update-woche-ende').value;
+    const newAmount  = parseFloat(document.getElementById('bulk-update-new-amount').value);
+
+    if (!wocheStart || !wocheEnde) {
+        showToast('Kein Zeitraum gesetzt', 'error');
         return;
     }
-    const [woche_start, woche_ende] = periodKey.split('_');
+    if (isNaN(newAmount) || newAmount < 0) {
+        showToast('Bitte einen gültigen Betrag eingeben', 'error');
+        return;
+    }
     try {
         const response = await fetch(`${API_URL}/treasury/contributions/bulk-update-amount`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ woche_start, woche_ende, new_amount: newAmount })
+            body: JSON.stringify({ woche_start: wocheStart, woche_ende: wocheEnde, new_amount: newAmount })
         });
         const result = await response.json();
         if (result.success) {
@@ -7499,7 +7525,7 @@ async function saveBulkUpdateAmount(event) {
             showToast(result.error || 'Fehler beim Aktualisieren', 'error');
         }
     } catch (error) {
-        console.error('Fehler:', error);
+        console.error('Fehler beim Bulk-Update:', error);
         showToast('Verbindungsfehler', 'error');
     }
 }
