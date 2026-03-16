@@ -166,8 +166,12 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.form-group select {
+    background: var(--dark-card-elevated);
+}
+
 .form-group select option {
-    background: var(--dark-card);
+    background: var(--dark-card-elevated);
     color: var(--text-primary);
 }
 
