@@ -829,6 +829,9 @@
                             <button class="btn-secondary" onclick="createWeeklyContributions()">
                                 <i class="fas fa-calendar-plus"></i> Neuer Zeitraum
                             </button>
+                            <button class="btn-warning" onclick="showBulkUpdateAmountModal()" id="bulk-update-amount-btn" title="Betrag für alle Mitglieder im gewählten Zeitraum ändern">
+                                <i class="fas fa-sliders-h"></i> Betrag anpassen
+                            </button>
                             <button class="btn-primary" onclick="showMarkContributionModal()">
                                 <i class="fas fa-check"></i> Beitrag verbuchen
                             </button>
@@ -2836,6 +2839,34 @@
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeModals()">Abbrechen</button>
                     <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Zeitraum anlegen</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Bulk Betrag anpassen Modal -->
+        <div id="bulk-update-amount-modal" class="modal treasury-modal" style="display: none; max-width: 480px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-sliders-h"></i> Betrag für alle anpassen</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="bulk-update-amount-form" onsubmit="saveBulkUpdateAmount(event)">
+                <div class="form-group">
+                    <label>Zeitraum</label>
+                    <input type="text" id="bulk-update-period-label" readonly style="background: var(--bg-tertiary); cursor: default;">
+                    <input type="hidden" id="bulk-update-period-key">
+                </div>
+                <div class="form-group">
+                    <label for="bulk-update-new-amount">Neuer Soll-Betrag pro Mitglied ($)</label>
+                    <input type="number" id="bulk-update-new-amount" step="0.01" min="0" required autofocus placeholder="z.B. 150.00">
+                    <small class="form-hint">Gilt für alle nicht gesperrten Einträge des Zeitraums – auch wenn bereits eine Zahlung gebucht wurde. Der Status wird automatisch neu berechnet.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModals()">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Für alle übernehmen
+                    </button>
                 </div>
             </form>
         </div>

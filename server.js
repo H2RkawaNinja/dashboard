@@ -1281,6 +1281,33 @@ app.delete('/api/treasury/contributions/:id', requireLogin, requirePerm('can_man
     });
 });
 
+app.put('/api/treasury/contributions/bulk-update-amount', requireLogin, requirePerm('can_manage_treasury'), (req, res) => {
+    const { woche_start, woche_ende, new_amount } = req.body;
+    if (!woche_start || !woche_ende || new_amount === undefined)
+        return res.status(400).json({ error: 'woche_start, woche_ende und new_amount erforderlich' });
+    const amount = parseFloat(new_amount);
+    if (isNaN(amount) || amount < 0) return res.status(400).json({ error: 'Betrag ungültig' });
+
+    // Alle unlocked Einträge des Zeitraums aktualisieren (auch bereits bezahlte)
+    db.query(
+        `UPDATE member_contributions
+         SET soll_betrag = ? + COALESCE(uebertrag_betrag, 0),
+             status = CASE
+                 WHEN COALESCE(ist_betrag, 0) >= (? + COALESCE(uebertrag_betrag, 0)) THEN 'bezahlt'
+                 WHEN COALESCE(ist_betrag, 0) > 0 THEN 'teilweise'
+                 ELSE 'offen'
+             END
+         WHERE woche_start = ? AND woche_ende = ? AND locked = 0`,
+        [amount, amount, woche_start, woche_ende],
+        (e, r) => {
+            if (e) return res.status(500).json({ error: e.message });
+            logActivity(req.session.userId, 'treasury_bulk_amount_updated',
+                `Beitrag für Zeitraum ${woche_start}–${woche_ende} auf $${amount.toFixed(2)} gesetzt (${r.affectedRows} Einträge)`);
+            res.json({ success: true, message: `$${amount.toFixed(2)} für ${r.affectedRows} Mitglied(er) gesetzt`, updated: r.affectedRows });
+        }
+    );
+});
+
 app.put('/api/treasury/contributions/:id', requireLogin, requirePerm('can_manage_treasury'), (req, res) => {
     const { soll_betrag, notes } = req.body;
     const id = parseInt(req.params.id);

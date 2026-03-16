@@ -7453,6 +7453,57 @@ async function deleteContribution(contributionId) {
     }
 }
 
+// Bulk: Betrag für alle im gewählten Zeitraum anpassen
+function showBulkUpdateAmountModal() {
+    const periodSelect = document.getElementById('contribution-period-select');
+    const periodKey = periodSelect ? periodSelect.value : '';
+    if (!periodKey) {
+        showToast('Bitte zuerst einen Zeitraum auswählen', 'warning');
+        return;
+    }
+    const selectedOption = periodSelect.options[periodSelect.selectedIndex];
+    document.getElementById('bulk-update-period-label').value = selectedOption.textContent;
+    document.getElementById('bulk-update-period-key').value = periodKey;
+    // Aktuellen Betrag vorausfüllen (erster Eintrag des Zeitraums)
+    const sample = treasuryContributions.find(c => `${c.woche_start}_${c.woche_ende}` === periodKey);
+    if (sample) {
+        const base = parseFloat(sample.soll_betrag) - (parseFloat(sample.uebertrag_betrag) || 0);
+        document.getElementById('bulk-update-new-amount').value = base > 0 ? base.toFixed(2) : '';
+    }
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('bulk-update-amount-modal').style.display = 'block';
+}
+
+async function saveBulkUpdateAmount(event) {
+    event.preventDefault();
+    const periodKey = document.getElementById('bulk-update-period-key').value;
+    const newAmount = parseFloat(document.getElementById('bulk-update-new-amount').value);
+    if (!periodKey || isNaN(newAmount) || newAmount < 0) {
+        showToast('Ungültige Eingabe', 'error');
+        return;
+    }
+    const [woche_start, woche_ende] = periodKey.split('_');
+    try {
+        const response = await fetch(`${API_URL}/treasury/contributions/bulk-update-amount`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ woche_start, woche_ende, new_amount: newAmount })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showToast(result.message || 'Betrag erfolgreich angepasst', 'success');
+            closeModals();
+            await Promise.all([loadContributions(), loadTreasuryStats(), loadDashboardTreasuryStats()]);
+        } else {
+            showToast(result.error || 'Fehler beim Aktualisieren', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
 // Beitrag bearbeiten – Modal öffnen
 function openEditContributionModal(contributionId) {
     const contribution = treasuryContributions.find(c => c.id === contributionId);
