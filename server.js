@@ -1281,6 +1281,39 @@ app.delete('/api/treasury/contributions/:id', requireLogin, requirePerm('can_man
     });
 });
 
+app.put('/api/treasury/contributions/:id', requireLogin, requirePerm('can_manage_treasury'), (req, res) => {
+    const { soll_betrag, notes } = req.body;
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Ungültige ID' });
+
+    const soll = parseFloat(soll_betrag);
+    if (isNaN(soll) || soll < 0) return res.status(400).json({ error: 'Soll-Betrag ungültig' });
+
+    db.query('SELECT * FROM member_contributions WHERE id=?', [id], (e, r) => {
+        if (e) return res.status(500).json({ error: e.message });
+        if (!r.length) return res.status(404).json({ error: 'Beitrag nicht gefunden' });
+        const c = r[0];
+
+        // Status neu berechnen basierend auf neuem Soll-Betrag
+        const ist = parseFloat(c.ist_betrag || 0);
+        let newStatus = c.status;
+        if (ist >= soll) newStatus = 'bezahlt';
+        else if (ist > 0) newStatus = 'teilweise';
+        else newStatus = 'offen';
+
+        db.query(
+            'UPDATE member_contributions SET soll_betrag=?, notes=?, status=? WHERE id=?',
+            [soll, notes || null, newStatus, id],
+            (e2) => {
+                if (e2) return res.status(500).json({ error: e2.message });
+                logActivity(req.session.userId, 'treasury_contribution_updated',
+                    `Beitrag ${c.woche} für Mitglied ${c.member_id} aktualisiert (Soll: $${soll.toFixed(2)})`);
+                res.json({ success: true, new_status: newStatus });
+            }
+        );
+    });
+});
+
 app.get('/api/treasury/goals', requireLogin, (req, res) => {
     db.query(`SELECT g.*,m.full_name erstellt_von_name FROM treasury_goals g LEFT JOIN members m ON g.erstellt_von=m.id
               ORDER BY CASE WHEN g.status='aktiv' THEN 1 ELSE 2 END, g.erstellt_am DESC`,

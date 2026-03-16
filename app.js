@@ -6501,6 +6501,11 @@ function renderContributions() {
                         ${isLocked ? '<span class="contribution-locked-badge"><i class="fas fa-lock"></i> Gesperrt</span>' : ''}
                     </div>
                     <div class="contribution-actions">
+                        <button class="btn-edit btn-small"
+                            onclick="openEditContributionModal(${contribution.id})"
+                            title="Beitrag bearbeiten">
+                            <i class="fas fa-edit"></i>
+                        </button>
                         <button class="btn-delete btn-small ${hasPaid ? 'has-paid' : ''}" 
                             onclick="confirmDeleteContribution(${contribution.id}, '${contribution.member_name}', ${hasPaid})"
                             title="Beitrag löschen">
@@ -7444,6 +7449,67 @@ async function deleteContribution(contributionId) {
         }
     } catch (error) {
         console.error('Fehler beim Löschen:', error);
+        showToast('Verbindungsfehler', 'error');
+    }
+}
+
+// Beitrag bearbeiten – Modal öffnen
+function openEditContributionModal(contributionId) {
+    const contribution = treasuryContributions.find(c => c.id === contributionId);
+    if (!contribution) {
+        showToast('Beitrag nicht gefunden', 'error');
+        return;
+    }
+
+    document.getElementById('edit-contribution-id').value = contribution.id;
+    document.getElementById('edit-contribution-member-name').value = contribution.member_name || '';
+    document.getElementById('edit-contribution-period').value =
+        (contribution.woche_start && contribution.woche_ende)
+            ? formatDateRange(contribution.woche_start, contribution.woche_ende)
+            : (contribution.woche || '');
+    document.getElementById('edit-contribution-soll').value = parseFloat(contribution.soll_betrag) || 0;
+    document.getElementById('edit-contribution-notes').value = contribution.notes || '';
+
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('edit-contribution-modal').style.display = 'block';
+}
+
+// Beitrag bearbeiten – speichern
+async function saveContributionEdit(event) {
+    event.preventDefault();
+
+    const id = document.getElementById('edit-contribution-id').value;
+    const soll_betrag = parseFloat(document.getElementById('edit-contribution-soll').value);
+    const notes = document.getElementById('edit-contribution-notes').value.trim();
+
+    if (isNaN(soll_betrag) || soll_betrag < 0) {
+        showToast('Soll-Betrag muss eine positive Zahl sein', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/treasury/contributions/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ soll_betrag, notes })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('Beitrag erfolgreich aktualisiert', 'success');
+            closeModals();
+            await Promise.all([
+                loadContributions(),
+                loadTreasuryStats(),
+                loadDashboardTreasuryStats()
+            ]);
+        } else {
+            showToast(result.error || 'Fehler beim Speichern', 'error');
+        }
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error);
         showToast('Verbindungsfehler', 'error');
     }
 }

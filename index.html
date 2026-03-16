@@ -2960,6 +2960,41 @@
     <!-- Toast Notifications -->
     <div id="toast-container"></div>
 
+        <!-- Beitrag bearbeiten Modal -->
+        <div id="edit-contribution-modal" class="modal treasury-modal" style="display: none; max-width: 500px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Beitrag bearbeiten</h2>
+                <button class="close-modal" onclick="closeModals()">&times;</button>
+            </div>
+            <form id="edit-contribution-form" onsubmit="saveContributionEdit(event)">
+                <input type="hidden" id="edit-contribution-id">
+                <div class="form-group">
+                    <label>Mitglied</label>
+                    <input type="text" id="edit-contribution-member-name" readonly style="background: var(--bg-tertiary); cursor: default;">
+                </div>
+                <div class="form-group">
+                    <label>Zeitraum</label>
+                    <input type="text" id="edit-contribution-period" readonly style="background: var(--bg-tertiary); cursor: default;">
+                </div>
+                <div class="form-group">
+                    <label for="edit-contribution-soll">Soll-Betrag ($)</label>
+                    <input type="number" id="edit-contribution-soll" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-contribution-notes">Notizen (optional)</label>
+                    <textarea id="edit-contribution-notes" rows="3" maxlength="1000" placeholder="Interne Notizen zum Beitrag..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModals()">
+                        <i class="fas fa-times"></i> Abbrechen
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+
     <script src="app.js"></script>
 </body>
 </html>
