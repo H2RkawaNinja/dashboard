@@ -166,6 +166,11 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.form-group select option {
+    background: var(--dark-card);
+    color: var(--text-primary);
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
