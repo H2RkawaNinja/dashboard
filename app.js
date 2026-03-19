@@ -4596,7 +4596,7 @@ function filterSalesProducts() {
 function showDeleteConfirm(name, isGang, associatedPersons) {
     return new Promise(resolve => {
         const overlay = document.getElementById('modal-overlay');
-        const modal = document.getElementById('delete-confirm-modal');
+        const modal = document.getElementById('intel-delete-confirm-modal');
         const title = document.getElementById('delete-confirm-title');
         const message = document.getElementById('delete-confirm-message');
         const warning = document.getElementById('delete-confirm-warning');
@@ -4646,7 +4646,7 @@ function showDeleteConfirm(name, isGang, associatedPersons) {
 
 function closeDeleteConfirm() {
     document.getElementById('modal-overlay').style.display = 'none';
-    document.getElementById('delete-confirm-modal').style.display = 'none';
+    document.getElementById('intel-delete-confirm-modal').style.display = 'none';
 }
 
 async function loadIntelligence() {
