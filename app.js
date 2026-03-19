@@ -4684,7 +4684,7 @@ async function loadIntelligence() {
                             <button class="btn-edit" onclick="editIntel(${item.id})" title="Bearbeiten">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-delete" onclick="deleteIntel(${item.id}, '${item.subject_name.replace(/'/g, "\\'")}')}" title="Löschen">
+                            <button class="btn-delete" onclick="deleteIntel(${item.id}, '${item.subject_name.replace(/'/g, "\\'")}');" title="Löschen">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
