@@ -2428,6 +2428,33 @@
             </div>
         </div>
 
+        <!-- Delete Confirm Modal -->
+        <div id="delete-confirm-modal" class="modal delete-confirm-modal" style="display: none;">
+            <div class="delete-confirm-icon-wrap">
+                <div class="delete-confirm-icon">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+            </div>
+            <div class="delete-confirm-body">
+                <h3 id="delete-confirm-title">Löschen bestätigen</h3>
+                <p id="delete-confirm-message">Möchten Sie diesen Eintrag wirklich löschen?</p>
+                <div id="delete-confirm-warning" class="delete-confirm-warning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="delete-confirm-warning-text"></span>
+                </div>
+                <div id="delete-confirm-persons" class="delete-confirm-persons" style="display: none;"></div>
+                <p class="delete-confirm-hint" id="delete-confirm-hint" style="display: none;"></p>
+            </div>
+            <div class="delete-confirm-actions">
+                <button class="btn-cancel-delete" onclick="closeDeleteConfirm()">
+                    <i class="fas fa-times"></i> Abbrechen
+                </button>
+                <button class="btn-confirm-delete" id="delete-confirm-btn">
+                    <i class="fas fa-trash-alt"></i> Löschen
+                </button>
+            </div>
+        </div>
+
         <!-- Intelligence Modal -->
         <div id="intel-modal" class="modal" style="display: none;">
             <div class="modal-header intel-modal-header">

@@ -4593,6 +4593,62 @@ function filterSalesProducts() {
 
 // ========== INTELLIGENCE SYSTEM ==========
 
+function showDeleteConfirm(name, isGang, associatedPersons) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('modal-overlay');
+        const modal = document.getElementById('delete-confirm-modal');
+        const title = document.getElementById('delete-confirm-title');
+        const message = document.getElementById('delete-confirm-message');
+        const warning = document.getElementById('delete-confirm-warning');
+        const warningText = document.getElementById('delete-confirm-warning-text');
+        const personsBox = document.getElementById('delete-confirm-persons');
+        const hint = document.getElementById('delete-confirm-hint');
+        const btn = document.getElementById('delete-confirm-btn');
+
+        title.textContent = isGang ? `Gang löschen` : `Kontakt löschen`;
+        message.textContent = `Möchten Sie "${name}" wirklich löschen?`;
+
+        if (isGang && associatedPersons.length > 0) {
+            warning.style.display = 'flex';
+            warningText.textContent = `${associatedPersons.length} Person(en) sind dieser Gang zugeordnet:`;
+            personsBox.style.display = 'flex';
+            personsBox.innerHTML = associatedPersons.map(p =>
+                `<span class="delete-confirm-person-tag"><i class="fas fa-user"></i> ${p.subject_name}</span>`
+            ).join('');
+            hint.style.display = 'block';
+            hint.textContent = 'Diese Personen bleiben erhalten, werden aber von der Gang entfernt.';
+        } else {
+            warning.style.display = 'none';
+            personsBox.style.display = 'none';
+            hint.style.display = 'none';
+        }
+
+        // Show
+        overlay.style.display = 'flex';
+        modal.style.display = 'block';
+
+        // Cleanup helper
+        function cleanup(result) {
+            overlay.style.display = 'none';
+            modal.style.display = 'none';
+            btn.removeEventListener('click', onConfirm);
+            document.getElementById('modal-overlay').removeEventListener('click', onOverlay);
+            resolve(result);
+        }
+
+        function onConfirm() { cleanup(true); }
+        function onOverlay(e) { if (e.target === overlay) cleanup(false); }
+
+        btn.addEventListener('click', onConfirm);
+        overlay.addEventListener('click', onOverlay);
+    });
+}
+
+function closeDeleteConfirm() {
+    document.getElementById('modal-overlay').style.display = 'none';
+    document.getElementById('delete-confirm-modal').style.display = 'none';
+}
+
 async function loadIntelligence() {
     try {
         const response = await fetch(`${API_URL}/intelligence`, {
@@ -4801,19 +4857,12 @@ async function deleteIntel(id, name) {
         
         const item = Array.isArray(allIntel) ? allIntel.find(i => i.id === id) : null;
         const isGang = item && item.category === 'Gang';
-        
-        let confirmMessage = `Möchten Sie "${name}" wirklich löschen?`;
-        
-        if (isGang) {
-            const associatedPersons = allIntel.filter(i => i.category === 'Person' && i.gang_id === id);
-            if (associatedPersons.length > 0) {
-                confirmMessage = `Gang "${name}" löschen?\n\nâš ï¸ ${associatedPersons.length} Person(en) sind dieser Gang zugeordnet:\n${associatedPersons.map(p => 'â€¢ ' + p.subject_name).join('\n')}\n\nDiese Personen bleiben erhalten, werden aber von der Gang entfernt.`;
-            }
-        }
-        
-        if (!confirm(confirmMessage)) {
-            return;
-        }
+        const associatedPersons = isGang
+            ? allIntel.filter(i => i.category === 'Person' && i.gang_id === id)
+            : [];
+
+        const confirmed = await showDeleteConfirm(name, isGang, associatedPersons);
+        if (!confirmed) return;
         
         const response = await fetch(`${API_URL}/intelligence/${id}`, {
             method: 'DELETE',

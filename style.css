@@ -930,6 +930,170 @@ body {
     margin-bottom: 1.5rem;
 }
 
+/* ========== DELETE CONFIRM MODAL ========== */
+.delete-confirm-modal {
+    max-width: 420px !important;
+    padding: 0;
+    overflow: hidden;
+    animation: confirmPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes confirmPop {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+}
+
+.delete-confirm-icon-wrap {
+    background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+    border-bottom: 1px solid rgba(239,68,68,0.2);
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1.5rem 1.5rem;
+}
+
+.delete-confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(239,68,68,0.15);
+    border: 2px solid rgba(239,68,68,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: var(--danger);
+    box-shadow: 0 0 24px rgba(239,68,68,0.25);
+    animation: deletePulse 2s ease-in-out infinite;
+}
+
+@keyframes deletePulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(239,68,68,0.25); }
+    50%       { box-shadow: 0 0 36px rgba(239,68,68,0.45); }
+}
+
+.delete-confirm-body {
+    padding: 1.5rem 1.75rem 1rem;
+    text-align: center;
+}
+
+.delete-confirm-body h3 {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.02em;
+}
+
+.delete-confirm-body > p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.delete-confirm-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.85rem;
+    margin-bottom: 0.65rem;
+    text-align: left;
+    font-size: 0.875rem;
+    color: #f59e0b;
+}
+
+.delete-confirm-warning i {
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.delete-confirm-persons {
+    background: var(--dark-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.65rem;
+    text-align: left;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.delete-confirm-person-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(139,92,246,0.12);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.delete-confirm-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    margin-top: 0.25rem;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.75rem 1.5rem;
+    justify-content: stretch;
+}
+
+.btn-cancel-delete {
+    flex: 1;
+    padding: 0.65rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--dark-hover);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.btn-cancel-delete:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+.btn-confirm-delete {
+    flex: 1;
+    padding: 0.65rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(239,68,68,0.4);
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    box-shadow: 0 4px 14px rgba(239,68,68,0.3);
+}
+
+.btn-confirm-delete:hover {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    box-shadow: 0 4px 20px rgba(239,68,68,0.5);
+    transform: translateY(-1px);
+}
+
 /* Modals */
 .modal-overlay {
     position: fixed;
