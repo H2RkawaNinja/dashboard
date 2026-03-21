@@ -354,6 +354,30 @@ app.delete('/api/members/:id', requireLogin, requirePerm('can_add_members'), (re
     });
 });
 
+app.post('/api/members/:id/reset-password', requireLogin, requirePerm('can_add_members'), (req, res) => {
+    const { id } = req.params;
+
+    db.query('SELECT full_name FROM members WHERE id=?', [id], (e, r) => {
+        if (e) return res.status(500).json({ error: e.message });
+        if (!r.length) return res.status(404).json({ error: 'Mitglied nicht gefunden' });
+
+        const token       = crypto.randomBytes(32).toString('hex');
+        const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const name        = r[0].full_name;
+
+        db.query(
+            `UPDATE members SET password='PENDING_SETUP', is_password_set=FALSE, invitation_token=?, token_expires=? WHERE id=?`,
+            [token, tokenExpiry, id],
+            e2 => {
+                if (e2) return res.status(500).json({ error: e2.message });
+                logActivity(req.session.userId, 'password_reset', `Passwort für ${name} zurückgesetzt`);
+                const resetLink = `${req.protocol}://${req.get('host')}/setup.html?token=${token}`;
+                res.json({ success: true, reset_link: resetLink });
+            }
+        );
+    });
+});
+
 app.post('/api/members/setup-password', (req, res) => {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ error: 'Token und Passwort erforderlich' });

@@ -1107,6 +1107,7 @@ async function loadMembers() {
                 <td>
                     ${canEdit ? `
                         <button class="btn-icon-small" onclick="editMember(${m.id})" title="Bearbeiten"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon-small" onclick="resetMemberPassword(${m.id}, '${m.full_name}')" title="Passwort zurücksetzen" style="background: #e67e22;"><i class="fas fa-key"></i></button>
                         <button class="btn-icon-small" onclick="deleteMember(${m.id}, '${m.full_name}')" title="Löschen" style="background: #dc3545;"><i class="fas fa-trash"></i></button>
                     ` : '-'}
                 </td>
@@ -3072,6 +3073,9 @@ document.getElementById('add-member-form').addEventListener('submit', async (e) 
             document.getElementById('add-member-form').reset();
             
             // Zeige Invite-Link Modal
+            document.getElementById('invite-modal-heading').textContent = 'Einladungslink erstellt';
+            document.getElementById('invite-modal-title').textContent = 'Mitglied erfolgreich angelegt!';
+            document.getElementById('invite-modal-desc').textContent = 'Sende dem neuen Mitglied diesen Link:';
             document.getElementById('invite-link-display').value = result.invite_link;
             document.getElementById('modal-overlay').style.display = 'flex';
             document.getElementById('invite-link-modal').style.display = 'block';
@@ -3263,6 +3267,32 @@ function copyInviteLink() {
     linkInput.select();
     document.execCommand('copy');
     showToast('Link wurde in die Zwischenablage kopiert', 'success', 'Kopiert', 2000);
+}
+
+async function resetMemberPassword(memberId, memberName) {
+    if (!confirm(`Passwort von "${memberName}" wirklich zurücksetzen? Das aktuelle Passwort wird ungültig und ein neuer Setup-Link wird erstellt.`)) return;
+
+    try {
+        const response = await fetch(`${API_URL}/members/${memberId}/reset-password`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            document.getElementById('invite-modal-heading').textContent = 'Passwort zurückgesetzt';
+            document.getElementById('invite-modal-title').textContent = `Passwort für ${memberName} zurückgesetzt!`;
+            document.getElementById('invite-modal-desc').textContent = 'Sende dem Mitglied diesen Link zum Einrichten eines neuen Passworts:';
+            document.getElementById('invite-link-display').value = result.reset_link;
+            document.getElementById('modal-overlay').style.display = 'flex';
+            document.getElementById('invite-link-modal').style.display = 'block';
+            loadMembers();
+        } else {
+            showToast(result.error || 'Fehler beim Zurücksetzen des Passworts', 'error');
+        }
+    } catch (error) {
+        showToast('Verbindungsfehler zum Server', 'error');
+    }
 }
 
 // Passwort anzeigen (nur für Techniker)
